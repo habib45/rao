@@ -1,0 +1,44 @@
+{
+  "common": {
+    "site_name": "BestFinds",
+    "search_placeholder": "Search products...",
+    "view_all": "View all",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "no_results": "No results found"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "categories": "Categories",
+    "cart": "Cart",
+    "search": "Search"
+  },
+  "product": {
+    "buy_on_amazon": "Buy on Amazon",
+    "add_to_cart": "Add to Cart",
+    "in_stock": "In Stock",
+    "out_of_stock": "Out of Stock",
+    "unknown_availability": "Check Availability",
+    "price_unavailable": "Price unavailable",
+    "features": "Features",
+    "description": "Description",
+    "rating": "{rating} out of 5 stars",
+    "reviews": "{count} reviews",
+    "discount": "{percent}% off"
+  },
+  "cart": {
+    "your_cart": "Your Cart",
+    "empty_cart": "Your cart is empty",
+    "remove": "Remove",
+    "quantity": "Quantity",
+    "total": "Total",
+    "checkout_amazon": "Checkout on Amazon",
+    "continue_shopping": "Continue Shopping"
+  },
+  "footer": {
+    "affiliate_disclosure": "As an Amazon Associate, we earn from qualifying purchases.",
+    "privacy_policy": "Privacy Policy",
+    "terms": "Terms of Service"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "common": {
+    "site_name": "BestFinds",
+    "search_placeholder": "পণ্য খুঁজুন...",
+    "view_all": "সব দেখুন",
+    "loading": "লোড হচ্ছে...",
+    "error": "কিছু ভুল হয়েছে",
+    "no_results": "কোনো ফলাফল পাওয়া যায়নি"
+  },
+  "nav": {
+    "home": "হোম",
+    "products": "পণ্য",
+    "categories": "বিভাগ",
+    "cart": "কার্ট",
+    "search": "খুঁজুন"
+  },
+  "product": {
+    "buy_on_amazon": "Amazon এ কিনুন",
+    "add_to_cart": "কার্টে যোগ করুন",
+    "in_stock": "স্টকে আছে",
+    "out_of_stock": "স্টকে নেই",
+    "unknown_availability": "প্রাপ্যতা দেখুন",
+    "price_unavailable": "মূল্য পাওয়া যায়নি",
+    "features": "বৈশিষ্ট্য",
+    "description": "বিবরণ",
+    "rating": "{rating} / ৫ তারা",
+    "reviews": "{count} রিভিউ",
+    "discount": "{percent}% ছাড়"
+  },
+  "cart": {
+    "your_cart": "আপনার কার্ট",
+    "empty_cart": "আপনার কার্ট খালি",
+    "remove": "সরান",
+    "quantity": "পরিমাণ",
+    "total": "মোট",
+    "checkout_amazon": "Amazon এ চেকআউট",
+    "continue_shopping": "কেনাকাটা চালিয়ে যান"
+  },
+  "footer": {
+    "affiliate_disclosure": "Amazon Associate হিসেবে, যোগ্য কেনাকাটা থেকে আমরা আয় করি।",
+    "privacy_policy": "গোপনীয়তা নীতি",
+    "terms": "সেবার শর্তাবলী"
+  }
+}

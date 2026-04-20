@@ -1,0 +1,44 @@
+{
+  "common": {
+    "site_name": "BestFinds",
+    "search_placeholder": "Sök produkter...",
+    "view_all": "Visa alla",
+    "loading": "Laddar...",
+    "error": "Något gick fel",
+    "no_results": "Inga resultat hittades"
+  },
+  "nav": {
+    "home": "Hem",
+    "products": "Produkter",
+    "categories": "Kategorier",
+    "cart": "Kundvagn",
+    "search": "Sök"
+  },
+  "product": {
+    "buy_on_amazon": "Köp på Amazon",
+    "add_to_cart": "Lägg i kundvagn",
+    "in_stock": "I lager",
+    "out_of_stock": "Slut i lager",
+    "unknown_availability": "Kontrollera tillgänglighet",
+    "price_unavailable": "Pris ej tillgängligt",
+    "features": "Funktioner",
+    "description": "Beskrivning",
+    "rating": "{rating} av 5 stjärnor",
+    "reviews": "{count} recensioner",
+    "discount": "{percent}% rabatt"
+  },
+  "cart": {
+    "your_cart": "Din kundvagn",
+    "empty_cart": "Din kundvagn är tom",
+    "remove": "Ta bort",
+    "quantity": "Antal",
+    "total": "Totalt",
+    "checkout_amazon": "Gå till kassan på Amazon",
+    "continue_shopping": "Fortsätt handla"
+  },
+  "footer": {
+    "affiliate_disclosure": "Som Amazon Associate tjänar vi på kvalificerade köp.",
+    "privacy_policy": "Integritetspolicy",
+    "terms": "Användarvillkor"
+  }
+}
