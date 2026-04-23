@@ -99,6 +99,106 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 ---
 
+### Phase 8: Admin Panel
+**Goal:** Production-grade internal admin panel at `/admin` for managing products, categories, analytics, translations, and settings. Accessible only to authenticated Supabase users with `app_metadata.role = "admin"`.  
+**Duration estimate:** 2 sprints  
+**Deliverables:**
+- Supabase JWT-based admin auth (no extra DB table)
+- Middleware guard on all `/admin/*` routes
+- RLS policies for admin CRUD on all 7 tables
+- `admin_settings` and `sync_logs` tables
+- Dashboard with stats cards, click trend chart, top categories chart, sync log table
+- Products CRUD: list with search/filter/pagination, edit form (multi-locale tabbed), force Amazon sync
+- Categories CRUD: list table, create/edit modal with multi-locale fields and auto-slug
+- Analytics: paginated click events with date/locale/groupBy filters, CSV export, price history line chart
+- Translations editor: inline table for missing translation detection and bulk save
+- Settings page: affiliate tags per locale, feature flags, sync config (read-only)
+- Hand-built UI primitives (button, input, table, dialog, select, badge, tabs, card, skeleton)
+- Dark mode toggle via `.dark` class on `<html>`
+- Full test coverage: unit (slugify, schemas, auth), component (StatsCard, ProductFilters), API route (products, categories), middleware
+
+**New Dependencies:** `@tanstack/react-query`, `zod`, `recharts`, `sonner`, `lucide-react`, `clsx`, `tailwind-merge`
+
+**New Env Var:** `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+
+**New Migrations:**
+- `supabase/migrations/00006_admin_rls.sql` — RLS policies, `admin_settings`, `sync_logs`
+- `supabase/migrations/00007_admin_dashboard_functions.sql` — Postgres RPC functions for dashboard aggregations
+
+**Sub-phases:**
+
+#### Phase A — Foundation
+- `supabase/migrations/00006_admin_rls.sql`: Admin CRUD policies on all 7 tables, `admin_settings` table (key/value JSONB), `sync_logs` table
+- `src/lib/supabase/admin.ts`: Server-only service-role Supabase client
+- `src/middleware.ts` (modified): Admin JWT auth gate + next-intl delegation
+- `src/app/admin/layout.tsx`, `admin.css`: HTML root layout + dark mode CSS vars
+- `src/app/admin/_components/AdminShell.tsx`: Collapsible sidebar, header with email/dark-mode toggle/sign-out
+- `src/app/admin/_components/Providers.tsx`: TanStack Query provider
+- `src/app/admin/login/page.tsx`: Email/password login form (Supabase `signInWithPassword`)
+- `src/app/admin/_lib/auth.ts`: `getAdminUser()` + `requireAdmin()` server helpers
+- `src/app/admin/_lib/actions.ts`: `signOut()` server action
+- `src/app/admin/_components/ui/`: button, input, table, dialog, select, badge, tabs, card, skeleton
+
+#### Phase B — Admin Dashboard
+- `supabase/migrations/00007_admin_dashboard_functions.sql`: Postgres RPCs — `admin_dashboard_stats()`, `admin_click_trends(days_back)`, `admin_top_categories(lim)`
+- `src/app/admin/_lib/queries/dashboard.ts`: `getDashboardStats()`, `getClickTrends()`, `getTopCategories()`, `getRecentSyncLogs()`, `getTopProducts()`
+- `src/app/admin/(dashboard)/page.tsx`: Dashboard page with:
+  - **4 stats cards**: Total Products, Active Categories, Clicks (7d), Clicks (30d)
+  - **Click Trends AreaChart** (30 days, recharts)
+  - **Top Categories BarChart** (recharts)
+  - **Top Products list** (by click count)
+  - **Sync Logs table** (function name, status badge, item count, timestamps)
+- `_components/dashboard/StatsCard.tsx`, `SyncStatusTable.tsx`
+- `_components/charts/ClickTrendsChart.tsx`, `TopCategoriesChart.tsx`
+
+#### Phase C — Products CRUD
+- `src/app/admin/_lib/schemas/product.ts`: Zod `productUpdateSchema` (multi-locale TranslationMap, availability enum, discount 0–100)
+- `src/app/admin/api/products/route.ts`: GET with search/filter/pagination
+- `src/app/admin/api/products/[id]/route.ts`: GET, PATCH (Zod validated), DELETE (soft)
+- `src/app/admin/api/products/[id]/sync/route.ts`: POST force sync via Edge Function
+- `src/app/admin/products/page.tsx` + `ProductsTable.tsx`: Paginated table with image, name, ASIN, price, rating, status toggle
+- `ProductFilters.tsx`: Debounced (300ms) search, category select, status select
+- `src/app/admin/products/[id]/page.tsx` + `ProductEditForm.tsx`: Tabbed form (General, Locales en/bn-BD/sv, Features, Pricing, Images)
+- `LocaleFieldGroup.tsx`, `ForceSyncButton.tsx`
+
+#### Phase D — Categories CRUD
+- `src/app/admin/_lib/schemas/category.ts`: Zod `categorySchema` (multi-locale, UUID parent_id, image_url transforms "" → null)
+- `src/app/admin/_lib/utils/slugify.ts`: `slugify()` — NFD normalize, strip non-alphanumeric, hyphens
+- `src/app/admin/api/categories/route.ts`: GET (with product counts), POST
+- `src/app/admin/api/categories/[id]/route.ts`: GET, PATCH, DELETE (soft `is_active=false`)
+- `src/app/admin/categories/page.tsx` + `CategoriesTable.tsx`: Table with name/slug/parent/product count/sort order/status, edit + deactivate actions
+- `CategoryFormDialog.tsx`: Multi-locale create/edit modal with auto-slug generation button
+
+#### Phase E — Analytics
+- `src/app/admin/api/analytics/clicks/route.ts`: GET paginated/grouped (by day/locale/product) with date + locale filters
+- `src/app/admin/api/analytics/clicks/export/route.ts`: GET CSV stream (up to 10k rows)
+- `src/app/admin/api/analytics/price-history/route.ts`: GET per-product price history (up to 365 entries)
+- `src/app/admin/analytics/page.tsx` + `AnalyticsTabs.tsx`: Tabbed layout
+- `ClicksTable.tsx`: Paginated click log with date range, locale, group-by filters + CSV export button
+- `PriceHistoryChart.tsx`: Product selector + recharts LineChart
+
+#### Phase F — Translations & Settings
+- `src/app/admin/_lib/schemas/translation.ts`: Zod schema for bulk translation update array
+- `src/app/admin/api/translations/route.ts`: GET (with `_missing` annotations), PATCH (per-field locale update)
+- `src/app/admin/translations/page.tsx` + `TranslationsEditor.tsx`: Inline editable table, missing translations highlighted in amber, bulk save
+- `src/app/admin/api/settings/route.ts`: GET/PATCH `admin_settings` key-value store
+- `src/app/admin/settings/page.tsx` + `SettingsForm.tsx`: Affiliate tags (per locale), sync config (read-only), feature flags (cart, reviews, price alerts)
+
+#### Phase G — Tests + Quality Gates
+- `_lib/utils/__tests__/slugify.test.ts` (14 cases: Latin, diacritics, Swedish, Bengali, edge cases)
+- `_lib/__tests__/schemas.test.ts` (28 cases: categorySchema, productUpdateSchema, translationUpdateSchema)
+- `_lib/__tests__/auth.test.ts` (8 cases: getAdminUser role checks, requireAdmin redirect)
+- `_components/__tests__/StatsCard.test.tsx` (6 cases: title, value, description, icon)
+- `products/_components/__tests__/ProductFilters.test.tsx` (7 cases: render, debounce, category select)
+- `api/__tests__/categories.test.ts` (9 cases: GET/POST/PATCH/DELETE with validation + error paths)
+- `api/__tests__/products.test.ts` (7 cases: PATCH validation, DELETE soft, error paths)
+- `src/__tests__/middleware.test.ts` (10 cases: admin auth gate, locale delegation, API bypass)
+- Quality gates: `tsc --noEmit` (0 errors), `vitest run` (307/307 passing), `eslint --max-warnings 0`
+
+**Dependencies:** Phases 1–6 (all storefront features must exist)
+
+---
+
 ## Architecture Decisions
 
 | Decision | Choice | Rationale |
@@ -153,11 +253,21 @@ Phase 1 (Foundation)
             └── Phase 4 (Pages & Components)
                  ├── Phase 5 (Cart)
                  └── Phase 6 (SEO)
-                      └── Phase 7 (QA & Deploy)
+                      ├── Phase 7 (QA & Deploy)
+                      └── Phase 8 (Admin Panel)
 ```
 
 ---
 
-## Phase 1 — Detailed Breakdown
+## Phase Detailed Breakdowns
 
-See [phase-1/PHASE_1_PLAN.md](phase-1/PHASE_1_PLAN.md) for the full feature list, documents, and test cases.
+| Phase | Plan Document | Status |
+|---|---|---|
+| Phase 1 — Foundation | [phase-1/PHASE_1_PLAN.md](phase-1/PHASE_1_PLAN.md) | ✅ Complete |
+| Phase 2 — Database Schema | [phase-2/PHASE_2_PLAN.md](phase-2/PHASE_2_PLAN.md) | ✅ Complete |
+| Phase 3 — PA-API Integration | [phase-3/PHASE_3_PLAN.md](phase-3/PHASE_3_PLAN.md) | ✅ Complete |
+| Phase 4 — Core Pages & Components | [phase-4/PHASE_4_PLAN.md](phase-4/PHASE_4_PLAN.md) | ✅ Complete |
+| Phase 5 — Cart System | [phase-5/PHASE_5_PLAN.md](phase-5/PHASE_5_PLAN.md) | ✅ Complete |
+| Phase 6 — SEO & Performance | [phase-6/PHASE_6_PLAN.md](phase-6/PHASE_6_PLAN.md) | ✅ Complete |
+| Phase 7 — Testing, QA & Deployment | [phase-7/PHASE_7_PLAN.md](phase-7/PHASE_7_PLAN.md) | ✅ Complete |
+| Phase 8 — Admin Panel | [phase-8/PHASE_8_PLAN.md](phase-8/PHASE_8_PLAN.md) | ✅ Complete |
