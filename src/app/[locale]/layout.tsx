@@ -5,6 +5,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import type { LocaleCode } from "@/types/domain";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { CartProvider } from "@/lib/cart/CartProvider";
 import "../globals.css";
 
 const inter = Inter({
@@ -69,12 +72,13 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir="ltr">
-      <body className={bodyClassName}>
+      <body className={`${bodyClassName} min-h-screen flex flex-col`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          {children}
-          <footer className="text-center text-sm text-gray-500 py-4">
-            As an Amazon Associate, we earn from qualifying purchases.
-          </footer>
+          <CartProvider>
+            <Header locale={locale as LocaleCode} />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </CartProvider>
         </NextIntlClientProvider>
       </body>
     </html>
