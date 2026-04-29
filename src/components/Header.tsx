@@ -21,13 +21,15 @@ export default function Header({ locale }: { locale: LocaleCode }) {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white shadow-sm">
+      <script
+        src="https://analytics.ahrefs.com/analytics.js"
+        data-key="Rj/OXwrCVvFKc3tAWJnNzg"
+        async
+      ></script>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center gap-4">
           {/* Logo */}
-          <Link
-            href="/"
-            className="shrink-0 text-xl font-bold text-brand"
-          >
+          <Link href="/" className="shrink-0 text-xl font-bold text-brand">
             {tCommon("site_name")}
           </Link>
 
