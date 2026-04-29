@@ -49,10 +49,12 @@ export default function SidebarFilters({
   categories,
   brands,
   locale,
+  hideCategories = false,
 }: {
   categories: Category[];
   brands: string[];
   locale: LocaleCode;
+  hideCategories?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -132,7 +134,7 @@ export default function SidebarFilters({
       </div>
 
       {/* Category */}
-      {categories.length > 0 && (
+      {!hideCategories && categories.length > 0 && (
         <FilterSection title="Filter By Category">
           {categories.map((cat) => {
             const name = t(cat.name, locale) as string;

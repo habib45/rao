@@ -199,6 +199,146 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 ---
 
+### Phase 9: Admin Product Ingestion & Scheduled Publishing
+**Goal:** Extend the admin panel with two ingestion/workflow features: (1) import a single product by ASIN on demand, and (2) schedule products to be automatically published at a future time.
+**Duration estimate:** 0.5 sprint
+**Deliverables:**
+
+#### Feature 9.1 — Import Product by ASIN
+- New Edge Function `supabase/functions/import-product/index.ts` that calls PA-API `GetItems` for a single ASIN and returns a normalized row.
+- New admin API route `src/app/admin/api/products/import/route.ts` (POST, Zod-validated, service-role) that invokes the Edge Function, upserts a draft product (`is_active: false`), inserts the primary image, and returns `{ product_id, asin, name }`.
+- New dashboard widget `AsinImportWidget` (client component) with ASIN input, Sync button, loading/success/error states, and a link to the draft's edit page.
+
+#### Feature 9.2 — Schedule Product Publishing
+- New migration `supabase/migrations/00008_product_scheduling.sql` adding `publish_at TIMESTAMPTZ NULL` on `products`, a partial index, and a `publish_scheduled_products()` RPC.
+- New Edge Function `supabase/functions/publish-scheduled/index.ts` (hourly cron) that invokes the RPC and writes a `sync_logs` row.
+- Domain type update: `Product.publish_at?: string | null`.
+- Zod schema update: `publish_at` accepted on PATCH (ISO datetime or null).
+- `ProductEditForm` scheduling section (visible only when draft): datetime-local input, "Schedule", "Publish Now", "Clear schedule".
+- Dashboard widget `ScheduledPublishWidget` (server component) listing next 10 scheduled products.
+- New dashboard query `getScheduledProducts()` in `_lib/queries/dashboard.ts`.
+
+**New Dependencies:** None (reuses existing stack).
+
+**New Migrations:**
+- `supabase/migrations/00008_product_scheduling.sql` — `publish_at` column, partial index, `publish_scheduled_products()` function.
+
+**Dependencies:** Phase 8 (admin shell, auth, existing product APIs).
+
+**Test coverage:**
+- `AsinImportWidget` render/loading/success/error/validation (5 cases)
+- `ScheduledPublishWidget` list/empty/date-format (3 cases)
+- Import API route validate/success/upsert/edge-failure (4 cases)
+- Publish-schedule scheduler component render/set/publish/clear (4 cases)
+- Products PATCH accepts `publish_at` (ISO + null) — extends existing test file
+- Full quality gates: `tsc --noEmit`, `eslint . --max-warnings 0`, `vitest run` with all 307 prior + new tests passing.
+
+---
+
+### Phase 10: Public UI Redesign
+**Goal:** Replace the first-cut storefront visuals with a production-grade design for the homepage and product listing page, plus supporting Header/Footer/ProductCard and filter components.
+**Duration estimate:** 1 sprint (delivered prior to documentation sweep)
+**Deliverables:**
+- Redesigned homepage (`src/app/[locale]/page.tsx`) with hero block, category icon grid, featured & deal sections
+- Redesigned product list page (`src/app/[locale]/products/page.tsx`) with sidebar filters, sort control, pagination
+- New shared components: `src/components/Header.tsx`, `src/components/Footer.tsx`, `src/components/ProductCard.tsx`
+- New product-list sub-components: `SidebarFilters.tsx`, `SortSelect.tsx`, `Pagination.tsx`
+- New query helpers in `src/lib/queries/products.ts`: `getProductsFiltered`, `getProductFilterMeta`, `getProductsByCategoryLimit`
+- Category detail page refresh (`src/app/[locale]/categories/[slug]/page.tsx`) consuming the shared card/grid
+
+**Dependencies:** Phase 8 (admin-owned data surfaces), Phase 9 (data completeness guarantees via scheduling/import)
+
+### Phase 11: Rich Product Creation Form + Approval Workflow
+**Goal:** Let admins compose full product pages inside the admin panel (with a rich text editor) and gate publication behind a draft → review → approved → published workflow.
+**Duration estimate:** 1.5 sprints
+**Deliverables:**
+
+#### Feature 11.1 — Product Status Workflow
+- Migration `supabase/migrations/00009_product_workflow.sql` adding `product_status` enum (`draft | pending_review | approved | published`), `rejection_reason`, `submitted_by` columns and partial index
+- Domain type update: `Product.product_status`, `rejection_reason`, `submitted_by`
+- Zod `productUpdateSchema` accepts `product_status`
+- API routes: `POST /admin/api/products/[id]/approve`, `.../reject`, `.../publish`
+- `getScheduledProducts` filters by `product_status='approved'`
+- Review queue page `src/app/admin/products/review/page.tsx` with Approve / Reject (with reason) actions
+- AdminShell sidebar: "Review Queue" link with pending badge count
+
+#### Feature 11.2 — Rich Text Editor
+- Install TipTap: `@tiptap/react @tiptap/pm @tiptap/starter-kit @tiptap/extension-table` (+ row/header/cell) `@tiptap/extension-image @tiptap/extension-link @tiptap/extension-text-align @tiptap/extension-underline @tiptap/extension-color @tiptap/extension-text-style @tiptap/extension-highlight @tiptap/extension-placeholder`
+- Build `src/app/admin/_components/ui/RichTextEditor.tsx` (client-only, dynamic-imported)
+- Toolbar: Bold/Italic/Underline/Strike, H1-H3, bullet/ordered lists, table insert, link, image URL, text align, color, highlight, undo/redo
+- Output: HTML string, stored in `products.description` TranslationMap per locale
+
+#### Feature 11.3 — Product Creation Form
+- `src/app/admin/products/new/page.tsx` + `ProductCreateForm.tsx` (client)
+- Fields: title (all 3 locales), slug (auto from title), category, brand, price, original price, currency, discount %, availability, features (dynamic list), description (RichTextEditor per locale tab), meta_title, meta_description, image URLs
+- Product edit form now supports manual image URL add/remove in the Images tab and persists images to `product_images`
+- "Sync from Amazon" sub-widget: ASIN input → calls `/admin/api/products/import` → autofills form
+- Buttons: "Save as Draft" (`product_status='draft'`) and "Submit for Review" (`product_status='pending_review'`)
+- `New Product` button on `/admin/products` pointing at `/admin/products/new`
+
+**New Dependencies:** TipTap suite (see above)
+
+**New Migrations:**
+- `supabase/migrations/00009_product_workflow.sql`
+
+**Dependencies:** Phase 9 (existing import + scheduling APIs reused)
+
+### Phase 12: Product Review System
+**Goal:** Let shoppers submit reviews from the public product page and give admins a moderation queue.
+**Duration estimate:** 1 sprint
+**Deliverables:**
+
+#### Feature 12.1 — Review Schema & RLS
+- Migration `supabase/migrations/00010_product_reviews.sql`: `product_reviews` table with rating 1-5 check, status enum (`pending | approved | rejected`), author email/name, admin note, `updated_at` trigger
+- RLS: public SELECT where `status='approved'` OR the row matches `reviewer_email` cookie claim; public INSERT; admin full access
+
+#### Feature 12.2 — Public Review UI
+- `src/app/[locale]/products/[slug]/_components/ReviewSection.tsx` (client)
+- `src/app/api/reviews/[productId]/route.ts` (GET: approved + own pending)
+- `src/app/api/reviews/route.ts` (POST: Zod-validated insert, sets `reviewer_email` cookie 1 year)
+- Star-rating read/write component
+- Success state: "Your review is pending approval"
+
+#### Feature 12.3 — Admin Review Moderation
+- `src/app/admin/reviews/page.tsx` with Pending / Approved / Rejected tabs
+- `src/app/admin/api/reviews/route.ts` (GET with status filter + pagination)
+- `src/app/admin/api/reviews/[id]/route.ts` (PATCH to approve/reject with optional admin_note)
+- AdminShell sidebar: "Reviews" link
+
+**New Migrations:**
+- `supabase/migrations/00010_product_reviews.sql`
+
+**Dependencies:** Phase 11 (admin shell link conventions), Phase 10 (product detail integration)
+
+### Phase 13: Media Manager (Supabase Storage)
+**Goal:** Provide a built-in media manager inside the admin panel so admins can upload, organise, and pick images without leaving the dashboard, and plug it directly into the product forms.
+**Duration estimate:** 1 sprint
+**Deliverables:**
+
+#### Feature 13.1 — Storage Setup
+- Public Supabase Storage bucket `media`
+- RLS: admin can upload/delete; public can read
+
+#### Feature 13.2 — Admin Media Manager UI
+- `src/app/admin/media/page.tsx` with folder tree (create + navigate) and grid of images (filename, size, copy URL)
+- Drag-and-drop + file-picker upload with progress
+- Folder creation modal
+- Image actions: copy URL, delete, rename
+- Filter images only (jpg/png/webp/gif/svg)
+
+#### Feature 13.3 — API Routes
+- `src/app/admin/api/media/route.ts` — GET list files in path, POST create folder
+- `src/app/admin/api/media/upload/route.ts` — POST multipart upload
+- `src/app/admin/api/media/[...path]/route.ts` — DELETE file/folder
+
+#### Feature 13.4 — Product Form Integration
+- "Browse Media" button in `ProductCreateForm` and `ProductEditForm` opening a modal media picker that inserts chosen image URLs back into the form
+- AdminShell sidebar: "Media" link
+
+**Dependencies:** Phase 11 (integrates with create form)
+
+---
+
 ## Architecture Decisions
 
 | Decision | Choice | Rationale |
@@ -255,6 +395,11 @@ Phase 1 (Foundation)
                  └── Phase 6 (SEO)
                       ├── Phase 7 (QA & Deploy)
                       └── Phase 8 (Admin Panel)
+                           └── Phase 9 (ASIN Import + Scheduled Publishing)
+                                └── Phase 10 (Public UI Redesign)
+                                     └── Phase 11 (Rich Product Form + Approval Workflow)
+                                          ├── Phase 12 (Product Review System)
+                                          └── Phase 13 (Media Manager)
 ```
 
 ---
@@ -271,3 +416,8 @@ Phase 1 (Foundation)
 | Phase 6 — SEO & Performance | [phase-6/PHASE_6_PLAN.md](phase-6/PHASE_6_PLAN.md) | ✅ Complete |
 | Phase 7 — Testing, QA & Deployment | [phase-7/PHASE_7_PLAN.md](phase-7/PHASE_7_PLAN.md) | ✅ Complete |
 | Phase 8 — Admin Panel | [phase-8/PHASE_8_PLAN.md](phase-8/PHASE_8_PLAN.md) | ✅ Complete |
+| Phase 9 — Admin ASIN Import & Scheduled Publishing | [phase-9/PHASE_9_PLAN.md](phase-9/PHASE_9_PLAN.md) | ✅ Complete |
+| Phase 10 — Public UI Redesign | [phase-10/PHASE_10_PLAN.md](phase-10/PHASE_10_PLAN.md) | ✅ Complete |
+| Phase 11 — Rich Product Form + Approval Workflow | [phase-11/PHASE_11_PLAN.md](phase-11/PHASE_11_PLAN.md) | 🚧 In Progress |
+| Phase 12 — Product Review System | [phase-12/PHASE_12_PLAN.md](phase-12/PHASE_12_PLAN.md) | 📋 Planned |
+| Phase 13 — Media Manager (Supabase Storage) | [phase-13/PHASE_13_PLAN.md](phase-13/PHASE_13_PLAN.md) | 📋 Planned |

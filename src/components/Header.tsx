@@ -57,6 +57,12 @@ export default function Header({ locale }: { locale: LocaleCode }) {
               >
                 {t("categories")}
               </Link>
+              <Link
+                href="/blog"
+                className="text-sm font-medium text-foreground transition-colors hover:text-brand"
+              >
+                {t("blog")}
+              </Link>
             </nav>
 
             <Link
@@ -126,6 +132,12 @@ export default function Header({ locale }: { locale: LocaleCode }) {
             className="whitespace-nowrap text-sm font-medium text-foreground hover:text-brand"
           >
             {t("categories")}
+          </Link>
+          <Link
+            href="/blog"
+            className="whitespace-nowrap text-sm font-medium text-foreground hover:text-brand"
+          >
+            {t("blog")}
           </Link>
           <Link
             href="/search"

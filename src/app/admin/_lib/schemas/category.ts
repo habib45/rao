@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const uuidLike = z.string().regex(
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+  "Invalid UUID",
+);
+
 const translationMapSchema = z.object({
   en: z.string().min(1, "English value is required"),
   "bn-BD": z.string().optional().default(""),
@@ -11,7 +16,7 @@ export const categorySchema = z.object({
   slug: translationMapSchema,
   description: translationMapSchema,
   amazon_node_id: z.string().nullable().default(null),
-  parent_id: z.string().uuid().nullable().default(null),
+  parent_id: uuidLike.nullable().default(null),
   sort_order: z.number().int().min(0).default(0),
   image_url: z
     .string()

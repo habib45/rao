@@ -15,15 +15,21 @@ import {
   Moon,
   Sun,
   LogOut,
+  ClipboardCheck,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/app/admin/_lib/cn";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/products/review", label: "Review Queue", icon: ClipboardCheck },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
+  { href: "/admin/blog", label: "Blog", icon: FileText },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/translations", label: "Translations", icon: Languages },
+  { href: "/admin/media", label: "Media", icon: ImageIcon },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -74,10 +80,13 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
 
         <nav className="flex-1 overflow-y-auto p-3">
           {navItems.map(({ href, label, icon: Icon }) => {
-            const active =
-              href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(href);
+            // Exact match for /admin and /admin/products to avoid /admin/products/review
+            // matching "/admin/products" as a prefix. /admin/blog is treated as a prefix
+            // match so its sub-pages (new, [id], categories) keep the link active.
+            const exactMatchRoutes = ["/admin", "/admin/products"];
+            const active = exactMatchRoutes.includes(href)
+              ? pathname === href
+              : pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
                 key={href}

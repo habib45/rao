@@ -102,6 +102,30 @@ describe("PATCH /admin/api/products/[id]", () => {
     const res = await PATCH(req, { params });
     expect(res.status).toBe(500);
   });
+
+  it("accepts a valid ISO publish_at datetime", async () => {
+    const stub = makeSupabaseStub({ data: { id: "550e8400-e29b-41d4-a716-446655440000" } });
+    vi.mocked(createAdminClient).mockReturnValue(stub as unknown as ReturnType<typeof createAdminClient>);
+
+    const req = makeRequest("PATCH", { publish_at: "2099-12-31T00:00:00.000Z" });
+    const res = await PATCH(req, { params });
+    expect(res.status).toBe(200);
+  });
+
+  it("accepts publish_at: null to clear the schedule", async () => {
+    const stub = makeSupabaseStub({ data: { id: "550e8400-e29b-41d4-a716-446655440000" } });
+    vi.mocked(createAdminClient).mockReturnValue(stub as unknown as ReturnType<typeof createAdminClient>);
+
+    const req = makeRequest("PATCH", { publish_at: null });
+    const res = await PATCH(req, { params });
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects publish_at when the value is not an ISO datetime", async () => {
+    const req = makeRequest("PATCH", { publish_at: "not-a-date" });
+    const res = await PATCH(req, { params });
+    expect(res.status).toBe(400);
+  });
 });
 
 describe("DELETE /admin/api/products/[id]", () => {

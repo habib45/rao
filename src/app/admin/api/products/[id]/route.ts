@@ -38,15 +38,53 @@ export async function PATCH(
   }
 
   const supabase = createAdminClient();
+  const updateData: Record<string, unknown> = { ...result.data };
+  const images = Array.isArray(updateData.images) ? (updateData.images as { url: string; width?: number; height?: number; is_primary?: boolean; sort_order?: number }[]) : undefined;
+  delete updateData.images;
+  if (
+    updateData.attributes &&
+    typeof updateData.attributes === "object" &&
+    !Array.isArray(updateData.attributes) &&
+    Object.keys(updateData.attributes as Record<string, unknown>).length === 0
+  ) {
+    delete updateData.attributes;
+  }
+
+  // Remove columns that might not exist in the database schema yet
+  delete updateData.product_status;
+  delete updateData.rejection_reason;
+  delete updateData.submitted_by;
+
   const { data, error } = await supabase
     .from("products")
-    .update(result.data)
+    .update(updateData)
     .eq("id", id)
     .select()
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (images !== undefined) {
+    await supabase.from("product_images").delete().eq("product_id", id);
+
+    if (images.length > 0) {
+      const imageRows = images.map((img, index) => ({
+        product_id: id,
+        url: img.url,
+        width: img.width ?? null,
+        height: img.height ?? null,
+        is_primary: img.is_primary ?? index === 0,
+        sort_order: img.sort_order ?? index,
+        alt_text: {},
+      }));
+
+      const { error: imageError } = await supabase.from("product_images").insert(imageRows);
+      if (imageError) {
+        return NextResponse.json({ error: imageError.message }, { status: 500 });
+      }
+    }
   }
 
   return NextResponse.json(data);
