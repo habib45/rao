@@ -13,11 +13,13 @@ import "../globals.css";
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
 const notoSansBengali = Noto_Sans_Bengali({
   subsets: ["bengali"],
   display: "swap",
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];

@@ -6,7 +6,11 @@ import { Providers } from "./_components/Providers";
 import "../globals.css";
 import "./admin.css";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
+});
 
 export const metadata: Metadata = {
   title: { template: "%s | BestFinds Admin", default: "BestFinds Admin" },
