@@ -337,6 +337,27 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 **Dependencies:** Phase 11 (integrates with create form)
 
+### Phase 16: Related Content Sections (Blog & Product Detail)
+**Goal:** Surface related content at the bottom of the blog detail page (related posts by category) and the product detail page (related products by category) to improve engagement and SEO internal linking.  
+**Duration estimate:** 0.5 sprint  
+**Deliverables:**
+
+#### Feature 16.1 — Related Blog Posts section
+- New `RelatedBlogCard` inline component in `src/app/[locale]/blog/[slug]/page.tsx`
+- Full-width "More from [Category]" grid (up to 3 posts) rendered below the comments section
+- Reuses the already-fetched `related` array from `getRelatedBlogPosts()`
+
+#### Feature 16.2 — `getRelatedProducts()` query helper
+- New function in `src/lib/queries/products.ts` with signature `getRelatedProducts(productId, categoryId, limit=4)`
+- Filters `is_active=true`, excludes current product via `.neq("id", productId)`, orders by `created_at desc`
+
+#### Feature 16.3 — Related Products section
+- "You may also like" grid (up to 4 products) added to `src/app/[locale]/products/[slug]/page.tsx` below the main two-column layout
+- Uses existing `ProductCard` component with `showPrice` forwarded from `getSiteSettings()`
+
+**New Migrations:** None  
+**Dependencies:** Phase 14 (blog system), Phase 10 (ProductCard), Phase 15 (showPrice setting)
+
 ---
 
 ## Architecture Decisions

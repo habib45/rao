@@ -112,6 +112,66 @@ function CategoryBadge({ color, name }: { color: string | null; name: string }) 
   );
 }
 
+function RelatedBlogCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
+  const title = t(post.title, locale) as string;
+  const slug = t(post.slug, locale) as string;
+  const categoryName = post.blog_categories
+    ? (t(post.blog_categories.name, locale) as string)
+    : null;
+  const categoryColor = post.blog_categories?.color ?? "#f59e0b";
+  const dateStr = post.published_at ? formatDate(post.published_at, locale) : "";
+
+  return (
+    <Link
+      href={`/blog/${slug}`}
+      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-shadow hover:shadow-md"
+    >
+      <div className="relative aspect-video w-full overflow-hidden bg-surface">
+        {post.cover_image_url ? (
+          <Image
+            src={post.cover_image_url}
+            alt={(t(post.cover_image_alt, locale) as string) || title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-sm font-bold text-muted">
+            BF
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        {categoryName && (
+          <span
+            className="inline-block w-fit rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-white"
+            style={{ backgroundColor: categoryColor }}
+          >
+            {categoryName}
+          </span>
+        )}
+        <h3 className="line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-brand">
+          {title}
+        </h3>
+        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+          {dateStr && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {dateStr}
+            </span>
+          )}
+          {post.read_time_minutes > 0 && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {post.read_time_minutes} min read
+            </span>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function SidebarPostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
   const title = t(post.title, locale) as string;
   const slug = t(post.slug, locale) as string;
@@ -360,6 +420,23 @@ export default async function BlogDetailPage({
               </div>
             )}
 
+            {/* Related posts — above share section */}
+            {related.length > 0 && (
+              <div className="mt-10 border-t border-border pt-8">
+                <h2 className="mb-5 text-lg font-bold text-foreground">
+                  More from{" "}
+                  <span style={{ color: categoryColor ?? "#f59e0b" }}>
+                    {categoryName ?? "the blog"}
+                  </span>
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {related.slice(0, 3).map((p) => (
+                    <RelatedBlogCard key={p.id} post={p} locale={loc} />
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Social sharing */}
             <div className="mt-8 rounded-xl border border-border bg-surface p-5">
               <SocialShare
@@ -515,6 +592,7 @@ export default async function BlogDetailPage({
           </aside>
         </div>
       </div>
+
     </div>
   );
 }

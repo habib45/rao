@@ -254,3 +254,27 @@ export async function searchProducts(
     total: count ?? 0,
   };
 }
+
+export async function getRelatedProducts(
+  productId: string,
+  categoryId: string | null,
+  limit = 4,
+): Promise<Product[]> {
+  if (!categoryId) return [];
+
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("*, product_images(*)")
+    .eq("is_active", true)
+    .eq("category_id", categoryId)
+    .neq("id", productId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("getRelatedProducts error:", error.message);
+    return [];
+  }
+  return (data ?? []) as unknown as Product[];
+}

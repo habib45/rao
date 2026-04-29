@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 import type { LocaleCode } from "@/types/domain";
 import { t } from "@/lib/i18n/translate";
 import { formatPrice } from "@/lib/i18n/format";
-import { getProductBySlug } from "@/lib/queries/products";
+import { getProductBySlug, getRelatedProducts } from "@/lib/queries/products";
 import { getSiteSettings } from "@/lib/queries/settings";
 import AddToCartButton from "@/components/AddToCartButton";
+import ProductCard from "@/components/ProductCard";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -107,6 +108,8 @@ export default async function ProductPage({
     getSiteSettings(),
   ]);
   if (!product) notFound();
+
+  const related = await getRelatedProducts(product.id, product.category_id, 4);
 
   const tProduct = await getTranslations("product");
 
@@ -283,6 +286,25 @@ export default async function ProductPage({
           </div>
         </div>
       </div>
+
+      {/* Related products */}
+      {related.length > 0 && (
+        <div className="mx-auto max-w-7xl border-t border-border px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+          <h2 className="mb-6 text-xl font-bold text-foreground">
+            You may also like
+          </h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard
+                key={p.id}
+                product={p}
+                locale={loc}
+                showPrice={showPrice}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

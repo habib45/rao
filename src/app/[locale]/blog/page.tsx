@@ -84,9 +84,12 @@ function PostCard({
     : "";
 
   return (
-    <article className="group flex gap-4 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-md">
+    <Link
+      href={`/blog/${slug}`}
+      className="group flex gap-4 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-md"
+    >
       {/* Thumbnail */}
-      <div className="relative h-[110px] w-[150px] shrink-0 overflow-hidden rounded-lg bg-surface">
+      <div className="relative h-27.5 w-37.5 shrink-0 overflow-hidden rounded-lg bg-surface">
         {post.cover_image_url ? (
           <Image
             src={post.cover_image_url}
@@ -110,11 +113,9 @@ function PostCard({
               <CategoryBadge color={categoryColor} name={categoryName} />
             </div>
           )}
-          <Link href={`/blog/${slug}`}>
-            <h2 className="line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-brand sm:text-base">
-              {title}
-            </h2>
-          </Link>
+          <h2 className="line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-brand sm:text-base">
+            {title}
+          </h2>
           {excerpt && (
             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted sm:text-sm">
               {excerpt}
@@ -144,7 +145,7 @@ function PostCard({
           )}
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
