@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -11,7 +12,14 @@ import { Badge } from "@/app/admin/_components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/admin/_components/ui/tabs";
 import { LocaleFieldGroup } from "./LocaleFieldGroup";
 import { ForceSyncButton } from "./ForceSyncButton";
-import type { Product } from "@/types/domain";
+import { PublishScheduler } from "./PublishScheduler";
+import { WorkflowActions } from "./WorkflowActions";
+import type { Product, ProductStatus } from "@/types/domain";
+
+const RichTextEditor = dynamic(
+  () => import("@/app/admin/_components/ui/RichTextEditor"),
+  { ssr: false }
+);
 
 interface Category {
   id: string;
@@ -48,7 +56,16 @@ export function ProductEditForm({
     availability: product.availability,
     is_featured: product.is_featured,
     is_active: product.is_active,
+    images: (product.product_images ?? []).map((img) => ({
+      url: img.url,
+      width: img.width ?? undefined,
+      height: img.height ?? undefined,
+      is_primary: img.is_primary,
+      sort_order: img.sort_order,
+    })),
   });
+
+  const [addImageUrl, setAddImageUrl] = useState("");
 
   const mutation = useMutation({
     mutationFn: async (data: typeof form) => {
@@ -111,6 +128,7 @@ export function ProductEditForm({
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="locales">Locales</TabsTrigger>
+          <TabsTrigger value="description">Description</TabsTrigger>
           <TabsTrigger value="features">Features</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
@@ -184,6 +202,19 @@ export function ProductEditForm({
               </Badge>
             </div>
           </div>
+
+          <WorkflowActions
+            productId={product.id}
+            status={(product.product_status ?? "draft") as ProductStatus}
+            rejectionReason={product.rejection_reason ?? null}
+          />
+
+          {product.product_status === "approved" && (
+            <PublishScheduler
+              productId={product.id}
+              currentPublishAt={product.publish_at ?? null}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="locales" className="mt-4 space-y-4">
@@ -200,6 +231,13 @@ export function ProductEditForm({
               onChange={(field, value) => updateLocaleField(code, field, value)}
             />
           ))}
+        </TabsContent>
+
+        <TabsContent value="description" className="mt-4 space-y-4">
+          <DescriptionEditor
+            description={form.description as Record<string, string>}
+            onChange={(locale, html) => updateLocaleField(locale, "description", html)}
+          />
         </TabsContent>
 
         <TabsContent value="features" className="mt-4 space-y-3">
@@ -274,15 +312,19 @@ export function ProductEditForm({
         </TabsContent>
 
         <TabsContent value="images" className="mt-4">
-          {product.product_images?.length > 0 ? (
+          {form.images.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {product.product_images
-                .sort((a, b) => a.sort_order - b.sort_order)
-                .map((img) => (
-                  <div key={img.id} className="relative rounded-lg border border-border p-2">
+              {form.images
+                .slice()
+                .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                .map((img, index) => (
+                  <div
+                    key={`${img.url}-${index}`}
+                    className="relative rounded-lg border border-border p-2"
+                  >
                     <Image
                       src={img.url}
-                      alt={img.alt_text?.en ?? ""}
+                      alt="Product image"
                       width={200}
                       height={200}
                       className="aspect-square w-full rounded-lg object-cover"
@@ -293,16 +335,111 @@ export function ProductEditForm({
                         Primary
                       </Badge>
                     )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((p) => ({
+                          ...p,
+                          images: p.images.filter((_, idx) => idx !== index),
+                        }))
+                      }
+                      className="absolute right-3 bottom-3 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
             </div>
           ) : (
             <p className="py-8 text-center text-sm text-muted">
-              No images. Images are synced from Amazon.
+              No images yet. Add a URL below to attach images to this product.
             </p>
           )}
+
+          <div className="flex gap-2">
+            <Input
+              id="add-image-url"
+              value={addImageUrl}
+              onChange={(e) => setAddImageUrl(e.target.value)}
+              placeholder="https://m.media-amazon.com/images/..."
+              className="flex-1"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                const url = addImageUrl.trim();
+                if (!url) return;
+                setForm((p) => ({
+                  ...p,
+                  images: [
+                    ...p.images,
+                    {
+                      url,
+                      width: undefined,
+                      height: undefined,
+                      is_primary: p.images.length === 0,
+                      sort_order: p.images.length,
+                    },
+                  ],
+                }));
+                setAddImageUrl("");
+              }}
+            >
+              Add URL
+            </Button>
+          </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function DescriptionEditor({
+  description,
+  onChange,
+}: {
+  description: Record<string, string>;
+  onChange: (locale: string, html: string) => void;
+}) {
+  const [activeLocale, setActiveLocale] = useState<string>("en");
+  return (
+    <div className="space-y-3">
+      <div
+        role="tablist"
+        className="inline-flex gap-1 rounded-lg border border-border bg-surface p-1"
+      >
+        {LOCALES.map(({ code, label }) => (
+          <button
+            key={code}
+            type="button"
+            role="tab"
+            aria-selected={activeLocale === code}
+            onClick={() => setActiveLocale(code)}
+            className={
+              activeLocale === code
+                ? "rounded-md bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
+                : "rounded-md px-3 py-1.5 text-sm font-medium text-muted hover:text-foreground"
+            }
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {LOCALES.map(({ code, label }) =>
+        activeLocale === code ? (
+          <div key={code} className="space-y-1">
+            <label className="block text-sm font-medium">
+              Description ({label})
+            </label>
+            <RichTextEditor
+              value={description[code] ?? ""}
+              onChange={(html) => onChange(code, html)}
+              placeholder={`Description (${label})`}
+            />
+          </div>
+        ) : null
+      )}
     </div>
   );
 }

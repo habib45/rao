@@ -11,6 +11,7 @@
     "home": "Hem",
     "products": "Produkter",
     "categories": "Kategorier",
+    "blog": "Blogg",
     "cart": "Kundvagn",
     "search": "Sök"
   },
@@ -39,6 +40,37 @@
   "footer": {
     "affiliate_disclosure": "Som Amazon Associate tjänar vi på kvalificerade köp.",
     "privacy_policy": "Integritetspolicy",
-    "terms": "Användarvillkor"
+    "terms": "Användarvillkor",
+    "affiliate_disclaimer": "Affiliateansvarsfriskrivning"
+  },
+  "affiliateDisclaimer": {
+    "meta_title": "Affiliateansvarsfriskrivning — BestFinds",
+    "meta_description": "Läs vår affiliateansvarsfriskrivning för att förstå hur vi tjänar på kvalificerade köp via Amazon och andra partnerslänkar.",
+    "title": "Affiliateansvarsfriskrivning",
+    "amazon_program_title": "Amazon Associates-programmet",
+    "amazon_program_body": "BestFinds deltar i Amazon Services LLC Associates Program, ett affiliateannonseringsprogram utformat för att ge webbplatser möjlighet att tjäna annonseringsavgifter genom att annonsera och länka till Amazon.com och anknutna webbplatser.",
+    "compensation_title": "Ersättningsupplysning",
+    "compensation_body": "När du klickar på länkar till olika återförsäljare på den här webbplatsen och gör ett köp kan det resultera i att webbplatsen tjänar en provision. Affiliateprogram inkluderar, men är inte begränsade till, Amazon Associates Program.",
+    "honesty_title": "Vårt åtagande för ärliga recensioner",
+    "honesty_body": "Vårt redaktionella innehåll påverkas inte av annonsörersättning. Vi rekommenderar bara produkter och tjänster som vi tror ger värde för våra läsare. Alla åsikter som uttrycks här är våra egna.",
+    "price_disclaimer_title": "Pris och tillgänglighet",
+    "price_disclaimer_body": "Produktpriser och tillgänglighet är korrekta per det angivna datumet/klockslaget och kan ändras. All pris- och tillgänglighetsinformation som visas på Amazon vid köptillfället gäller för köpet av denna produkt.",
+    "contact_title": "Frågor?",
+    "contact_body": "Om du har frågor om våra affiliaterelationer eller hur vi tjänar pengar, vänligen kontakta oss.",
+    "last_updated": "Senast uppdaterad: april 2026"
+  },
+  "blog": {
+    "title": "Blogg",
+    "subtitle": "Insikter, recensioner och guider för att hjälpa dig handla smartare",
+    "read_more": "Läs mer",
+    "min_read": "{count} min läsning",
+    "trending": "Trendande",
+    "all_articles": "Alla artiklar",
+    "no_posts": "Inga inlägg publicerade ännu.",
+    "by_author": "Av {name}",
+    "categories": "Kategorier",
+    "tags": "Taggar",
+    "share": "Dela",
+    "featured": "Utvald"
   }
 }

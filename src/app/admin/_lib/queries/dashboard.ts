@@ -77,3 +77,39 @@ export async function getTopProducts(limit: number = 5) {
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, limit);
 }
+
+export async function getPendingReviewCount(): Promise<number> {
+  const supabase = await createServerClient();
+  const { count, error } = await supabase
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("product_status", "pending_review");
+  if (error) {
+    console.error("getPendingReviewCount error:", error.message);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+export interface ScheduledProduct {
+  id: string;
+  asin: string;
+  name: Record<string, string>;
+  publish_at: string;
+}
+
+export async function getScheduledProducts(limit: number = 10): Promise<ScheduledProduct[]> {
+  const supabase = await createServerClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, asin, name, publish_at")
+    .not("publish_at", "is", null)
+    .eq("is_active", false)
+    .order("publish_at", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error("getScheduledProducts error (migration may not be applied):", error.message);
+    return [];
+  }
+  return (data ?? []) as ScheduledProduct[];
+}

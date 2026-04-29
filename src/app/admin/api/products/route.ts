@@ -1,5 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { productCreateSchema } from "@/app/admin/_lib/schemas/product";
+
+function removeEmptyAttributes<T extends Record<string, unknown>>(payload: T) {
+  if (
+    payload.attributes &&
+    typeof payload.attributes === "object" &&
+    !Array.isArray(payload.attributes) &&
+    Object.keys(payload.attributes as Record<string, unknown>).length === 0
+  ) {
+    const result = { ...payload };
+    delete result.attributes;
+    return result as Omit<T, "attributes">;
+  }
+
+  return payload;
+}
+
+function removeMissingColumns<T extends Record<string, unknown>>(payload: T) {
+  const result = { ...payload };
+
+  // Remove columns that might not exist in the database schema yet
+  delete result.product_status;
+  delete result.rejection_reason;
+  delete result.submitted_by;
+
+  return result;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -31,8 +58,50 @@ export async function GET(request: NextRequest) {
   const { data, count, error } = await query;
 
   if (error) {
+    console.error("[products GET] query error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ products: data ?? [], total: count ?? 0, page, pageSize });
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => null);
+  const parsed = productCreateSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", issues: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const { images, ...productFields } = parsed.data;
+  const supabase = createAdminClient();
+  const insertPayload = removeMissingColumns(removeEmptyAttributes({ ...productFields, is_active: false }));
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert(insertPayload)
+    .select("id, asin, name")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (images && images.length > 0) {
+    const imageRows = images.map((img, i) => ({
+      product_id: data.id,
+      url: img.url,
+      width: img.width ?? null,
+      height: img.height ?? null,
+      is_primary: img.is_primary ?? i === 0,
+      sort_order: img.sort_order ?? i,
+      alt_text: {},
+    }));
+    await supabase.from("product_images").insert(imageRows);
+  }
+
+  return NextResponse.json(data, { status: 201 });
 }

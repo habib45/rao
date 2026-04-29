@@ -17,7 +17,7 @@ function alternateLanguages(path: string): Record<string, string> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = await createServerClient();
 
-  const [{ data: products }, { data: categories }] = await Promise.all([
+  const [{ data: products }, { data: categories }, { data: blogPosts }, { data: blogCategories }] = await Promise.all([
     supabase
       .from("products")
       .select("slug, updated_at")
@@ -26,12 +26,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .from("categories")
       .select("slug, updated_at")
       .eq("is_active", true),
+    supabase
+      .from("blog_posts")
+      .select("slug, updated_at")
+      .eq("status", "published"),
+    supabase
+      .from("blog_categories")
+      .select("slug")
+      .eq("is_active", true),
   ]);
 
   const entries: MetadataRoute.Sitemap = [];
 
   // Static pages
-  const staticPages = ["", "/categories", "/search", "/cart"];
+  const staticPages = ["", "/categories", "/search", "/cart", "/blog"];
   for (const page of staticPages) {
     entries.push({
       url: `${BASE_URL}/en${page}`,
@@ -62,6 +70,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(category.updated_at as string),
       alternates: {
         languages: alternateLanguages(`/categories/${slug}`),
+      },
+    });
+  }
+
+  // Blog post pages
+  for (const post of blogPosts ?? []) {
+    const slug = (post.slug as Record<string, string>)?.en;
+    if (!slug) continue;
+    entries.push({
+      url: `${BASE_URL}/en/blog/${slug}`,
+      lastModified: new Date(post.updated_at as string),
+      alternates: {
+        languages: alternateLanguages(`/blog/${slug}`),
+      },
+    });
+  }
+
+  // Blog category pages
+  for (const cat of blogCategories ?? []) {
+    const slug = (cat.slug as Record<string, string>)?.en;
+    if (!slug) continue;
+    entries.push({
+      url: `${BASE_URL}/en/blog/category/${slug}`,
+      alternates: {
+        languages: alternateLanguages(`/blog/category/${slug}`),
       },
     });
   }

@@ -199,6 +199,26 @@ export async function getProductFilterMeta(): Promise<{ brands: string[] }> {
   return { brands };
 }
 
+export async function getProductFilterMetaByCategory(
+  categoryId: string,
+): Promise<{ brands: string[] }> {
+  const supabase = await createServerClient();
+  const { data } = await supabase
+    .from("products")
+    .select("brand")
+    .eq("is_active", true)
+    .eq("category_id", categoryId)
+    .not("brand", "is", null);
+
+  const brands = [
+    ...new Set((data ?? []).map((p) => p.brand as string)),
+  ]
+    .filter(Boolean)
+    .sort();
+
+  return { brands };
+}
+
 export async function searchProducts(
   query: string,
   locale: LocaleCode,

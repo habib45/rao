@@ -6,10 +6,13 @@ import {
   getTopCategories,
   getRecentSyncLogs,
   getTopProducts,
+  getScheduledProducts,
 } from "@/app/admin/_lib/queries/dashboard";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
 import { StatsCard } from "@/app/admin/_components/dashboard/StatsCard";
 import { SyncStatusTable } from "@/app/admin/_components/dashboard/SyncStatusTable";
+import { AsinImportWidget } from "@/app/admin/_components/dashboard/AsinImportWidget";
+import { ScheduledPublishWidget } from "@/app/admin/_components/dashboard/ScheduledPublishWidget";
 import { ClickTrendsChart } from "@/app/admin/_components/charts/ClickTrendsChart";
 import { TopCategoriesChart } from "@/app/admin/_components/charts/TopCategoriesChart";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/admin/_components/ui/card";
@@ -17,13 +20,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/app/admin/_component
 export default async function AdminDashboardPage() {
   const user = await requireAdmin();
 
-  const [stats, clickTrends, topCategories, syncLogs, topProducts] =
+  const [stats, clickTrends, topCategories, syncLogs, topProducts, scheduledProducts] =
     await Promise.all([
       getDashboardStats(),
       getClickTrends(30),
       getTopCategories(5),
       getRecentSyncLogs(5),
       getTopProducts(5),
+      getScheduledProducts(10),
     ]);
 
   const categoryChartData = topCategories.map((c) => ({
@@ -119,6 +123,20 @@ export default async function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <SyncStatusTable logs={syncLogs} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ingestion + scheduling row */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <AsinImportWidget />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Scheduled for Publishing</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScheduledPublishWidget products={scheduledProducts} />
             </CardContent>
           </Card>
         </div>

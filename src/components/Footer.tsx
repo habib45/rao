@@ -63,6 +63,14 @@ export default function Footer() {
             <ul className="space-y-2 text-sm text-white/70">
               <li>{t("privacy_policy")}</li>
               <li>{t("terms")}</li>
+              <li>
+                <Link
+                  href="/affiliate-disclaimer"
+                  className="transition-colors hover:text-brand"
+                >
+                  {t("affiliate_disclaimer")}
+                </Link>
+              </li>
             </ul>
           </div>
 
