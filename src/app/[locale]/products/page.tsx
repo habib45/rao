@@ -8,6 +8,7 @@ import {
   type ProductSortOrder,
 } from "@/lib/queries/products";
 import { getActiveCategories } from "@/lib/queries/categories";
+import { getSiteSettings } from "@/lib/queries/settings";
 import ProductCard from "@/components/ProductCard";
 import { Link } from "@/i18n/routing";
 import { t } from "@/lib/i18n/translate";
@@ -88,7 +89,7 @@ export default async function ProductsPage({
   const onlySale = sp.sale === "1";
   const onlyNew = sp.new === "1";
 
-  const [{ products, total }, categories, { brands: allBrands }] =
+  const [{ products, total }, categories, { brands: allBrands }, siteSettings] =
     await Promise.all([
       getProductsFiltered({
         categoryIds,
@@ -103,7 +104,9 @@ export default async function ProductsPage({
       }),
       getActiveCategories(),
       getProductFilterMeta(),
+      getSiteSettings(),
     ]);
+  const { showPrice } = siteSettings;
 
   const pageTitle = titles[locale] ?? titles.en;
   const from = Math.min((page - 1) * PAGE_SIZE + 1, total);
@@ -177,6 +180,7 @@ export default async function ProductsPage({
                         ? categoryNameById.get(product.category_id)
                         : undefined
                     }
+                    showPrice={showPrice}
                   />
                 ))}
               </div>

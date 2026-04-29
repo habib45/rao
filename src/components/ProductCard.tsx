@@ -9,10 +9,12 @@ export default function ProductCard({
   product,
   locale,
   categoryName,
+  showPrice = true,
 }: {
   product: Product;
   locale: LocaleCode;
   categoryName?: string;
+  showPrice?: boolean;
 }) {
   const name = t(product.name, locale) as string;
   const slug = t(product.slug, locale) as string;
@@ -46,7 +48,7 @@ export default function ProductCard({
             </span>
           )}
 
-          {product.discount_pct > 0 && (
+          {showPrice && product.discount_pct > 0 && (
             <span className="absolute right-2 top-2 rounded-md bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm">
               -{product.discount_pct}%
             </span>
@@ -62,27 +64,29 @@ export default function ProductCard({
             <p className="mt-1 text-xs text-muted">{product.brand}</p>
           )}
 
-          <div className="mt-2 flex items-baseline gap-2">
-            {product.price_cents !== null ? (
-              <>
-                <span className="text-lg font-bold text-foreground">
-                  {formatPrice(product.price_cents, product.currency, locale)}
-                </span>
-                {product.original_price_cents !== null &&
-                  product.original_price_cents > product.price_cents && (
-                    <span className="text-sm text-muted line-through">
-                      {formatPrice(
-                        product.original_price_cents,
-                        product.currency,
-                        locale,
-                      )}
-                    </span>
-                  )}
-              </>
-            ) : (
-              <span className="text-sm text-muted">Price unavailable</span>
-            )}
-          </div>
+          {showPrice && (
+            <div className="mt-2 flex items-baseline gap-2">
+              {product.price_cents !== null ? (
+                <>
+                  <span className="text-lg font-bold text-foreground">
+                    {formatPrice(product.price_cents, product.currency, locale)}
+                  </span>
+                  {product.original_price_cents !== null &&
+                    product.original_price_cents > product.price_cents && (
+                      <span className="text-sm text-muted line-through">
+                        {formatPrice(
+                          product.original_price_cents,
+                          product.currency,
+                          locale,
+                        )}
+                      </span>
+                    )}
+                </>
+              ) : (
+                <span className="text-sm text-muted">Price unavailable</span>
+              )}
+            </div>
+          )}
 
           {product.rating !== null && (
             <div className="mt-2 flex items-center gap-1">

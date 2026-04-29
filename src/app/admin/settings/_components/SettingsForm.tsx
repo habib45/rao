@@ -7,6 +7,7 @@ import { Input } from "@/app/admin/_components/ui/input";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/admin/_components/ui/card";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
+import { Toggle } from "@/app/admin/_components/ui/toggle";
 
 interface AffiliateSettings {
   tag_en?: string;
@@ -24,6 +25,7 @@ interface FeatureFlags {
   cart_enabled?: boolean;
   reviews_enabled?: boolean;
   price_alerts_enabled?: boolean;
+  show_price?: boolean;
 }
 
 export function SettingsForm() {
@@ -142,6 +144,38 @@ export function SettingsForm() {
           <p className="mt-3 text-xs text-muted">
             Sync settings are managed via Supabase Edge Functions configuration.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Display Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Display Settings</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium">Show Product Prices</p>
+                <p className="text-xs text-muted mt-0.5">
+                  When off, prices are hidden across the entire storefront for all categories.
+                </p>
+              </div>
+              <Toggle
+                id="show_price"
+                checked={features.show_price ?? true}
+                onChange={(val) => setFeatures((p) => ({ ...p, show_price: val }))}
+              />
+            </div>
+          </div>
+          <div className="mt-4">
+            <Button
+              onClick={() => saveMutation.mutate({ features })}
+              disabled={saveMutation.isPending}
+            >
+              Save Display Settings
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

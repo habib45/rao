@@ -6,6 +6,7 @@ import type { LocaleCode } from "@/types/domain";
 import { t } from "@/lib/i18n/translate";
 import { formatPrice } from "@/lib/i18n/format";
 import { getProductBySlug } from "@/lib/queries/products";
+import { getSiteSettings } from "@/lib/queries/settings";
 import AddToCartButton from "@/components/AddToCartButton";
 
 export const revalidate = 3600; // ISR: revalidate every hour
@@ -101,7 +102,10 @@ export default async function ProductPage({
   const loc = locale as LocaleCode;
   setRequestLocale(locale);
 
-  const product = await getProductBySlug(slug, loc);
+  const [product, { showPrice }] = await Promise.all([
+    getProductBySlug(slug, loc),
+    getSiteSettings(),
+  ]);
   if (!product) notFound();
 
   const tProduct = await getTranslations("product");
@@ -191,36 +195,38 @@ export default async function ProductPage({
             )}
 
             {/* Price */}
-            <div className="mt-4">
-              {product.price_cents !== null ? (
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-foreground">
-                    {formatPrice(product.price_cents, product.currency, loc)}
-                  </span>
-                  {product.original_price_cents !== null &&
-                    product.original_price_cents > product.price_cents && (
-                      <>
-                        <span className="text-lg text-muted line-through">
-                          {formatPrice(
-                            product.original_price_cents,
-                            product.currency,
-                            loc,
-                          )}
-                        </span>
-                        <span className="text-sm font-semibold text-red-500">
-                          {tProduct("discount", {
-                            percent: product.discount_pct,
-                          })}
-                        </span>
-                      </>
-                    )}
-                </div>
-              ) : (
-                <p className="text-lg text-muted">
-                  {tProduct("price_unavailable")}
-                </p>
-              )}
-            </div>
+            {showPrice && (
+              <div className="mt-4">
+                {product.price_cents !== null ? (
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-bold text-foreground">
+                      {formatPrice(product.price_cents, product.currency, loc)}
+                    </span>
+                    {product.original_price_cents !== null &&
+                      product.original_price_cents > product.price_cents && (
+                        <>
+                          <span className="text-lg text-muted line-through">
+                            {formatPrice(
+                              product.original_price_cents,
+                              product.currency,
+                              loc,
+                            )}
+                          </span>
+                          <span className="text-sm font-semibold text-red-500">
+                            {tProduct("discount", {
+                              percent: product.discount_pct,
+                            })}
+                          </span>
+                        </>
+                      )}
+                  </div>
+                ) : (
+                  <p className="text-lg text-muted">
+                    {tProduct("price_unavailable")}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Availability */}
             <div className="mt-3">

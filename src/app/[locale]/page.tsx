@@ -7,6 +7,7 @@ import {
   getProductsByCategoryLimit,
 } from "@/lib/queries/products";
 import { getActiveCategories } from "@/lib/queries/categories";
+import { getSiteSettings } from "@/lib/queries/settings";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
 import { Link } from "@/i18n/routing";
@@ -166,11 +167,13 @@ function CategoryProductsSection({
   products,
   locale,
   viewAllLabel,
+  showPrice,
 }: {
   category: Category;
   products: Product[];
   locale: LocaleCode;
   viewAllLabel: string;
+  showPrice: boolean;
 }) {
   if (products.length === 0) return null;
 
@@ -192,6 +195,7 @@ function CategoryProductsSection({
               product={product}
               locale={locale}
               categoryName={categoryName}
+              showPrice={showPrice}
             />
           ))}
         </div>
@@ -211,10 +215,12 @@ export default async function HomePage({
 
   const tCommon = await getTranslations("common");
 
-  const [featuredProducts, categories] = await Promise.all([
+  const [featuredProducts, categories, siteSettings] = await Promise.all([
     getFeaturedProducts(),
     getActiveCategories(),
+    getSiteSettings(),
   ]);
+  const { showPrice } = siteSettings;
 
   const topCategories = categories.slice(0, 3);
   const categoryProductLists = await Promise.all(
@@ -364,6 +370,7 @@ export default async function HomePage({
                       ? categoryNameById.get(product.category_id)
                       : undefined
                   }
+                  showPrice={showPrice}
                 />
               ))}
             </div>
@@ -397,6 +404,7 @@ export default async function HomePage({
           products={categoryProductLists[idx]}
           locale={loc}
           viewAllLabel={viewAllLabel}
+          showPrice={showPrice}
         />
       ))}
     </div>

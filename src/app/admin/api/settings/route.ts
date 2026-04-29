@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET() {
@@ -49,5 +50,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: false, errors }, { status: 207 });
   }
 
+  revalidateTag("site-settings");
   return NextResponse.json({ ok: true });
 }

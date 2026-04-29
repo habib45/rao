@@ -421,3 +421,5 @@ Phase 1 (Foundation)
 | Phase 11 — Rich Product Form + Approval Workflow | [phase-11/PHASE_11_PLAN.md](phase-11/PHASE_11_PLAN.md) | 🚧 In Progress |
 | Phase 12 — Product Review System | [phase-12/PHASE_12_PLAN.md](phase-12/PHASE_12_PLAN.md) | 📋 Planned |
 | Phase 13 — Media Manager (Supabase Storage) | [phase-13/PHASE_13_PLAN.md](phase-13/PHASE_13_PLAN.md) | 📋 Planned |
+| Phase 14 — Blog System (SEO-Driven) | [phase-14/PHASE_14_PLAN.md](phase-14/PHASE_14_PLAN.md) | 🚧 In Progress |
+| Phase 15 — Admin Settings: Price Display Toggle | [phase-15/PHASE_15_PLAN.md](phase-15/PHASE_15_PLAN.md) | 🚧 In Progress |
