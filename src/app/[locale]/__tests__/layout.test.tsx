@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
 import React from "react";
 
 // Mock next/font/google
@@ -45,6 +45,29 @@ vi.mock("next-intl", () => ({
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(),
+}));
+
+// Mock Header, Footer, and CartProvider since they use client hooks
+vi.mock("@/components/Header", () => ({
+  default: ({ locale }: { locale: string }) => (
+    <header data-testid="header" data-locale={locale}>
+      Header
+    </header>
+  ),
+}));
+
+vi.mock("@/components/Footer", () => ({
+  default: () => (
+    <footer data-testid="footer">
+      As an Amazon Associate, we earn from qualifying purchases.
+    </footer>
+  ),
+}));
+
+vi.mock("@/lib/cart/CartProvider", () => ({
+  CartProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="cart-provider">{children}</div>
+  ),
 }));
 
 import LocaleLayout, { generateMetadata } from "../layout";

@@ -11,6 +11,7 @@
     "home": "Home",
     "products": "Products",
     "categories": "Categories",
+    "blog": "Blog",
     "cart": "Cart",
     "search": "Search"
   },
@@ -39,6 +40,37 @@
   "footer": {
     "affiliate_disclosure": "As an Amazon Associate, we earn from qualifying purchases.",
     "privacy_policy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "affiliate_disclaimer": "Affiliate Disclaimer"
+  },
+  "affiliateDisclaimer": {
+    "meta_title": "Affiliate Disclaimer — BestFinds",
+    "meta_description": "Read our affiliate disclaimer to understand how we earn from qualifying purchases through Amazon and other partner links.",
+    "title": "Affiliate Disclaimer",
+    "amazon_program_title": "Amazon Associates Program",
+    "amazon_program_body": "BestFinds is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com and affiliated sites.",
+    "compensation_title": "Compensation Disclosure",
+    "compensation_body": "When you click on links to various merchants on this site and make a purchase, this can result in this site earning a commission. Affiliate programs and affiliations include, but are not limited to, the Amazon Associates Program.",
+    "honesty_title": "Our Commitment to Honest Reviews",
+    "honesty_body": "Our editorial content is not influenced by advertiser compensation. We only recommend products and services that we believe will provide value to our readers. All opinions expressed here are our own.",
+    "price_disclaimer_title": "Price & Availability",
+    "price_disclaimer_body": "Product prices and availability are accurate as of the date/time indicated and are subject to change. Any price and availability information displayed on Amazon at the time of purchase will apply to the purchase of this product.",
+    "contact_title": "Questions?",
+    "contact_body": "If you have any questions about our affiliate relationships or how we earn money, please contact us.",
+    "last_updated": "Last updated: April 2026"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Insights, reviews, and guides to help you shop smarter",
+    "read_more": "Read more",
+    "min_read": "{count} min read",
+    "trending": "Trending",
+    "all_articles": "All Articles",
+    "no_posts": "No posts published yet.",
+    "by_author": "By {name}",
+    "categories": "Categories",
+    "tags": "Tags",
+    "share": "Share",
+    "featured": "Featured"
   }
 }

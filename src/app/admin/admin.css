@@ -1,0 +1,12 @@
+@layer base {
+  .dark {
+    --color-background: #0a0a0a;
+    --color-foreground: #ededed;
+    --color-muted: #a1a1aa;
+    --color-border: #27272a;
+    --color-surface: #18181b;
+    --color-brand: #f59e0b;
+    --color-brand-dark: #fbbf24;
+    --color-brand-light: #d97706;
+  }
+}
