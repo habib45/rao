@@ -15,7 +15,22 @@ export async function generateMetadata({
     "bn-BD": "সব বিভাগ",
     sv: "Alla kategorier",
   };
-  return { title: titles[locale] ?? titles.en };
+  const descriptions: Record<string, string> = {
+    en: "Browse all product categories on BestFinds — find curated Amazon deals by category.",
+    "bn-BD": "BestFinds-এ সব পণ্যের বিভাগ দেখুন — বিভাগ অনুযায়ী নির্বাচিত Amazon ডিল খুঁজুন।",
+    sv: "Bläddra bland alla produktkategorier på BestFinds — hitta utvalda Amazon-erbjudanden per kategori.",
+  };
+  return {
+    title: titles[locale] ?? titles.en,
+    description: descriptions[locale] ?? descriptions.en,
+    alternates: {
+      languages: {
+        en: "/en/categories",
+        "bn-BD": "/bn-BD/categories",
+        sv: "/sv/categories",
+      },
+    },
+  };
 }
 
 export default async function CategoriesPage({

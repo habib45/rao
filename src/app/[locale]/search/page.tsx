@@ -16,7 +16,10 @@ export async function generateMetadata({
     "bn-BD": "পণ্য খুঁজুন",
     sv: "Sök produkter",
   };
-  return { title: titles[locale] ?? titles.en };
+  return {
+    title: titles[locale] ?? titles.en,
+    robots: { index: false, follow: true },
+  };
 }
 
 export default async function SearchPage({

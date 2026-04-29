@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { setRequestLocale, getTranslations } from "next-intl/server";
+import type { Metadata } from "next";
 import type { LocaleCode, Category, Product } from "@/types/domain";
 import {
   getFeaturedProducts,
@@ -12,6 +13,56 @@ import { Link } from "@/i18n/routing";
 import { t } from "@/lib/i18n/translate";
 
 export const revalidate = 3600;
+
+const homeTitles: Record<string, string> = {
+  en: "BestFinds — Best Products on Amazon",
+  "bn-BD": "BestFinds — Amazon-এ সেরা পণ্য",
+  sv: "BestFinds — Bästa produkterna på Amazon",
+};
+
+const homeDescriptions: Record<string, string> = {
+  en: "Discover the best products on Amazon — curated deals, honest reviews, and comparisons of trusted products at the best prices.",
+  "bn-BD": "Amazon-এ সেরা পণ্য খুঁজুন — নির্বাচিত ডিল, সৎ রিভিউ এবং বিশ্বস্ত পণ্যের তুলনা সেরা দামে।",
+  sv: "Upptäck de bästa produkterna på Amazon — utvalda erbjudanden, ärliga recensioner och jämförelser av pålitliga produkter till bästa pris.",
+};
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const title = homeTitles[locale] ?? homeTitles.en;
+  const description = homeDescriptions[locale] ?? homeDescriptions.en;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        en: "/en",
+        "bn-BD": "/bn-BD",
+        sv: "/sv",
+      },
+    },
+    openGraph: {
+      type: "website",
+      url: `${siteUrl}/${locale}`,
+      siteName: "BestFinds",
+      title,
+      description,
+      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "BestFinds" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["/og-image.jpg"],
+    },
+  };
+}
 
 type HeroCopy = {
   tagline: string;
@@ -181,8 +232,41 @@ export default async function HomePage({
     categoryNameById.set(c.id, t(c.name, loc) as string);
   }
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "WebSite",
+                "@id": `${siteUrl}/#website`,
+                url: siteUrl,
+                name: "BestFinds",
+                description: hero.description,
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: {
+                    "@type": "EntryPoint",
+                    urlTemplate: `${siteUrl}/${loc}/search?q={search_term_string}`,
+                  },
+                  "query-input": "required name=search_term_string",
+                },
+              },
+              {
+                "@type": "Organization",
+                "@id": `${siteUrl}/#organization`,
+                name: "BestFinds",
+                url: siteUrl,
+              },
+            ],
+          }),
+        }}
+      />
       {/* Hero Banner */}
       <section className="relative overflow-hidden bg-gradient-to-r from-brand to-brand-dark">
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-20">

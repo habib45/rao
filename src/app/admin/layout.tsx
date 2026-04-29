@@ -12,6 +12,8 @@ const inter = Inter({
   fallback: ["system-ui", "-apple-system", "sans-serif"],
 });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: { template: "%s | BestFinds Admin", default: "BestFinds Admin" },
   robots: { index: false, follow: false },

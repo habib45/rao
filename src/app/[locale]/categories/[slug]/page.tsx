@@ -16,25 +16,57 @@ import SidebarFilters from "@/app/[locale]/products/_components/SidebarFilters";
 import SortSelect from "@/app/[locale]/products/_components/SortSelect";
 import Pagination from "@/app/[locale]/products/_components/Pagination";
 
-export const revalidate = 0;
+export const revalidate = 3600;
 
 const PAGE_SIZE = 16;
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const category = await getCategoryBySlug(slug, locale as LocaleCode);
+  const sp = await searchParams;
+  const loc = locale as LocaleCode;
+  const category = await getCategoryBySlug(slug, loc);
   if (!category) return { title: "Category Not Found" };
 
-  const name = t(category.name, locale as LocaleCode) as string;
-  const description = t(category.description, locale as LocaleCode) as string;
+  const name = t(category.name, loc) as string;
+  const description = t(category.description, loc) as string;
+  const metaDescription = description || `Browse the best ${name} products on BestFinds — curated Amazon deals and reviews.`;
+
+  const enSlug = t(category.slug, "en") as string;
+  const bnSlug = t(category.slug, "bn-BD") as string;
+  const svSlug = t(category.slug, "sv") as string;
+
+  const hasFilters = !!(
+    sp.brand ||
+    sp.minPrice ||
+    sp.maxPrice ||
+    sp.sale ||
+    sp.new ||
+    (sp.sort && sp.sort !== "newest")
+  );
 
   return {
     title: name,
-    description: description || `Browse ${name} products on BestFinds`,
+    description: metaDescription,
+    alternates: {
+      canonical: `/${locale}/categories/${slug}`,
+      languages: {
+        en: `/en/categories/${enSlug}`,
+        "bn-BD": `/bn-BD/categories/${bnSlug}`,
+        sv: `/sv/categories/${svSlug}`,
+      },
+    },
+    openGraph: {
+      type: "website",
+      title: name,
+      description: metaDescription,
+    },
+    ...(hasFilters && { robots: { index: false, follow: true } }),
   };
 }
 
@@ -85,8 +117,25 @@ export default async function CategoryPage({
   const from = Math.min((page - 1) * PAGE_SIZE + 1, total);
   const to = Math.min(page * PAGE_SIZE, total);
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const canonicalUrl = `${siteUrl}/${locale}/categories/${slug}`;
+
   return (
     <div className="bg-surface min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/${locale}` },
+              { "@type": "ListItem", position: 2, name: "Products", item: `${siteUrl}/${locale}/products` },
+              { "@type": "ListItem", position: 3, name, item: canonicalUrl },
+            ],
+          }),
+        }}
+      />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 
         {/* Breadcrumb */}

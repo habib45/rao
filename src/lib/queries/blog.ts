@@ -283,36 +283,46 @@ export async function getApprovedBlogComments(postId: string) {
 export async function getAllPublishedSlugs(): Promise<
   { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[]
 > {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select("slug, updated_at")
-    .eq("status", "published");
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("slug, updated_at")
+      .eq("status", "published");
 
-  if (error) {
-    console.error("getAllPublishedSlugs error:", error.message);
+    if (error) {
+      console.error("getAllPublishedSlugs error:", error.message);
+      return [];
+    }
+    return (data ?? []).map((row) => ({
+      ...((row as { slug: Record<string, string> }).slug ?? { en: "" }),
+      updated_at: (row as { updated_at: string }).updated_at,
+    })) as { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[];
+  } catch (err) {
+    console.warn("getAllPublishedSlugs unavailable during build - relying on ISR:", err instanceof Error ? err.message : String(err));
     return [];
   }
-  return (data ?? []).map((row) => ({
-    ...((row as { slug: Record<string, string> }).slug ?? { en: "" }),
-    updated_at: (row as { updated_at: string }).updated_at,
-  })) as { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[];
 }
 
 export async function getAllActiveCategorySlugs(): Promise<
   { en: string; "bn-BD"?: string; sv?: string }[]
 > {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("blog_categories")
-    .select("slug")
-    .eq("is_active", true);
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("blog_categories")
+      .select("slug")
+      .eq("is_active", true);
 
-  if (error) {
-    console.error("getAllActiveCategorySlugs error:", error.message);
+    if (error) {
+      console.error("getAllActiveCategorySlugs error:", error.message);
+      return [];
+    }
+    return (data ?? []).map(
+      (row) => (row as { slug: Record<string, string> }).slug ?? { en: "" },
+    ) as { en: string; "bn-BD"?: string; sv?: string }[];
+  } catch (err) {
+    console.warn("getAllActiveCategorySlugs unavailable during build - relying on ISR:", err instanceof Error ? err.message : String(err));
     return [];
   }
-  return (data ?? []).map(
-    (row) => (row as { slug: Record<string, string> }).slug ?? { en: "" },
-  ) as { en: string; "bn-BD"?: string; sv?: string }[];
 }

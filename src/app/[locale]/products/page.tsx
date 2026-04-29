@@ -25,13 +25,37 @@ const titles: Record<string, string> = {
   sv: "Alla produkter",
 };
 
+const descriptions: Record<string, string> = {
+  en: "Browse all products on BestFinds — curated Amazon deals, honest reviews, and comparisons at the best prices.",
+  "bn-BD": "BestFinds-এ সব পণ্য দেখুন — নির্বাচিত Amazon ডিল, সৎ রিভিউ এবং সেরা দামে তুলনা।",
+  sv: "Bläddra bland alla produkter på BestFinds — utvalda Amazon-erbjudanden, ärliga recensioner och jämförelser.",
+};
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return { title: titles[locale] ?? titles.en };
+  const sp = await searchParams;
+
+  const hasFilters = !!(
+    sp.cat ||
+    sp.brand ||
+    sp.minPrice ||
+    sp.maxPrice ||
+    sp.sale ||
+    sp.new ||
+    (sp.sort && sp.sort !== "newest")
+  );
+
+  return {
+    title: titles[locale] ?? titles.en,
+    description: descriptions[locale] ?? descriptions.en,
+    ...(hasFilters && { robots: { index: false, follow: true } }),
+  };
 }
 
 export default async function ProductsPage({
