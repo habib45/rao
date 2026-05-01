@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
-import { Badge } from "@/app/admin/_components/ui/badge";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
 

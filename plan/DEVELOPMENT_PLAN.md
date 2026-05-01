@@ -477,3 +477,4 @@ Phase 1 (Foundation)
 | Phase 14 — Blog System (SEO-Driven) | [phase-14/PHASE_14_PLAN.md](phase-14/PHASE_14_PLAN.md) | 🚧 In Progress |
 | Phase 15 — Admin Settings: Price Display Toggle | [phase-15/PHASE_15_PLAN.md](phase-15/PHASE_15_PLAN.md) | 🚧 In Progress |
 | Phase 17 — Admin Sitemap Management | [phase-17/PHASE_17_PLAN.md](phase-17/PHASE_17_PLAN.md) | 📋 Planned |
+| Phase 18 — Blog Enhancements (Pagination, Filtering, Newsletter, Comments) | [phase-18/PHASE_18_PLAN.md](phase-18/PHASE_18_PLAN.md) | 🚧 In Progress |

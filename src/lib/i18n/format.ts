@@ -6,6 +6,18 @@ const localeMap: Record<LocaleCode, string> = {
   sv: "sv-SE",
 };
 
+export function formatDate(
+  dateStr: string,
+  locale: string,
+  month: "short" | "long" = "short",
+): string {
+  return new Date(dateStr).toLocaleDateString(locale, {
+    year: "numeric",
+    month,
+    day: "numeric",
+  });
+}
+
 export function formatPrice(
   cents: number | null,
   currency: string = "USD",

@@ -12,6 +12,7 @@ import {
   getTrendingBlogPosts,
 } from "@/lib/queries/blog";
 import { t } from "@/lib/i18n/translate";
+import { formatDate } from "@/lib/i18n/format";
 import { ViewTracker } from "./_components/ViewTracker";
 import { SocialShare } from "./_components/SocialShare";
 import { CommentForm } from "./_components/CommentForm";
@@ -84,13 +85,6 @@ export async function generateMetadata({
   };
 }
 
-function formatDate(dateStr: string, locale: string): string {
-  return new Date(dateStr).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 function formatCommentDate(dateStr: string, locale: string): string {
   return new Date(dateStr).toLocaleDateString(locale, {
@@ -119,7 +113,7 @@ function RelatedBlogCard({ post, locale }: { post: BlogPost; locale: LocaleCode 
     ? (t(post.blog_categories.name, locale) as string)
     : null;
   const categoryColor = post.blog_categories?.color ?? "#f59e0b";
-  const dateStr = post.published_at ? formatDate(post.published_at, locale) : "";
+  const dateStr = post.published_at ? formatDate(post.published_at, locale, "long") : "";
 
   return (
     <Link
@@ -175,7 +169,7 @@ function RelatedBlogCard({ post, locale }: { post: BlogPost; locale: LocaleCode 
 function SidebarPostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
   const title = t(post.title, locale) as string;
   const slug = t(post.slug, locale) as string;
-  const dateStr = post.published_at ? formatDate(post.published_at, locale) : "";
+  const dateStr = post.published_at ? formatDate(post.published_at, locale, "long") : "";
 
   return (
     <Link
@@ -237,7 +231,7 @@ export default async function BlogDetailPage({
   const categoryName = post.blog_categories ? (t(post.blog_categories.name, loc) as string) : null;
   const categorySlug = post.blog_categories ? (t(post.blog_categories.slug, loc) as string) : null;
   const categoryColor = post.blog_categories?.color ?? null;
-  const dateStr = post.published_at ? formatDate(post.published_at, loc) : "";
+  const dateStr = post.published_at ? formatDate(post.published_at, loc, "long") : "";
   const tags = (post.blog_post_tags ?? []).map((row) => row.blog_tags);
   const canonicalSlug = (post.slug as Record<string, string | undefined>)[loc] ?? slug;
   const articleUrl = `${BASE_URL}/${loc}/blog/${canonicalSlug}`;

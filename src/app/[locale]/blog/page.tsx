@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -11,10 +12,22 @@ import {
   getPublishedBlogPostsCount,
 } from "@/lib/queries/blog";
 import { t } from "@/lib/i18n/translate";
+import { formatDate } from "@/lib/i18n/format";
+import { BlogFilters } from "./_components/BlogFilters";
+import { PER_PAGE_OPTIONS } from "./_components/blog-constants";
+import { NewsletterSection } from "./_components/NewsletterSection";
+import { getNewsletterSettings } from "@/lib/queries/newsletter";
 
 export const revalidate = 3600;
 
-const PAGE_SIZE = 12;
+type PerPage = (typeof PER_PAGE_OPTIONS)[number];
+
+function clampPerPage(raw: string | undefined): PerPage {
+  const n = Number.parseInt(raw ?? String(PER_PAGE_OPTIONS[0]), 10);
+  return (PER_PAGE_OPTIONS as readonly number[]).includes(n)
+    ? (n as PerPage)
+    : PER_PAGE_OPTIONS[0];
+}
 
 export async function generateMetadata({
   params,
@@ -29,7 +42,8 @@ export async function generateMetadata({
   };
   const descriptions: Record<string, string> = {
     en: "Insights, reviews, and guides to help you shop smarter on Amazon.",
-    "bn-BD": "স্মার্টভাবে কেনাকাটা করতে সাহায্য করার জন্য অন্তর্দৃষ্টি, রিভিউ এবং গাইড।",
+    "bn-BD":
+      "স্মার্টভাবে কেনাকাটা করতে সাহায্য করার জন্য অন্তর্দৃষ্টি, রিভিউ এবং গাইড।",
     sv: "Insikter, recensioner och guider för att hjälpa dig handla smartare på Amazon.",
   };
   return {
@@ -45,15 +59,13 @@ export async function generateMetadata({
   };
 }
 
-function formatDate(dateStr: string, locale: string): string {
-  return new Date(dateStr).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function CategoryBadge({ color, name }: { color: string | null; name: string }) {
+function CategoryBadge({
+  color,
+  name,
+}: {
+  color: string | null;
+  name: string;
+}) {
   const bg = color ?? "#f59e0b";
   return (
     <span
@@ -65,13 +77,7 @@ function CategoryBadge({ color, name }: { color: string | null; name: string }) 
   );
 }
 
-function PostCard({
-  post,
-  locale,
-}: {
-  post: BlogPost;
-  locale: LocaleCode;
-}) {
+function PostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
   const title = t(post.title, locale) as string;
   const excerpt = t(post.excerpt, locale) as string;
   const slug = t(post.slug, locale) as string;
@@ -88,12 +94,11 @@ function PostCard({
       href={`/blog/${slug}`}
       className="group flex gap-4 rounded-xl border border-border bg-white p-4 transition-shadow hover:shadow-md"
     >
-      {/* Thumbnail */}
       <div className="relative h-27.5 w-37.5 shrink-0 overflow-hidden rounded-lg bg-surface">
         {post.cover_image_url ? (
           <Image
             src={post.cover_image_url}
-            alt={t(post.cover_image_alt, locale) as string || title}
+            alt={(t(post.cover_image_alt, locale) as string) || title}
             fill
             sizes="150px"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -105,7 +110,6 @@ function PostCard({
         )}
       </div>
 
-      {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col justify-between">
         <div>
           {categoryName && (
@@ -123,7 +127,6 @@ function PostCard({
           )}
         </div>
 
-        {/* Meta row */}
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {post.author_avatar_url ? (
             <Image
@@ -138,7 +141,9 @@ function PostCard({
               {post.author_name.slice(0, 1).toUpperCase()}
             </span>
           )}
-          <span className="font-medium text-foreground">{post.author_name}</span>
+          <span className="font-medium text-foreground">
+            {post.author_name}
+          </span>
           {dateStr && <span>{dateStr}</span>}
           {post.read_time_minutes > 0 && (
             <span>{post.read_time_minutes} min read</span>
@@ -169,15 +174,10 @@ function TrendingPostCard({
     : "";
 
   return (
-    <Link
-      href={`/blog/${slug}`}
-      className="group flex gap-3 py-3"
-    >
-      {/* Rank number */}
+    <Link href={`/blog/${slug}`} className="group flex gap-3 py-3">
       <span className="mt-0.5 shrink-0 text-2xl font-black leading-none text-border">
         {String(index + 1).padStart(2, "0")}
       </span>
-      {/* Thumbnail */}
       <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-surface">
         {post.cover_image_url ? (
           <Image
@@ -193,7 +193,6 @@ function TrendingPostCard({
           </div>
         )}
       </div>
-      {/* Text */}
       <div className="min-w-0 flex-1">
         {categoryName && (
           <CategoryBadge color={categoryColor} name={categoryName} />
@@ -215,9 +214,11 @@ function TrendingPostCard({
 function SidebarCategoryList({
   categories,
   locale,
+  activeSlug,
 }: {
   categories: BlogCategory[];
   locale: LocaleCode;
+  activeSlug: string | undefined;
 }) {
   if (categories.length === 0) return null;
   return (
@@ -225,19 +226,36 @@ function SidebarCategoryList({
       <h2 className="mb-4 text-sm font-bold uppercase tracking-widest text-foreground">
         Categories
       </h2>
-      <ul className="space-y-2">
+      <ul className="space-y-1">
+        <li>
+          <Link
+            href="/blog"
+            className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+              !activeSlug
+                ? "bg-brand/10 font-semibold text-brand"
+                : "text-foreground hover:bg-surface hover:text-brand"
+            }`}
+          >
+            All articles
+          </Link>
+        </li>
         {categories.map((cat) => {
           const name = t(cat.name, locale) as string;
-          const slug = t(cat.slug, locale) as string;
+          const enSlug = (cat.slug as Record<string, string>).en ?? "";
+          const isActive = activeSlug === enSlug;
           return (
             <li key={cat.id}>
               <Link
-                href={`/blog/category/${slug}`}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-surface hover:text-brand"
+                href={isActive ? "/blog" : `/blog?category=${enSlug}`}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  isActive
+                    ? "bg-brand/10 font-semibold text-brand"
+                    : "text-foreground hover:bg-surface hover:text-brand"
+                }`}
               >
                 {cat.color && (
                   <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: cat.color }}
                   />
                 )}
@@ -273,7 +291,7 @@ function FeaturedPostCard({
       href={`/blog/${slug}`}
       className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white transition-shadow hover:shadow-md"
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-surface">
+      <div className="relative aspect-video w-full overflow-hidden bg-surface">
         {post.cover_image_url ? (
           <Image
             src={post.cover_image_url}
@@ -304,50 +322,101 @@ function FeaturedPostCard({
   );
 }
 
+function buildPageHref(
+  base: string,
+  params: URLSearchParams,
+  targetPage: number,
+): string {
+  const p = new URLSearchParams(params);
+  if (targetPage <= 1) {
+    p.delete("page");
+  } else {
+    p.set("page", String(targetPage));
+  }
+  const qs = p.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
 export default async function BlogPage({
   params,
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{
+    page?: string;
+    perPage?: string;
+    category?: string;
+    q?: string;
+  }>;
 }) {
   const { locale } = await params;
-  const { page: pageParam } = await searchParams;
+  const {
+    page: pageParam,
+    perPage: perPageParam,
+    category: categoryParam,
+    q: searchParam,
+  } = await searchParams;
+
   const loc = locale as LocaleCode;
   setRequestLocale(locale);
 
+  const perPage = clampPerPage(perPageParam);
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
-  const offset = (page - 1) * PAGE_SIZE;
+  const offset = (page - 1) * perPage;
+  const searchQuery = searchParam?.trim() ?? "";
 
   const tBlog = await getTranslations("blog");
 
-  const [posts, trendingPosts, categories, featuredPosts, totalCount] =
+  // Fetch categories first to resolve category slug → id
+  const categories = await getActiveBlogCategories();
+
+  const activeCategory = categoryParam
+    ? categories.find(
+        (c) => ((c.slug as Record<string, string>).en ?? "") === categoryParam,
+      )
+    : undefined;
+  const categoryId = activeCategory?.id;
+
+  const [posts, trendingPosts, featuredPosts, totalCount, newsletterSettings] =
     await Promise.all([
-      getPublishedBlogPosts(PAGE_SIZE, offset),
+      getPublishedBlogPosts(perPage, offset, categoryId, searchQuery),
       getTrendingBlogPosts(5),
-      getActiveBlogCategories(),
-      page === 1 ? getFeaturedBlogPosts(3) : Promise.resolve([]),
-      getPublishedBlogPostsCount(),
+      page === 1 && !categoryId && !searchQuery
+        ? getFeaturedBlogPosts(3)
+        : Promise.resolve([]),
+      getPublishedBlogPostsCount(categoryId, searchQuery),
+      getNewsletterSettings(),
     ]);
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalCount / perPage));
+
+  // Build base search params for pagination links
+  const baseParams = new URLSearchParams();
+  if (perPage !== PER_PAGE_OPTIONS[0]) baseParams.set("perPage", String(perPage));
+  if (categoryParam) baseParams.set("category", categoryParam);
+  if (searchQuery) baseParams.set("q", searchQuery);
+  const basePath = `/blog`;
+
+  const hasActiveFilter = !!categoryId || !!searchQuery;
 
   return (
     <div>
       {/* Hero Banner */}
-      <section className="bg-gradient-to-r from-gray-900 to-gray-800 py-12 text-white">
+      <section className="bg-linear-to-r from-gray-900 to-gray-800 py-12 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
             BestFinds
           </p>
-          <h1 className="text-3xl font-extrabold sm:text-4xl">{tBlog("title")}</h1>
+          <h1 className="text-3xl font-extrabold sm:text-4xl">
+            {tBlog("title")}
+          </h1>
           <p className="mt-3 max-w-xl text-base text-gray-300 sm:text-lg">
             {tBlog("subtitle")}
           </p>
         </div>
       </section>
 
-      {/* Featured posts */}
+      {/* Featured posts — only on unfiltered page 1 */}
       {featuredPosts.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-center justify-between">
@@ -367,18 +436,73 @@ export default async function BlogPage({
       {/* Main content */}
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 lg:flex-row">
-          {/* Post list — 2/3 width */}
-          <main className="flex-1 min-w-0">
-            <div className="mb-6 flex items-center justify-between">
+          {/* Post list */}
+          <main className="min-w-0 flex-1">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold text-foreground">
-                {tBlog("all_articles")}
+                {hasActiveFilter ? "Search results" : tBlog("all_articles")}
               </h2>
-              <div className="h-0.5 flex-1 ml-4 bg-border" />
+              <div className="ml-4 h-0.5 flex-1 bg-border" />
             </div>
+
+            {/* Active filter chips */}
+            {hasActiveFilter && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {activeCategory && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
+                    Category: {t(activeCategory.name, loc) as string}
+                    <Link
+                      href={
+                        searchQuery
+                          ? `${basePath}?q=${encodeURIComponent(searchQuery)}`
+                          : basePath
+                      }
+                      className="ml-0.5 rounded-full hover:text-brand/60"
+                      aria-label="Remove category filter"
+                    >
+                      ✕
+                    </Link>
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-xs font-medium text-brand">
+                    Search: &ldquo;{searchQuery}&rdquo;
+                    <Link
+                      href={
+                        categoryParam
+                          ? `${basePath}?category=${categoryParam}`
+                          : basePath
+                      }
+                      className="ml-0.5 rounded-full hover:text-brand/60"
+                      aria-label="Remove search filter"
+                    >
+                      ✕
+                    </Link>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Filters row — wrapped in Suspense because BlogFilters uses useSearchParams */}
+            <Suspense>
+              <BlogFilters
+                currentPerPage={perPage}
+                currentSearch={searchQuery}
+                totalCount={totalCount}
+              />
+            </Suspense>
 
             {posts.length === 0 ? (
               <div className="rounded-xl border border-border bg-surface p-12 text-center">
                 <p className="text-lg text-muted">{tBlog("no_posts")}</p>
+                {hasActiveFilter && (
+                  <Link
+                    href={basePath}
+                    className="mt-4 inline-block text-sm text-brand underline"
+                  >
+                    Clear filters
+                  </Link>
+                )}
               </div>
             ) : (
               <>
@@ -388,37 +512,79 @@ export default async function BlogPage({
                   ))}
                 </div>
 
+                {/* Pagination */}
                 {totalPages > 1 && (
                   <nav
                     aria-label="Pagination"
-                    className="mt-8 flex items-center justify-between gap-3 text-sm"
+                    className="mt-8 flex flex-wrap items-center justify-center gap-1.5 text-sm"
                   >
+                    {/* Previous */}
                     {page > 1 ? (
                       <Link
-                        href={
-                          page - 1 === 1
-                            ? `/blog`
-                            : `/blog?page=${page - 1}`
-                        }
-                        className="inline-flex items-center rounded-lg border border-border bg-white px-4 py-2 font-medium text-foreground transition-colors hover:bg-surface"
+                        href={buildPageHref(basePath, baseParams, page - 1)}
+                        className="inline-flex h-9 items-center rounded-lg border border-border bg-white px-3 font-medium text-foreground transition-colors hover:bg-surface"
                       >
-                        Previous
+                        ←
                       </Link>
                     ) : (
-                      <span />
+                      <span className="inline-flex h-9 items-center rounded-lg border border-border bg-surface px-3 text-muted opacity-50 cursor-not-allowed">
+                        ←
+                      </span>
                     )}
-                    <span className="text-muted">
-                      Page {page} of {totalPages}
-                    </span>
+
+                    {/* Page numbers — odd pages only, plus current and last */}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(
+                        (p) =>
+                          p % 2 === 1 ||
+                          p === page ||
+                          p === totalPages,
+                      )
+                      .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                        if (i > 0 && p - (arr[i - 1] as number) > 1)
+                          acc.push("…");
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((item, i) =>
+                        item === "…" ? (
+                          <span
+                            key={`ellipsis-${i}`}
+                            className="inline-flex h-9 w-9 items-center justify-center text-muted"
+                          >
+                            …
+                          </span>
+                        ) : item === page ? (
+                          <span
+                            key={item}
+                            aria-current="page"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-brand font-semibold text-white"
+                          >
+                            {item}
+                          </span>
+                        ) : (
+                          <Link
+                            key={item}
+                            href={buildPageHref(basePath, baseParams, item)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-white font-medium text-foreground transition-colors hover:bg-surface"
+                          >
+                            {item}
+                          </Link>
+                        ),
+                      )}
+
+                    {/* Next */}
                     {page < totalPages ? (
                       <Link
-                        href={`/blog?page=${page + 1}`}
-                        className="inline-flex items-center rounded-lg border border-border bg-white px-4 py-2 font-medium text-foreground transition-colors hover:bg-surface"
+                        href={buildPageHref(basePath, baseParams, page + 1)}
+                        className="inline-flex h-9 items-center rounded-lg border border-border bg-white px-3 font-medium text-foreground transition-colors hover:bg-surface"
                       >
-                        Next
+                        →
                       </Link>
                     ) : (
-                      <span />
+                      <span className="inline-flex h-9 items-center rounded-lg border border-border bg-surface px-3 text-muted opacity-50 cursor-not-allowed">
+                        →
+                      </span>
                     )}
                   </nav>
                 )}
@@ -426,9 +592,8 @@ export default async function BlogPage({
             )}
           </main>
 
-          {/* Sidebar — 1/3 width */}
-          <aside className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6">
-            {/* Trending */}
+          {/* Sidebar */}
+          <aside className="w-full shrink-0 space-y-6 lg:w-80 xl:w-96">
             {trendingPosts.length > 0 && (
               <div className="rounded-xl border border-border bg-white p-5">
                 <div className="mb-4 flex items-center gap-2">
@@ -450,11 +615,26 @@ export default async function BlogPage({
               </div>
             )}
 
-            {/* Categories */}
-            <SidebarCategoryList categories={categories} locale={loc} />
+            <SidebarCategoryList
+              categories={categories}
+              locale={loc}
+              activeSlug={categoryParam}
+            />
           </aside>
         </div>
       </div>
+
+      {/* Newsletter section */}
+      {newsletterSettings.show && (
+        <div className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+          <NewsletterSection
+            title={newsletterSettings.title}
+            subtitle={newsletterSettings.subtitle}
+            background={newsletterSettings.background}
+            locale={locale}
+          />
+        </div>
+      )}
     </div>
   );
 }

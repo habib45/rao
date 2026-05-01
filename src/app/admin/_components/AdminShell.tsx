@@ -19,6 +19,8 @@ import {
   Image as ImageIcon,
   FileText,
   Map,
+  Mail,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/app/admin/_lib/cn";
 
@@ -28,6 +30,8 @@ const navItems = [
   { href: "/admin/products/review", label: "Review Queue", icon: ClipboardCheck },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
   { href: "/admin/blog", label: "Blog", icon: FileText },
+  { href: "/admin/blog/comments", label: "Comments", icon: MessageSquare },
+  { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/translations", label: "Translations", icon: Languages },
   { href: "/admin/media", label: "Media", icon: ImageIcon },

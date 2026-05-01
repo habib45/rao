@@ -11,6 +11,7 @@ import {
   getAllActiveCategorySlugs,
 } from "@/lib/queries/blog";
 import { t } from "@/lib/i18n/translate";
+import { formatDate } from "@/lib/i18n/format";
 
 export const revalidate = 3600;
 
@@ -63,14 +64,6 @@ export async function generateMetadata({
     description,
     alternates: { languages },
   };
-}
-
-function formatDate(dateStr: string, locale: string): string {
-  return new Date(dateStr).toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
 }
 
 function CategoryBadge({

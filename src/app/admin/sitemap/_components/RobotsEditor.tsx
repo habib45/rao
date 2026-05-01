@@ -52,10 +52,6 @@ export function RobotsEditor() {
     setRules((r) => r.map((rule, idx) => idx === i ? { ...rule, userAgent: value } : rule));
   }
 
-  function updatePaths(i: number, field: "allow" | "disallow", paths: string[]) {
-    setRules((r) => r.map((rule, idx) => idx === i ? { ...rule, [field]: paths } : rule));
-  }
-
   function addPath(i: number, field: "allow" | "disallow") {
     setRules((r) =>
       r.map((rule, idx) =>

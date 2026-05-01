@@ -8,12 +8,28 @@ const BLOG_SELECT = `
   blog_post_tags(blog_tags(*))
 `;
 
-export async function getPublishedBlogPosts(limit = 12, offset = 0): Promise<BlogPost[]> {
+export async function getPublishedBlogPosts(
+  limit = 20,
+  offset = 0,
+  categoryId?: string,
+  search?: string,
+): Promise<BlogPost[]> {
   const supabase = await createServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("blog_posts")
     .select(BLOG_SELECT)
-    .eq("status", "published")
+    .eq("status", "published");
+
+  const trimmedSearch = search?.trim();
+  if (categoryId) query = query.eq("blog_category_id", categoryId);
+  if (trimmedSearch) {
+    query = query.textSearch("search_vector", trimmedSearch, {
+      type: "websearch",
+      config: "english",
+    });
+  }
+
+  const { data, error } = await query
     .order("published_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -235,12 +251,26 @@ export async function searchBlogPosts(
   return (data ?? []) as unknown as BlogPost[];
 }
 
-export async function getPublishedBlogPostsCount(): Promise<number> {
+export async function getPublishedBlogPostsCount(
+  categoryId?: string,
+  search?: string,
+): Promise<number> {
   const supabase = await createServerClient();
-  const { count, error } = await supabase
+  let query = supabase
     .from("blog_posts")
     .select("id", { count: "exact", head: true })
     .eq("status", "published");
+
+  const trimmedSearch = search?.trim();
+  if (categoryId) query = query.eq("blog_category_id", categoryId);
+  if (trimmedSearch) {
+    query = query.textSearch("search_vector", trimmedSearch, {
+      type: "websearch",
+      config: "english",
+    });
+  }
+
+  const { count, error } = await query;
 
   if (error) {
     console.error("getPublishedBlogPostsCount error:", error.message);
