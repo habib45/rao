@@ -358,6 +358,38 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **New Migrations:** None  
 **Dependencies:** Phase 14 (blog system), Phase 10 (ProductCard), Phase 15 (showPrice setting)
 
+### Phase 17: Admin Sitemap Management
+**Goal:** Give admins full visibility and control over the sitemap and robots.txt from inside the admin panel — without requiring a redeploy. The existing `sitemap.ts` is a live dynamic Next.js route (queries Supabase on every request); this phase adds manual entry management, URL exclusions, robots.txt editing, and an in-panel preview/regenerate capability.
+**Duration estimate:** 1 sprint
+**Deliverables:**
+
+#### Feature 17.1 — DB Config
+- Migration `supabase/migrations/00011_sitemap_config.sql`: `sitemap_custom_entries` table (custom URLs with priority/changefreq/lastmod), `admin_settings` seeds for `sitemap_exclusions`, `sitemap_cache_ttl`, `robots_config`
+
+#### Feature 17.2 — Modify `sitemap.ts`
+- `export const revalidate = 3600` (ISR caching)
+- Reads `sitemap_exclusions` from `admin_settings` and filters out matching slugs
+- Appends `sitemap_custom_entries` (active only) to generated entries
+
+#### Feature 17.3 — Admin Sitemap UI
+- `src/app/admin/sitemap/page.tsx` with 4 tabs: Preview, Custom URLs, Exclusions, Robots.txt
+- `SitemapPreviewTable`, `CustomEntriesPanel`, `ExclusionsPanel`, `RobotsEditor` components
+- `RegenerateButton` that calls `revalidatePath('/sitemap.xml')` via server action
+
+#### Feature 17.4 — API Routes
+- `GET|POST|PATCH|DELETE /admin/api/sitemap` — list/preview/CRUD custom entries
+- `GET|PATCH /admin/api/sitemap/exclusions` — manage exclusion slugs in admin_settings
+- `POST /admin/api/sitemap/revalidate` — bust ISR cache
+- `GET|PATCH /admin/api/sitemap/robots` — read/write robots rules in admin_settings
+
+#### Feature 17.5 — Dynamic Robots.txt
+- `src/app/robots.ts` reads `robots_config` from `admin_settings`; falls back to hardcoded defaults on DB failure
+
+**New Dependencies:** None  
+**New Migrations:** `supabase/migrations/00011_sitemap_config.sql`  
+**New Tests:** 40 (sitemap logic, robots logic, schemas, API routes, UI components)  
+**Dependencies:** Phase 8 (admin auth, AdminShell), Phase 9 (revalidation hook)
+
 ---
 
 ## Architecture Decisions
@@ -444,3 +476,4 @@ Phase 1 (Foundation)
 | Phase 13 — Media Manager (Supabase Storage) | [phase-13/PHASE_13_PLAN.md](phase-13/PHASE_13_PLAN.md) | 📋 Planned |
 | Phase 14 — Blog System (SEO-Driven) | [phase-14/PHASE_14_PLAN.md](phase-14/PHASE_14_PLAN.md) | 🚧 In Progress |
 | Phase 15 — Admin Settings: Price Display Toggle | [phase-15/PHASE_15_PLAN.md](phase-15/PHASE_15_PLAN.md) | 🚧 In Progress |
+| Phase 17 — Admin Sitemap Management | [phase-17/PHASE_17_PLAN.md](phase-17/PHASE_17_PLAN.md) | 📋 Planned |

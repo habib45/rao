@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
   Image as ImageIcon,
   FileText,
+  Map,
 } from "lucide-react";
 import { cn } from "@/app/admin/_lib/cn";
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/translations", label: "Translations", icon: Languages },
   { href: "/admin/media", label: "Media", icon: ImageIcon },
+  { href: "/admin/sitemap", label: "Sitemap", icon: Map },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 

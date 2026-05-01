@@ -23,7 +23,9 @@ export async function generateMetadata({
   if (!product) return { title: "Product Not Found" };
 
   const name = t(product.name, loc) as string;
-  const description = t(product.meta_description, loc) as string || t(product.description, loc) as string;
+  const description =
+    (t(product.meta_description, loc) as string) ||
+    (t(product.description, loc) as string);
   const primaryImage = product.product_images?.find((img) => img.is_primary);
 
   return {
@@ -116,7 +118,8 @@ export default async function ProductPage({
   const name = t(product.name, loc) as string;
   const description = t(product.description, loc) as string;
   const primaryImage = product.product_images?.find((img) => img.is_primary);
-  const otherImages = product.product_images?.filter((img) => !img.is_primary) ?? [];
+  const otherImages =
+    product.product_images?.filter((img) => !img.is_primary) ?? [];
 
   return (
     <>
@@ -130,7 +133,7 @@ export default async function ProductPage({
               <div className="relative aspect-square bg-surface rounded-lg overflow-hidden">
                 <Image
                   src={primaryImage.url}
-                  alt={t(primaryImage.alt_text, loc) as string || name}
+                  alt={(t(primaryImage.alt_text, loc) as string) || name}
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   className="object-contain p-8"
@@ -152,7 +155,7 @@ export default async function ProductPage({
                   >
                     <Image
                       src={img.url}
-                      alt={t(img.alt_text, loc) as string || name}
+                      alt={(t(img.alt_text, loc) as string) || name}
                       fill
                       sizes="100px"
                       className="object-contain p-2"
@@ -171,11 +174,13 @@ export default async function ProductPage({
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               {name}
             </h1>
-
             {/* Rating */}
             {product.rating !== null && (
               <div className="mt-3 flex items-center gap-2">
-                <div className="flex" aria-label={tProduct("rating", { rating: product.rating })}>
+                <div
+                  className="flex"
+                  aria-label={tProduct("rating", { rating: product.rating })}
+                >
                   {Array.from({ length: 5 }, (_, i) => (
                     <svg
                       key={i}
@@ -196,7 +201,6 @@ export default async function ProductPage({
                 </span>
               </div>
             )}
-
             {/* Price */}
             {showPrice && (
               <div className="mt-4">
@@ -230,7 +234,6 @@ export default async function ProductPage({
                 )}
               </div>
             )}
-
             {/* Availability */}
             <div className="mt-3">
               {product.availability === "in_stock" ? (
@@ -247,7 +250,6 @@ export default async function ProductPage({
                 </span>
               )}
             </div>
-
             {/* Buy Button */}
             <a
               href={product.affiliate_url}
@@ -257,9 +259,8 @@ export default async function ProductPage({
             >
               {tProduct("buy_on_amazon")}
             </a>
-
+            &nbsp; &nbsp;
             <AddToCartButton product={product} />
-
             {/* Description */}
             {description && (
               <div className="mt-8">
@@ -269,7 +270,6 @@ export default async function ProductPage({
                 <p className="text-muted leading-relaxed">{description}</p>
               </div>
             )}
-
             {/* Features */}
             {product.features.length > 0 && (
               <div className="mt-8">

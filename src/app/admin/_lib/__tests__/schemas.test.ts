@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import { categorySchema } from "../schemas/category";
 import { productUpdateSchema } from "../schemas/product";
 import { translationUpdateSchema } from "../schemas/translation";
+import {
+  sitemapCustomEntrySchema,
+  sitemapExclusionPatchSchema,
+  robotsConfigSchema,
+} from "../schemas/sitemap";
 
 // ─── categorySchema ──────────────────────────────────────────────────────────
 
@@ -333,5 +338,124 @@ describe("translationUpdateSchema", () => {
       });
       expect(result.success).toBe(true);
     }
+  });
+});
+
+
+// ─── sitemapCustomEntrySchema ────────────────────────────────────────────────
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bestfinds.com";
+
+const validCustomEntry = {
+  url: `${SITE_URL}/en/deals`,
+  priority: 0.8,
+  changefreq: "weekly" as const,
+  is_active: true,
+};
+
+describe("sitemapCustomEntrySchema", () => {
+  it("accepts a valid entry", () => {
+    expect(sitemapCustomEntrySchema.safeParse(validCustomEntry).success).toBe(true);
+  });
+
+  it("accepts optional fields as null/undefined", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      last_modified: null,
+      notes: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects URL not starting with site URL", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      url: "https://other.com/page",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects priority below 0.1", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      priority: 0.05,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects priority above 1.0", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      priority: 1.1,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects invalid changefreq value", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      changefreq: "sometimes",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects notes longer than 500 chars", () => {
+    const result = sitemapCustomEntrySchema.safeParse({
+      ...validCustomEntry,
+      notes: "x".repeat(501),
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ─── sitemapExclusionPatchSchema ──────────────────────────────────────────────
+
+describe("sitemapExclusionPatchSchema", () => {
+  it("accepts { add: 'slug' }", () => {
+    expect(sitemapExclusionPatchSchema.safeParse({ add: "my-slug" }).success).toBe(true);
+  });
+
+  it("accepts { remove: 'slug' }", () => {
+    expect(sitemapExclusionPatchSchema.safeParse({ remove: "my-slug" }).success).toBe(true);
+  });
+
+  it("rejects when neither add nor remove is provided", () => {
+    expect(sitemapExclusionPatchSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("rejects empty string for add", () => {
+    expect(sitemapExclusionPatchSchema.safeParse({ add: "" }).success).toBe(false);
+  });
+});
+
+// ─── robotsConfigSchema ───────────────────────────────────────────────────────
+
+describe("robotsConfigSchema", () => {
+  it("accepts valid config with one rule", () => {
+    const result = robotsConfigSchema.safeParse({
+      rules: [{ userAgent: "*", allow: ["/"], disallow: ["/api/"] }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts config with multiple rules", () => {
+    const result = robotsConfigSchema.safeParse({
+      rules: [
+        { userAgent: "*", allow: ["/"], disallow: ["/api/"] },
+        { userAgent: "Googlebot", allow: ["/"], disallow: [] },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects empty rules array", () => {
+    expect(robotsConfigSchema.safeParse({ rules: [] }).success).toBe(false);
+  });
+
+  it("rejects rule with empty userAgent", () => {
+    const result = robotsConfigSchema.safeParse({
+      rules: [{ userAgent: "", allow: ["/"], disallow: [] }],
+    });
+    expect(result.success).toBe(false);
   });
 });
