@@ -70,6 +70,7 @@ import "ckeditor5/ckeditor5.css";
 interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
+  onReady?: (editor: ClassicEditor) => void;
   placeholder?: string;
   className?: string;
 }
@@ -77,6 +78,7 @@ interface RichTextEditorProps {
 export default function RichTextEditor({
   value,
   onChange,
+  onReady,
   placeholder,
   className,
 }: RichTextEditorProps) {
@@ -313,6 +315,9 @@ export default function RichTextEditor({
               },
             ],
           },
+        }}
+        onReady={(editor) => {
+          onReady?.(editor);
         }}
         onChange={(_event, editor) => {
           onChange(editor.getData());

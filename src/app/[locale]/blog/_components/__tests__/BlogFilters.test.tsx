@@ -24,12 +24,13 @@ afterEach(() => {
   cleanup();
 });
 
-function renderFilters(props: { currentSearch?: string; currentPerPage?: number; totalCount?: number } = {}) {
+function renderFilters(props: { currentSearch?: string; currentPerPage?: number; totalCount?: number; currentView?: "list" | "grid" } = {}) {
   return render(
     <BlogFilters
       currentSearch={props.currentSearch ?? ""}
       currentPerPage={props.currentPerPage ?? PER_PAGE_OPTIONS[0]}
       totalCount={props.totalCount ?? 10}
+      currentView={props.currentView ?? "list"}
     />,
   );
 }

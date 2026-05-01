@@ -187,8 +187,8 @@ describe("getPublishedBlogPostsCount", () => {
 // ── TC-18.1.5 ─────────────────────────────────────────────────────────────────
 
 describe("PER_PAGE_OPTIONS", () => {
-  it("TC-18.1.5 contains exactly [1, 3, 5, 7] (UAT values — revert to [20,50,100] after UAT)", () => {
-    expect(Array.from(PER_PAGE_OPTIONS)).toEqual([1, 3, 5, 7]);
+  it("TC-18.1.5 contains exactly [10, 20, 50, 100, 200]", () => {
+    expect(Array.from(PER_PAGE_OPTIONS)).toEqual([10, 20, 50, 100, 200]);
   });
 
   it("does not include 999 (invalid values clamp to first option)", () => {

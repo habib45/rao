@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { PER_PAGE_OPTIONS } from "./blog-constants";
+import { PER_PAGE_OPTIONS, type BlogView } from "./blog-constants";
 
 export { PER_PAGE_OPTIONS };
 
@@ -11,12 +11,14 @@ interface Props {
   currentPerPage: number;
   currentSearch: string;
   totalCount: number;
+  currentView: BlogView;
 }
 
 export function BlogFilters({
   currentPerPage,
   currentSearch,
   totalCount,
+  currentView,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -83,7 +85,7 @@ export function BlogFilters({
         />
       </div>
 
-      {/* Per-page + count */}
+      {/* Per-page + count + view toggle */}
       <div className="flex items-center gap-3 text-sm">
         <span className="text-muted hidden sm:inline">
           {totalCount} article{totalCount !== 1 ? "s" : ""}
@@ -103,6 +105,43 @@ export function BlogFilters({
           </select>
           per page
         </label>
+
+        {/* View toggle */}
+        <div className="flex items-center rounded-lg border border-border bg-white p-0.5">
+          <button
+            type="button"
+            aria-label="List view"
+            onClick={() => router.push(buildUrl({ view: null }))}
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+              currentView === "list"
+                ? "bg-brand text-white"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+              <rect x="1" y="2" width="14" height="2.5" rx="1" />
+              <rect x="1" y="6.75" width="14" height="2.5" rx="1" />
+              <rect x="1" y="11.5" width="14" height="2.5" rx="1" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label="Grid view"
+            onClick={() => router.push(buildUrl({ view: "grid" }))}
+            className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+              currentView === "grid"
+                ? "bg-brand text-white"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            <svg viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+              <rect x="1" y="1" width="6" height="6" rx="1" />
+              <rect x="9" y="1" width="6" height="6" rx="1" />
+              <rect x="1" y="9" width="6" height="6" rx="1" />
+              <rect x="9" y="9" width="6" height="6" rx="1" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   );

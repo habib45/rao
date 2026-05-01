@@ -14,7 +14,7 @@ import {
 import { t } from "@/lib/i18n/translate";
 import { formatDate } from "@/lib/i18n/format";
 import { BlogFilters } from "./_components/BlogFilters";
-import { PER_PAGE_OPTIONS } from "./_components/blog-constants";
+import { PER_PAGE_OPTIONS, type BlogView } from "./_components/blog-constants";
 import { NewsletterSection } from "./_components/NewsletterSection";
 import { getNewsletterSettings } from "@/lib/queries/newsletter";
 
@@ -74,6 +74,73 @@ function CategoryBadge({
     >
       {name}
     </span>
+  );
+}
+
+function GridPostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
+  const title = t(post.title, locale) as string;
+  const excerpt = t(post.excerpt, locale) as string;
+  const slug = t(post.slug, locale) as string;
+  const categoryName = post.blog_categories
+    ? (t(post.blog_categories.name, locale) as string)
+    : null;
+  const categoryColor = post.blog_categories?.color ?? null;
+  const dateStr = post.published_at ? formatDate(post.published_at, locale) : "";
+
+  return (
+    <Link
+      href={`/blog/${slug}`}
+      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-white transition-shadow hover:shadow-md"
+    >
+      <div className="relative aspect-video w-full overflow-hidden bg-surface">
+        {post.cover_image_url ? (
+          <Image
+            src={post.cover_image_url}
+            alt={(t(post.cover_image_alt, locale) as string) || title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-3xl text-muted">
+            📝
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        {categoryName && (
+          <CategoryBadge color={categoryColor} name={categoryName} />
+        )}
+        <h2 className="line-clamp-2 text-sm font-bold leading-snug text-foreground transition-colors group-hover:text-brand sm:text-base">
+          {title}
+        </h2>
+        {excerpt && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted sm:text-sm">
+            {excerpt}
+          </p>
+        )}
+        <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 text-xs text-muted">
+          {post.author_avatar_url ? (
+            <Image
+              src={post.author_avatar_url}
+              alt={post.author_name}
+              width={18}
+              height={18}
+              className="rounded-full"
+            />
+          ) : (
+            <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-brand/20 text-[10px] font-bold text-brand">
+              {post.author_name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <span className="font-medium text-foreground">{post.author_name}</span>
+          {dateStr && <span>{dateStr}</span>}
+          {post.read_time_minutes > 0 && (
+            <span>{post.read_time_minutes} min read</span>
+          )}
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -347,6 +414,7 @@ export default async function BlogPage({
     perPage?: string;
     category?: string;
     q?: string;
+    view?: string;
   }>;
 }) {
   const { locale } = await params;
@@ -355,7 +423,9 @@ export default async function BlogPage({
     perPage: perPageParam,
     category: categoryParam,
     q: searchParam,
+    view: viewParam,
   } = await searchParams;
+  const view: BlogView = viewParam === "grid" ? "grid" : "list";
 
   const loc = locale as LocaleCode;
   setRequestLocale(locale);
@@ -489,6 +559,7 @@ export default async function BlogPage({
                 currentPerPage={perPage}
                 currentSearch={searchQuery}
                 totalCount={totalCount}
+                currentView={view}
               />
             </Suspense>
 
@@ -506,11 +577,19 @@ export default async function BlogPage({
               </div>
             ) : (
               <>
-                <div className="space-y-4">
-                  {posts.map((post) => (
-                    <PostCard key={post.id} post={post} locale={loc} />
-                  ))}
-                </div>
+                {view === "grid" ? (
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {posts.map((post) => (
+                      <GridPostCard key={post.id} post={post} locale={loc} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {posts.map((post) => (
+                      <PostCard key={post.id} post={post} locale={loc} />
+                    ))}
+                  </div>
+                )}
 
                 {/* Pagination */}
                 {totalPages > 1 && (

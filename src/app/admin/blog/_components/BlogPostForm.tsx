@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
+import type { ClassicEditor } from "ckeditor5";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,6 +16,10 @@ import {
   TabsContent,
 } from "@/app/admin/_components/ui/tabs";
 import type { BlogPost, BlogCategory } from "@/types/domain";
+import { WizardBuilder } from "./WizardBuilder";
+import { WizardHelp } from "./WizardHelp";
+import { decodeWizard } from "@/lib/wizard";
+import type { WizardStep } from "@/lib/wizard";
 
 const RichTextEditor = dynamic(
   () => import("@/app/admin/_components/ui/RichTextEditor"),
@@ -117,6 +122,14 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
   });
 
   const isEditing = post !== null;
+  const editorRef = useRef<ClassicEditor | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
+  const [editingWizard, setEditingWizard] = useState<{
+    encoded: string;
+    steps: WizardStep[];
+    borderColor: string;
+    borderSize: number;
+  } | null>(null);
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -193,6 +206,65 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     }));
   }
 
+  function extractWizardBlocks(
+    content: string,
+  ): Array<{ encoded: string; label: string }> {
+    const re = /data-wizard="([^"]+)"/g;
+    const results: Array<{ encoded: string; label: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      try {
+        const data = decodeWizard(m[1]);
+        results.push({
+          encoded: m[1],
+          label: data.steps.map((s) => s.title).filter(Boolean).join(" | "),
+        });
+      } catch {
+        // skip malformed blocks
+      }
+    }
+    return results;
+  }
+
+  function replaceWizardBlock(
+    content: string,
+    oldEncoded: string,
+    newHtml: string,
+  ): string {
+    // Locate by data-wizard value only — CKEditor may reorder attributes
+    const marker = `data-wizard="${oldEncoded}"`;
+    const markerIdx = content.indexOf(marker);
+    if (markerIdx === -1) return newHtml ? content + newHtml : content;
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return newHtml ? content + newHtml : content;
+    const endIdx = content.indexOf("</div>", markerIdx);
+    if (endIdx === -1) return newHtml ? content + newHtml : content;
+    return content.slice(0, divStart) + newHtml + content.slice(endIdx + "</div>".length);
+  }
+
+  function parseWizardBorderStyle(content: string, encoded: string): { borderColor: string; borderSize: number } {
+    const markerIdx = content.indexOf(`data-wizard="${encoded}"`);
+    if (markerIdx === -1) return { borderColor: "#94a3b8", borderSize: 2 };
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return { borderColor: "#94a3b8", borderSize: 2 };
+    const tagEnd = content.indexOf(">", divStart);
+    const tag = content.slice(divStart, tagEnd);
+    const styleMatch = tag.match(/style="([^"]*)"/);
+    if (!styleMatch) return { borderColor: "#94a3b8", borderSize: 2 };
+    const borderMatch = styleMatch[1].match(/border:(\d+)px\s+dashed\s+(#[0-9a-fA-F]{3,8})/);
+    return {
+      borderSize: borderMatch ? parseInt(borderMatch[1]) : 2,
+      borderColor: borderMatch ? borderMatch[2] : "#94a3b8",
+    };
+  }
+
+  function deleteWizardBlock(encoded: string) {
+    const newContent = replaceWizardBlock(form.content, encoded, "");
+    const editor = editorRef.current;
+    if (editor) editor.setData(newContent);
+    setForm((prev) => ({ ...prev, content: newContent }));
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -265,14 +337,98 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
 
       {/* Content editor */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-foreground">
-          Content
-        </label>
+        <div className="mb-1 flex items-center justify-between">
+          <label className="text-sm font-medium text-foreground">Content</label>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setShowWizard((v) => !v)}
+              className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
+            >
+              Add Wizard
+            </button>
+            <WizardHelp />
+          </div>
+        </div>
         <RichTextEditor
           value={form.content}
           onChange={(html) => setForm((prev) => ({ ...prev, content: html }))}
+          onReady={(editor) => { editorRef.current = editor; }}
           placeholder="Write the body of your blog post..."
         />
+        {/* Existing wizard blocks — edit buttons */}
+        {extractWizardBlocks(form.content).map(({ encoded, label }, i) => (
+          <div
+            key={encoded}
+            className="mt-1 flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs"
+          >
+            <span className="flex-1 truncate text-muted">
+              Wizard {i + 1}{label ? `: ${label}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  const data = decodeWizard(encoded);
+                  const { borderColor, borderSize } = parseWizardBorderStyle(form.content, encoded);
+                  setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize });
+                } catch {
+                  // ignore malformed
+                }
+              }}
+              className="font-medium text-brand hover:underline"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteWizardBlock(encoded)}
+              className="font-medium text-red-500 hover:underline"
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+
+        {/* New wizard modal */}
+        {showWizard && (
+          <WizardBuilder
+            onInsert={(html) => {
+              const editor = editorRef.current;
+              if (editor) {
+                const current = editor.getData();
+                editor.setData(current + html);
+                setForm((prev) => ({ ...prev, content: current + html }));
+              } else {
+                setForm((prev) => ({ ...prev, content: prev.content + html }));
+              }
+              setShowWizard(false);
+            }}
+            onClose={() => setShowWizard(false)}
+          />
+        )}
+
+        {/* Edit existing wizard modal */}
+        {editingWizard && (
+          <WizardBuilder
+            initialSteps={editingWizard.steps}
+            initialBorderColor={editingWizard.borderColor}
+            initialBorderSize={editingWizard.borderSize}
+            isEditing
+            onInsert={(newHtml) => {
+              const newContent = replaceWizardBlock(
+                form.content,
+                editingWizard.encoded,
+                newHtml,
+              );
+              const editor = editorRef.current;
+              if (editor) editor.setData(newContent);
+              setForm((prev) => ({ ...prev, content: newContent }));
+              setEditingWizard(null);
+            }}
+            onClose={() => setEditingWizard(null)}
+          />
+        )}
       </div>
 
       {/* Side fields */}

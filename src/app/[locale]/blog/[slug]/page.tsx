@@ -13,9 +13,11 @@ import {
 } from "@/lib/queries/blog";
 import { t } from "@/lib/i18n/translate";
 import { formatDate } from "@/lib/i18n/format";
+import { parseContentSegments } from "@/lib/wizard";
 import { ViewTracker } from "./_components/ViewTracker";
 import { SocialShare } from "./_components/SocialShare";
 import { CommentForm } from "./_components/CommentForm";
+import { WizardBlock } from "./_components/WizardBlock";
 import { Calendar, Clock, Eye, Tag } from "lucide-react";
 
 export const revalidate = 3600;
@@ -365,10 +367,17 @@ export default async function BlogDetailPage({
               </p>
             )}
 
-            <div
-              className="article-content max-w-none text-foreground"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
+            {parseContentSegments(post.content).map((seg, i) =>
+              seg.type === "html" ? (
+                <div
+                  key={i}
+                  className="article-content max-w-none text-foreground"
+                  dangerouslySetInnerHTML={{ __html: seg.content }}
+                />
+              ) : (
+                <WizardBlock key={i} steps={seg.steps} />
+              ),
+            )}
 
             <style>{`
               .article-content { font-size: 1.0625rem; line-height: 1.8; color: var(--color-foreground); }
