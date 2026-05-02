@@ -8,6 +8,7 @@ import type { LocaleCode } from "@/types/domain";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/cart/CartProvider";
+import { ComparisonProvider } from "@/lib/comparison/index";
 import "../globals.css";
 
 const inter = Inter({
@@ -77,9 +78,11 @@ export default async function LocaleLayout({
       <body className={`${bodyClassName} min-h-screen flex flex-col`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CartProvider>
-            <Header locale={locale as LocaleCode} />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <ComparisonProvider>
+              <Header locale={locale as LocaleCode} />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </ComparisonProvider>
           </CartProvider>
         </NextIntlClientProvider>
       </body>

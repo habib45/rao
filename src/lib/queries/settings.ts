@@ -6,11 +6,27 @@ export interface SiteSettings {
   showPrice: boolean;
 }
 
+export const getComparisonKeys = unstable_cache(
+  async (): Promise<string[]> => {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("store_settings")
+      .select("value")
+      .eq("key", "comparison")
+      .single();
+
+    const row = (data?.value as { keys?: string[] }) ?? {};
+    return row.keys ?? [];
+  },
+  ["comparison-keys"],
+  { revalidate: 60, tags: ["comparison-keys"] },
+);
+
 export const getSiteSettings = unstable_cache(
   async (): Promise<SiteSettings> => {
     const supabase = createAdminClient();
     const { data } = await supabase
-      .from("admin_settings")
+      .from("store_settings")
       .select("value")
       .eq("key", "features")
       .single();

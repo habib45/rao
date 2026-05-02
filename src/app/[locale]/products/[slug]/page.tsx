@@ -6,11 +6,14 @@ import type { LocaleCode } from "@/types/domain";
 import { t } from "@/lib/i18n/translate";
 import { formatPrice } from "@/lib/i18n/format";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries/products";
-import { getSiteSettings } from "@/lib/queries/settings";
+import { getSiteSettings, getComparisonKeys } from "@/lib/queries/settings";
+import { getComparisonCandidates } from "@/lib/queries/comparison";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
 import { parseContentSegments } from "@/lib/wizard";
 import { WizardBlock } from "@/app/[locale]/blog/[slug]/_components/WizardBlock";
+import { ComparisonWizard } from "./_components/ComparisonWizard";
+import { ComparisonBlock } from "./_components/ComparisonBlock";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -113,7 +116,11 @@ export default async function ProductPage({
   ]);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product.id, product.category_id, 4);
+  const [related, comparisonCandidates, comparisonKeys] = await Promise.all([
+    getRelatedProducts(product.id, product.category_id, 4),
+    getComparisonCandidates(product.id, product.category_id, 10),
+    getComparisonKeys(),
+  ]);
 
   const tProduct = await getTranslations("product");
 
@@ -276,8 +283,10 @@ export default async function ProductPage({
                       className="prose prose-sm max-w-none text-muted leading-relaxed [&_a]:text-brand [&_a]:underline"
                       dangerouslySetInnerHTML={{ __html: seg.content }}
                     />
-                  ) : (
+                  ) : seg.type === "wizard" ? (
                     <WizardBlock key={i} steps={seg.steps} />
+                  ) : (
+                    <ComparisonBlock key={i} data={seg.data} />
                   ),
                 )}
               </div>
@@ -297,6 +306,19 @@ export default async function ProductPage({
             )}
           </div>
         </div>
+
+        {/* Comparison Wizard — full width below product grid */}
+        {comparisonCandidates.length > 0 && (
+          <div className="mt-8">
+            <ComparisonWizard
+              currentProduct={product}
+              candidates={comparisonCandidates}
+              comparisonKeys={comparisonKeys}
+              locale={loc}
+              showPrice={showPrice}
+            />
+          </div>
+        )}
       </div>
 
       {/* Related products */}

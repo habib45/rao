@@ -479,3 +479,4 @@ Phase 1 (Foundation)
 | Phase 17 — Admin Sitemap Management | [phase-17/PHASE_17_PLAN.md](phase-17/PHASE_17_PLAN.md) | 📋 Planned |
 | Phase 18 — Blog Enhancements (Pagination, Filtering, Newsletter, Comments) | [phase-18/PHASE_18_PLAN.md](phase-18/PHASE_18_PLAN.md) | 🚧 In Progress |
 | Phase 19 — Blog Wizard Component (multi-step tabs in editor + frontend) | [phase-19/PHASE_19_PLAN.md](phase-19/PHASE_19_PLAN.md) | 🚧 In Progress |
+| Phase 20 — Product Comparison Wizard | [phase-20/PHASE_20_PLAN.md](phase-20/PHASE_20_PLAN.md) | ✅ Complete |

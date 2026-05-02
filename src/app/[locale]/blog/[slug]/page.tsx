@@ -374,9 +374,9 @@ export default async function BlogDetailPage({
                   className="article-content max-w-none text-foreground"
                   dangerouslySetInnerHTML={{ __html: seg.content }}
                 />
-              ) : (
+              ) : seg.type === "wizard" ? (
                 <WizardBlock key={i} steps={seg.steps} />
-              ),
+              ) : null,
             )}
 
             <style>{`

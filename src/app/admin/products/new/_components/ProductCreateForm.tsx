@@ -17,8 +17,10 @@ import {
 import type { ProductPreviewData } from "@/lib/amazon/types";
 import { WizardBuilder } from "@/app/admin/blog/_components/WizardBuilder";
 import { WizardHelp } from "@/app/admin/blog/_components/WizardHelp";
-import { decodeWizard } from "@/lib/wizard";
-import type { WizardStep } from "@/lib/wizard";
+import { AttributesEditor } from "@/app/admin/products/_components/AttributesEditor";
+import { ComparisonWizardBuilder } from "@/app/admin/products/_components/ComparisonWizardBuilder";
+import { decodeWizard, decodeComparison } from "@/lib/wizard";
+import type { WizardStep, ComparisonData } from "@/lib/wizard";
 
 const RichTextEditor = dynamic(
   () => import("@/app/admin/_components/ui/RichTextEditor"),
@@ -62,8 +64,9 @@ interface CreateForm {
   affiliate_url: string;
   availability: "in_stock" | "out_of_stock" | "unknown";
   is_featured: boolean;
+  show_in_comparison: boolean;
   images: ImageEntry[];
-  attributes: Record<string, unknown>;
+  attributes: Record<string, string>;
 }
 
 const emptyLocaleMap = (): Record<LocaleCode, string> => ({
@@ -89,6 +92,7 @@ const initialForm: CreateForm = {
   affiliate_url: "",
   availability: "unknown",
   is_featured: false,
+  show_in_comparison: false,
   images: [],
   attributes: {},
 };
@@ -120,6 +124,11 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
     steps: WizardStep[];
     borderColor: string;
     borderSize: number;
+  } | null>(null);
+  const [showComparisonWizard, setShowComparisonWizard] = useState(false);
+  const [editingComparisonWizard, setEditingComparisonWizard] = useState<{
+    encoded: string;
+    data: ComparisonData;
   } | null>(null);
 
   function setLocaleField(
@@ -179,7 +188,9 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
       availability: preview.availability || prev.availability,
       images: preview.images.length > 0 ? preview.images : prev.images,
       attributes: Object.keys(preview.attributes).length > 0
-        ? preview.attributes
+        ? Object.fromEntries(
+            Object.entries(preview.attributes).map(([k, v]) => [k, String(v ?? "")])
+          )
         : prev.attributes,
     }));
   }
@@ -301,6 +312,38 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
     setLocaleField("description", loc, newContent);
   }
 
+  function extractComparisonBlocks(content: string): Array<{ encoded: string; label: string }> {
+    const re = /data-comparison="([^"]+)"/g;
+    const results: Array<{ encoded: string; label: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      try {
+        const data = decodeComparison(m[1]);
+        results.push({ encoded: m[1], label: data.title ?? "Comparison" });
+      } catch { /* skip */ }
+    }
+    return results;
+  }
+
+  function replaceComparisonBlock(content: string, oldEncoded: string, newHtml: string): string {
+    const marker = `data-comparison="${oldEncoded}"`;
+    const markerIdx = content.indexOf(marker);
+    if (markerIdx === -1) return newHtml ? content + newHtml : content;
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return newHtml ? content + newHtml : content;
+    const endIdx = content.indexOf("</div>", markerIdx);
+    if (endIdx === -1) return newHtml ? content + newHtml : content;
+    return content.slice(0, divStart) + newHtml + content.slice(endIdx + "</div>".length);
+  }
+
+  function deleteComparisonBlock(encoded: string, locale?: LocaleCode) {
+    const loc = locale ?? activeLocaleTab;
+    const newContent = replaceComparisonBlock(form.description[loc], encoded, "");
+    const editor = editorRefs.current[loc];
+    if (editor) editor.setData(newContent);
+    setLocaleField("description", loc, newContent);
+  }
+
   async function submit(status: "draft" | "pending_review") {
     if (!form.name.en.trim()) {
       toast.error("English name is required");
@@ -334,6 +377,7 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
       affiliate_url: form.affiliate_url || "",
       availability: form.availability,
       is_featured: form.is_featured,
+      show_in_comparison: form.show_in_comparison,
       product_status: status,
       attributes: form.attributes,
       images: validImages.map((img, i) => ({
@@ -538,6 +582,27 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
             />
             Featured product
           </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.show_in_comparison}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, show_in_comparison: e.target.checked }))
+              }
+              className="rounded border-border"
+            />
+            Show in Comparison
+          </label>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Attributes</p>
+            <p className="text-xs text-muted">Key-value pairs used in the comparison table (e.g. Color → Black Green).</p>
+            <AttributesEditor
+              value={form.attributes}
+              onChange={(val) => setForm((p) => ({ ...p, attributes: val }))}
+            />
+          </div>
         </TabsContent>
 
         {/* ── Locales ──────────────────────────────────────────── */}
@@ -629,6 +694,13 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                     >
                       Add Wizard
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowComparisonWizard(true)}
+                      className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
+                    >
+                      Add Comparison Wizard
+                    </button>
                     <WizardHelp />
                   </div>
                 </div>
@@ -664,6 +736,36 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                     <button
                       type="button"
                       onClick={() => deleteWizardBlock(encoded, code)}
+                      className="font-medium text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                {extractComparisonBlocks(form.description[code]).map(({ encoded, label: cLabel }, i) => (
+                  <div
+                    key={encoded}
+                    className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-xs"
+                  >
+                    <span className="text-xs font-semibold text-brand mr-1">⊞</span>
+                    <span className="flex-1 truncate text-muted">
+                      Comparison {i + 1}{cLabel ? `: ${cLabel}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const data = decodeComparison(encoded);
+                          setEditingComparisonWizard({ encoded, data });
+                        } catch { /* ignore */ }
+                      }}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteComparisonBlock(encoded, code)}
                       className="font-medium text-red-500 hover:underline"
                     >
                       Delete
@@ -709,6 +811,42 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                 setEditingWizard(null);
               }}
               onClose={() => setEditingWizard(null)}
+            />
+          )}
+
+          {/* New comparison wizard modal */}
+          {showComparisonWizard && (
+            <ComparisonWizardBuilder
+              onInsert={(html) => {
+                const locale = activeLocaleTab;
+                const editor = editorRefs.current[locale];
+                if (editor) {
+                  const current = editor.getData();
+                  editor.setData(current + html);
+                  setLocaleField("description", locale, current + html);
+                } else {
+                  setLocaleField("description", locale, form.description[locale] + html);
+                }
+                setShowComparisonWizard(false);
+              }}
+              onClose={() => setShowComparisonWizard(false)}
+            />
+          )}
+
+          {/* Edit existing comparison wizard modal */}
+          {editingComparisonWizard && (
+            <ComparisonWizardBuilder
+              initialData={editingComparisonWizard.data}
+              isEditing
+              onInsert={(newHtml) => {
+                const locale = activeLocaleTab;
+                const newContent = replaceComparisonBlock(form.description[locale], editingComparisonWizard.encoded, newHtml);
+                const editor = editorRefs.current[locale];
+                if (editor) editor.setData(newContent);
+                setLocaleField("description", locale, newContent);
+                setEditingComparisonWizard(null);
+              }}
+              onClose={() => setEditingComparisonWizard(null)}
             />
           )}
         </TabsContent>

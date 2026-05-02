@@ -17,8 +17,10 @@ import { PublishScheduler } from "./PublishScheduler";
 import { WorkflowActions } from "./WorkflowActions";
 import { WizardBuilder } from "@/app/admin/blog/_components/WizardBuilder";
 import { WizardHelp } from "@/app/admin/blog/_components/WizardHelp";
-import { decodeWizard } from "@/lib/wizard";
-import type { WizardStep } from "@/lib/wizard";
+import { AttributesEditor } from "@/app/admin/products/_components/AttributesEditor";
+import { ComparisonWizardBuilder } from "@/app/admin/products/_components/ComparisonWizardBuilder";
+import { decodeWizard, decodeComparison } from "@/lib/wizard";
+import type { WizardStep, ComparisonData } from "@/lib/wizard";
 import type { Product, ProductStatus } from "@/types/domain";
 
 const RichTextEditor = dynamic(
@@ -61,6 +63,10 @@ export function ProductEditForm({
     availability: product.availability,
     is_featured: product.is_featured,
     is_active: product.is_active,
+    show_in_comparison: product.show_in_comparison ?? false,
+    attributes: Object.fromEntries(
+      Object.entries(product.attributes ?? {}).map(([k, v]) => [k, String(v ?? "")])
+    ) as Record<string, string>,
     images: (product.product_images ?? []).map((img) => ({
       url: img.url,
       width: img.width ?? undefined,
@@ -79,6 +85,11 @@ export function ProductEditForm({
     steps: WizardStep[];
     borderColor: string;
     borderSize: number;
+  } | null>(null);
+  const [showComparisonWizard, setShowComparisonWizard] = useState(false);
+  const [editingComparisonWizard, setEditingComparisonWizard] = useState<{
+    encoded: string;
+    data: ComparisonData;
   } | null>(null);
 
   const mutation = useMutation({
@@ -172,6 +183,39 @@ export function ProductEditForm({
     updateLocaleField(loc, "description", newContent);
   }
 
+  function extractComparisonBlocks(content: string): Array<{ encoded: string; label: string }> {
+    const re = /data-comparison="([^"]+)"/g;
+    const results: Array<{ encoded: string; label: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      try {
+        const data = decodeComparison(m[1]);
+        results.push({ encoded: m[1], label: data.title ?? "Comparison" });
+      } catch { /* skip */ }
+    }
+    return results;
+  }
+
+  function replaceComparisonBlock(content: string, oldEncoded: string, newHtml: string): string {
+    const marker = `data-comparison="${oldEncoded}"`;
+    const markerIdx = content.indexOf(marker);
+    if (markerIdx === -1) return newHtml ? content + newHtml : content;
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return newHtml ? content + newHtml : content;
+    const endIdx = content.indexOf("</div>", markerIdx);
+    if (endIdx === -1) return newHtml ? content + newHtml : content;
+    return content.slice(0, divStart) + newHtml + content.slice(endIdx + "</div>".length);
+  }
+
+  function deleteComparisonBlock(encoded: string, locale?: string) {
+    const loc = locale ?? activeLocaleTab;
+    const desc = form.description as Record<string, string>;
+    const newContent = replaceComparisonBlock(desc[loc] ?? "", encoded, "");
+    const editor = editorRefs.current[loc];
+    if (editor) editor.setData(newContent);
+    updateLocaleField(loc, "description", newContent);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -254,6 +298,24 @@ export function ProductEditForm({
               />
               Featured
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.show_in_comparison}
+                onChange={(e) => setForm((p) => ({ ...p, show_in_comparison: e.target.checked }))}
+                className="rounded border-border"
+              />
+              Show in Comparison
+            </label>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Attributes</p>
+            <p className="text-xs text-muted">Key-value pairs used in the comparison table (e.g. Color → Black Green).</p>
+            <AttributesEditor
+              value={form.attributes}
+              onChange={(val) => setForm((p) => ({ ...p, attributes: val }))}
+            />
           </div>
 
           <div className="rounded-lg border border-border bg-surface p-4">
@@ -334,6 +396,13 @@ export function ProductEditForm({
                     >
                       Add Wizard
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowComparisonWizard(true)}
+                      className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
+                    >
+                      Add Comparison Wizard
+                    </button>
                     <WizardHelp />
                   </div>
                 </div>
@@ -368,6 +437,36 @@ export function ProductEditForm({
                     <button
                       type="button"
                       onClick={() => deleteWizardBlock(encoded, code)}
+                      className="font-medium text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+                {extractComparisonBlocks((form.description as Record<string, string>)[code] ?? "").map(({ encoded, label: cLabel }, i) => (
+                  <div
+                    key={encoded}
+                    className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-xs"
+                  >
+                    <span className="text-xs font-semibold text-brand mr-1">⊞</span>
+                    <span className="flex-1 truncate text-muted">
+                      Comparison {i + 1}{cLabel ? `: ${cLabel}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const data = decodeComparison(encoded);
+                          setEditingComparisonWizard({ encoded, data });
+                        } catch { /* ignore */ }
+                      }}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteComparisonBlock(encoded, code)}
                       className="font-medium text-red-500 hover:underline"
                     >
                       Delete
@@ -412,6 +511,41 @@ export function ProductEditForm({
                 setEditingWizard(null);
               }}
               onClose={() => setEditingWizard(null)}
+            />
+          )}
+
+          {showComparisonWizard && (
+            <ComparisonWizardBuilder
+              onInsert={(html) => {
+                const locale = activeLocaleTab;
+                const editor = editorRefs.current[locale];
+                const current = (form.description as Record<string, string>)[locale] ?? "";
+                if (editor) {
+                  editor.setData(current + html);
+                  updateLocaleField(locale, "description", current + html);
+                } else {
+                  updateLocaleField(locale, "description", current + html);
+                }
+                setShowComparisonWizard(false);
+              }}
+              onClose={() => setShowComparisonWizard(false)}
+            />
+          )}
+
+          {editingComparisonWizard && (
+            <ComparisonWizardBuilder
+              initialData={editingComparisonWizard.data}
+              isEditing
+              onInsert={(newHtml) => {
+                const locale = activeLocaleTab;
+                const content = (form.description as Record<string, string>)[locale] ?? "";
+                const newContent = replaceComparisonBlock(content, editingComparisonWizard.encoded, newHtml);
+                const editor = editorRefs.current[locale];
+                if (editor) editor.setData(newContent);
+                updateLocaleField(locale, "description", newContent);
+                setEditingComparisonWizard(null);
+              }}
+              onClose={() => setEditingComparisonWizard(null)}
             />
           )}
         </TabsContent>

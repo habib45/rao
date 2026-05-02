@@ -8,6 +8,7 @@ import { Button } from "@/app/admin/_components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/app/admin/_components/ui/card";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
 import { Toggle } from "@/app/admin/_components/ui/toggle";
+import { ComparisonKeysEditor } from "./ComparisonKeysEditor";
 
 interface AffiliateSettings {
   tag_en?: string;
@@ -42,11 +43,14 @@ export function SettingsForm() {
 
   const [affiliate, setAffiliate] = useState<AffiliateSettings>({});
   const [features, setFeatures] = useState<FeatureFlags>({});
+  const [comparisonKeys, setComparisonKeys] = useState<string[]>([]);
 
   useEffect(() => {
     if (settings) {
       setAffiliate((settings.affiliate as AffiliateSettings) ?? {});
       setFeatures((settings.features as FeatureFlags) ?? {});
+      const comp = settings.comparison as { keys?: string[] } | undefined;
+      setComparisonKeys(comp?.keys ?? []);
     }
   }, [settings]);
 
@@ -210,6 +214,32 @@ export function SettingsForm() {
               disabled={saveMutation.isPending}
             >
               Save Feature Flags
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comparison Keys */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Comparison Keys</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3 text-xs text-muted">
+            Attribute rows shown in the comparison table. Values come from each product&apos;s attributes field.
+          </p>
+          <ComparisonKeysEditor
+            keys={comparisonKeys}
+            onChange={setComparisonKeys}
+          />
+          <div className="mt-4">
+            <Button
+              onClick={() =>
+                saveMutation.mutate({ comparison: { keys: comparisonKeys } })
+              }
+              disabled={saveMutation.isPending}
+            >
+              Save Comparison Keys
             </Button>
           </div>
         </CardContent>

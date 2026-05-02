@@ -42,6 +42,7 @@ export interface Product {
   rejection_reason?: string | null;
   submitted_by?: string | null;
   attributes?: Record<string, unknown>;
+  show_in_comparison?: boolean;
   product_images: ProductImage[];
   created_at: string;
   updated_at: string;
