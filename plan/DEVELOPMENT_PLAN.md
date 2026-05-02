@@ -390,6 +390,30 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **New Tests:** 40 (sitemap logic, robots logic, schemas, API routes, UI components)  
 **Dependencies:** Phase 8 (admin auth, AdminShell), Phase 9 (revalidation hook)
 
+### Phase 19: Blog Wizard Component
+**Goal:** Allow blog and product editors to insert interactive multi-step wizard blocks directly inside the CKEditor rich-text content. Each wizard renders as a tabbed/stepper UI on the public frontend.  
+**Duration estimate:** 1 sprint  
+**Status:** ✅ Complete  
+**Deliverables:**
+- `src/lib/wizard.ts` — `WizardData` / `WizardStep` types, `encodeWizard()` / `decodeWizard()`, `parseContentSegments()` parser (supports both wizard and comparison blocks)
+- `WizardBuilder.tsx` — draggable modal with full CKEditor per step, step drag-and-drop reorder, full style controls
+- `WizardBlock.tsx` — public tabbed renderer with all conditional style props
+- Wired into `BlogPostForm`, `ProductEditForm`, `ProductCreateForm`
+
+**Style controls (all persisted in wizard data, backward-compatible defaults):**
+
+| Control | Type | Default |
+|---|---|---|
+| Box border color | Color picker | `#94a3b8` |
+| Box border size | Number input (1–10 px) | `2` |
+| Show box border | Checkbox | `true` |
+| Show panel border | Checkbox | `true` (controls tab-bar + footer dividers) |
+| Panel border color | Color picker | `#e2e8f0` |
+| Box shadow | Dropdown (6 levels) | `shadow-sm` |
+| Show Next / Previous footer | Checkbox | `true` |
+
+**Dependencies:** Phase 14 / 18 (blog system + CKEditor)
+
 ---
 
 ## Architecture Decisions
@@ -478,5 +502,5 @@ Phase 1 (Foundation)
 | Phase 15 — Admin Settings: Price Display Toggle | [phase-15/PHASE_15_PLAN.md](phase-15/PHASE_15_PLAN.md) | 🚧 In Progress |
 | Phase 17 — Admin Sitemap Management | [phase-17/PHASE_17_PLAN.md](phase-17/PHASE_17_PLAN.md) | 📋 Planned |
 | Phase 18 — Blog Enhancements (Pagination, Filtering, Newsletter, Comments) | [phase-18/PHASE_18_PLAN.md](phase-18/PHASE_18_PLAN.md) | 🚧 In Progress |
-| Phase 19 — Blog Wizard Component (multi-step tabs in editor + frontend) | [phase-19/PHASE_19_PLAN.md](phase-19/PHASE_19_PLAN.md) | 🚧 In Progress |
+| Phase 19 — Blog Wizard Component (multi-step tabs in editor + frontend, full style controls) | [phase-19/PHASE_19_PLAN.md](phase-19/PHASE_19_PLAN.md) | ✅ Complete |
 | Phase 20 — Product Comparison Wizard | [phase-20/PHASE_20_PLAN.md](phase-20/PHASE_20_PLAN.md) | ✅ Complete |

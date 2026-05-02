@@ -27,7 +27,7 @@ The user's required workflow before coding any phase or feature:
 ```bash
 npx tsc --noEmit           # Must pass with 0 errors
 npx eslint . --max-warnings 0   # Must pass with 0 warnings
-npx vitest run             # All tests must pass (currently 307/307)
+npx vitest run             # All tests must pass (currently 332/332)
 ```
 
 ---
@@ -163,7 +163,6 @@ AMAZON_HOST=webservices.amazon.com
 
 ## Completed Phases
 
-All phases through 10 are implemented and tested; Phase 11 in progress:
 - Phase 1: Project Foundation & Setup ✅
 - Phase 2: Database Schema & Migrations (7 tables, RLS, triggers) ✅
 - Phase 3: Amazon PA-API 5.0 Integration (4 Edge Functions) ✅
@@ -177,5 +176,15 @@ All phases through 10 are implemented and tested; Phase 11 in progress:
 - Phase 11: Rich Product Form + Approval Workflow (TipTap editor, product_status enum, review queue) 🚧 In Progress
 - Phase 12: Product Review System 📋 Planned
 - Phase 13: Media Manager (Supabase Storage) 📋 Planned
+- Phase 19: Blog Wizard Component (multi-step tabs, CKEditor per step, full style controls) ✅
+- Phase 20: Product Comparison Wizard (inline comparison table, See More expand, Walmart-style layout) ✅
 
 **Baseline: 332 tests passing | TypeScript: 0 errors | ESLint: 0 warnings**
+
+### Phase 19 — Wizard Style Controls (WizardData schema)
+`src/lib/wizard.ts` — `WizardData` fields added (all optional, backward-compatible):
+- `showFooter?: boolean` — hide Next/Previous nav bar
+- `shadow?: string` — Tailwind shadow class on outer wrapper
+- `showBorder?: boolean` — show/hide outer box border
+- `showPanelBorder?: boolean` — show/hide internal tab-bar / footer dividers
+- `panelBorderColor?: string` — inline style color for panel dividers
