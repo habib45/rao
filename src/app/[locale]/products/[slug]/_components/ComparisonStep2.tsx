@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import type { Product, LocaleCode } from "@/types/domain";
 import { t } from "@/lib/i18n/translate";
@@ -38,6 +39,7 @@ export function ComparisonStep2({
   onNext,
 }: Props) {
   const { selectedIds } = useComparison();
+  const [expanded, setExpanded] = useState(false);
 
   const selected = [
     currentProduct,
@@ -45,6 +47,9 @@ export function ComparisonStep2({
   ];
 
   const gridCols = `grid-cols-[180px_repeat(${selected.length},minmax(160px,1fr))]`;
+  const INITIAL_DYNAMIC = 2;
+  const visibleKeys = expanded ? comparisonKeys : comparisonKeys.slice(0, INITIAL_DYNAMIC);
+  const hasMoreKeys = comparisonKeys.length > INITIAL_DYNAMIC;
 
   function cell(product: Product, key: string): string {
     const attrs = product.attributes as Record<string, unknown> | undefined;
@@ -99,13 +104,34 @@ export function ComparisonStep2({
                   </div>
                 )}
               </div>
-              <p className="mt-2 line-clamp-2 text-center text-sm font-semibold text-foreground leading-snug">
+              {showPrice && p.price_cents !== null && (
+                <p className="mt-2 text-center text-base font-bold text-foreground">
+                  {formatPrice(p.price_cents, p.currency, locale)}
+                </p>
+              )}
+              <p className="mt-1 line-clamp-2 text-center text-sm font-semibold text-foreground leading-snug">
                 {name}
               </p>
-              {i === 0 && (
-                <p className="mt-1 text-center text-xs font-semibold text-brand">
-                  Current
+              {p.rating !== null && (
+                <p className="mt-1 text-center text-xs text-amber-500" title={`${p.rating.toFixed(1)} out of 5`}>
+                  {"★".repeat(Math.round(p.rating))}{"☆".repeat(5 - Math.round(p.rating))}
+                  <span className="ml-1 text-muted">{p.rating.toFixed(1)}{p.review_count ? ` (${p.review_count})` : ""}</span>
                 </p>
+              )}
+              {i === 0 && (
+                <p className="mt-0.5 text-center text-xs font-semibold text-brand">
+                  Viewing this item
+                </p>
+              )}
+              {p.affiliate_url && (
+                <a
+                  href={p.affiliate_url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="mt-2 block w-full rounded-lg bg-brand px-2 py-2 text-center text-xs font-semibold text-white hover:bg-brand-dark transition-colors"
+                >
+                  Buy on Amazon →
+                </a>
               )}
             </div>
           );
@@ -132,7 +158,7 @@ export function ComparisonStep2({
         ))}
 
         {/* Dynamic attribute rows from comparisonKeys */}
-        {comparisonKeys.map((key, ki) => {
+        {visibleKeys.map((key, ki) => {
           const rowIdx = fixedRows.length + ki;
           return (
             <>
@@ -153,6 +179,26 @@ export function ComparisonStep2({
             </>
           );
         })}
+
+        {/* See More / See Less spanning full grid */}
+        {hasMoreKeys && (
+          <div
+            className={`col-span-full border-t border-border/50 bg-surface/30 py-3 text-center`}
+            style={{ gridColumn: `1 / span ${selected.length + 1}` }}
+          >
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-brand-dark transition-colors"
+            >
+              {expanded ? (
+                <>See Less <span className="text-base">∧</span></>
+              ) : (
+                <>See More ({comparisonKeys.length - INITIAL_DYNAMIC} more specs) <span className="text-base">∨</span></>
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 flex items-center justify-between">

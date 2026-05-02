@@ -5,22 +5,37 @@ import type { WizardStep } from "@/lib/wizard";
 
 interface Props {
   steps: WizardStep[];
+  showFooter?: boolean;
+  shadow?: string;
+  showBorder?: boolean;
+  showPanelBorder?: boolean;
+  panelBorderColor?: string;
 }
 
-export function WizardBlock({ steps }: Props) {
+export function WizardBlock({
+  steps,
+  showFooter = true,
+  shadow = "shadow-sm",
+  showBorder = true,
+  showPanelBorder = true,
+  panelBorderColor = "#e2e8f0",
+}: Props) {
   const [activeIdx, setActiveIdx] = useState(0);
 
   if (steps.length === 0) return null;
 
   const hasSiblings = steps.length > 1;
+  const panelDivider = showPanelBorder
+    ? { borderBottomWidth: 1, borderBottomStyle: "solid" as const, borderBottomColor: panelBorderColor }
+    : {};
+  const footerDivider = showPanelBorder
+    ? { borderTopWidth: 1, borderTopStyle: "solid" as const, borderTopColor: panelBorderColor }
+    : {};
 
   return (
-    <div className="my-6 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+    <div className={`my-6 overflow-hidden rounded-xl bg-white ${shadow} ${showBorder ? "border border-border" : ""}`}>
       {/* Tab header */}
-      <div
-        role="tablist"
-        className="flex overflow-x-auto border-b border-border bg-surface"
-      >
+      <div role="tablist" className="flex overflow-x-auto bg-surface" style={panelDivider}>
         {steps.map((step, i) => (
           <button
             key={step.id}
@@ -40,10 +55,7 @@ export function WizardBlock({ steps }: Props) {
       </div>
 
       {/* Step content */}
-      <div
-        role="tabpanel"
-        className="p-5 transition-opacity duration-200"
-      >
+      <div role="tabpanel" className="p-5 transition-opacity duration-200">
         <div
           className="article-content max-w-none text-foreground"
           dangerouslySetInnerHTML={{ __html: steps[activeIdx].content }}
@@ -51,8 +63,8 @@ export function WizardBlock({ steps }: Props) {
       </div>
 
       {/* Navigation footer */}
-      {hasSiblings && (
-        <div className="flex items-center justify-between border-t border-border px-5 py-3">
+      {hasSiblings && showFooter && (
+        <div className="flex items-center justify-between px-5 py-3" style={footerDivider}>
           <button
             type="button"
             onClick={() => setActiveIdx((i) => i - 1)}

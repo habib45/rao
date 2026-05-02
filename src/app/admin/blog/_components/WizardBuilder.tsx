@@ -75,6 +75,11 @@ interface Props {
   isEditing?: boolean;
   initialBorderColor?: string;
   initialBorderSize?: number;
+  initialShowFooter?: boolean;
+  initialShadow?: string;
+  initialShowBorder?: boolean;
+  initialShowPanelBorder?: boolean;
+  initialPanelBorderColor?: string;
   onInsert: (html: string) => void;
   onClose: () => void;
 }
@@ -168,6 +173,11 @@ export function WizardBuilder({
   isEditing = false,
   initialBorderColor,
   initialBorderSize,
+  initialShowFooter,
+  initialShadow,
+  initialShowBorder,
+  initialShowPanelBorder,
+  initialPanelBorderColor,
   onInsert,
   onClose,
 }: Props) {
@@ -177,6 +187,11 @@ export function WizardBuilder({
   const [activeIdx, setActiveIdx] = useState(0);
   const [borderColor, setBorderColor] = useState(initialBorderColor ?? "#94a3b8");
   const [borderSize, setBorderSize] = useState(initialBorderSize ?? 2);
+  const [showFooter, setShowFooter] = useState(initialShowFooter ?? true);
+  const [shadow, setShadow] = useState(initialShadow ?? "shadow-sm");
+  const [showBorder, setShowBorder] = useState(initialShowBorder ?? true);
+  const [showPanelBorder, setShowPanelBorder] = useState(initialShowPanelBorder ?? true);
+  const [panelBorderColor, setPanelBorderColor] = useState(initialPanelBorderColor ?? "#e2e8f0");
   const dragStepRef = useRef<number | null>(null);
   const [pos, setPos] = useState(() => ({
     x: typeof window !== "undefined" ? Math.max(0, (window.innerWidth - 960) / 2) : 400,
@@ -247,7 +262,7 @@ export function WizardBuilder({
   function handleInsert() {
     const valid = steps.filter((s) => s.title.trim());
     if (valid.length === 0) return;
-    const encoded = encodeWizard({ type: "wizard", steps: valid });
+    const encoded = encodeWizard({ type: "wizard", steps: valid, showFooter, shadow, showBorder, showPanelBorder, panelBorderColor });
     const labels = valid.map((s) => s.title.trim()).join(" | ");
     const html = `<div class="wizard-block" data-wizard="${encoded}" style="border:${borderSize}px dashed ${borderColor};padding:12px 16px;margin:16px 0;background:#f8fafc;border-radius:8px;"><strong>Wizard:</strong> ${labels}</div>`;
     onInsert(html);
@@ -344,6 +359,66 @@ export function WizardBuilder({
                 className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
               <span className="text-xs text-muted">px</span>
+            </div>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showBorder}
+                onChange={(e) => setShowBorder(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-brand"
+              />
+              <span className="text-xs text-muted">Show box border</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showPanelBorder}
+                onChange={(e) => setShowPanelBorder(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-brand"
+              />
+              <span className="text-xs text-muted">Show panel border</span>
+            </label>
+            {showPanelBorder && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted" htmlFor="wizard-panel-border-color">
+                  Panel border color
+                </label>
+                <input
+                  id="wizard-panel-border-color"
+                  type="color"
+                  value={panelBorderColor}
+                  onChange={(e) => setPanelBorderColor(e.target.value)}
+                  className="h-7 w-10 cursor-pointer rounded border border-border bg-background p-0.5"
+                />
+                <span className="font-mono text-xs text-muted">{panelBorderColor}</span>
+              </div>
+            )}
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showFooter}
+                onChange={(e) => setShowFooter(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-brand"
+              />
+              <span className="text-xs text-muted">Show Next / Previous footer</span>
+            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-muted" htmlFor="wizard-shadow">
+                Box shadow
+              </label>
+              <select
+                id="wizard-shadow"
+                value={shadow}
+                onChange={(e) => setShadow(e.target.value)}
+                className="rounded-lg border border-border bg-background px-2 py-1 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              >
+                <option value="shadow-none">None</option>
+                <option value="shadow-sm">Small</option>
+                <option value="shadow">Medium</option>
+                <option value="shadow-md">Medium+</option>
+                <option value="shadow-lg">Large</option>
+                <option value="shadow-xl">Extra Large</option>
+              </select>
             </div>
           </div>
 

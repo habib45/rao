@@ -129,6 +129,11 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     steps: WizardStep[];
     borderColor: string;
     borderSize: number;
+    showFooter: boolean;
+    shadow: string;
+    showBorder: boolean;
+    showPanelBorder: boolean;
+    panelBorderColor: string;
   } | null>(null);
 
   const mutation = useMutation({
@@ -371,7 +376,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                 try {
                   const data = decodeWizard(encoded);
                   const { borderColor, borderSize } = parseWizardBorderStyle(form.content, encoded);
-                  setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize });
+                  setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize, showFooter: data.showFooter ?? true, shadow: data.shadow ?? "shadow-sm", showBorder: data.showBorder ?? true, showPanelBorder: data.showPanelBorder ?? true, panelBorderColor: data.panelBorderColor ?? "#e2e8f0" });
                 } catch {
                   // ignore malformed
                 }
@@ -414,6 +419,11 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
             initialSteps={editingWizard.steps}
             initialBorderColor={editingWizard.borderColor}
             initialBorderSize={editingWizard.borderSize}
+            initialShowFooter={editingWizard.showFooter}
+            initialShadow={editingWizard.shadow}
+            initialShowBorder={editingWizard.showBorder}
+            initialShowPanelBorder={editingWizard.showPanelBorder}
+            initialPanelBorderColor={editingWizard.panelBorderColor}
             isEditing
             onInsert={(newHtml) => {
               const newContent = replaceWizardBlock(

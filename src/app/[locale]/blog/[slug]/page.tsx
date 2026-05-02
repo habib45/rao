@@ -375,7 +375,7 @@ export default async function BlogDetailPage({
                   dangerouslySetInnerHTML={{ __html: seg.content }}
                 />
               ) : seg.type === "wizard" ? (
-                <WizardBlock key={i} steps={seg.steps} />
+                <WizardBlock key={i} steps={seg.steps} showFooter={seg.showFooter} shadow={seg.shadow} showBorder={seg.showBorder} showPanelBorder={seg.showPanelBorder} panelBorderColor={seg.panelBorderColor} />
               ) : null,
             )}
 

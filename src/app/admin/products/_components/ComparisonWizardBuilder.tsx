@@ -20,7 +20,7 @@ function makeRowId() {
 }
 
 function makeColumn(): ComparisonColumn {
-  return { id: makeColId(), title: "", subtitle: "", imageUrl: "", price: "", link: "", badge: "" };
+  return { id: makeColId(), title: "", subtitle: "", imageUrl: "", price: "", rating: undefined, link: "", badge: "" };
 }
 
 function makeRow(colIds: string[]): ComparisonRow {
@@ -32,6 +32,7 @@ const COL_FIELDS: Array<{ key: keyof ComparisonColumn; label: string; placeholde
   { key: "subtitle", label: "Brand",     placeholder: "e.g. Samsung" },
   { key: "imageUrl", label: "Image URL", placeholder: "https://...", type: "url" },
   { key: "price",    label: "Price",     placeholder: "e.g. $49.99" },
+  { key: "rating",   label: "Rating",    placeholder: "e.g. 4.5", type: "number" },
   { key: "link",     label: "Buy Link",  placeholder: "https://amazon.com/...", type: "url" },
   { key: "badge",    label: "Badge",     placeholder: "e.g. Best Value" },
 ];
@@ -215,8 +216,11 @@ export function ComparisonWizardBuilder({
                       <label className="block text-xs text-muted mb-0.5">{label}</label>
                       <input
                         type={type ?? "text"}
-                        value={(col[key] as string) ?? ""}
-                        onChange={(e) => updateColumn(col.id, { [key]: e.target.value } as Partial<ComparisonColumn>)}
+                        value={(col[key] as string | number) ?? ""}
+                        onChange={(e) => {
+                          const val = type === "number" ? (e.target.value === "" ? undefined : parseFloat(e.target.value)) : e.target.value;
+                          updateColumn(col.id, { [key]: val } as Partial<ComparisonColumn>);
+                        }}
                         placeholder={placeholder}
                         className="w-full rounded border border-border bg-background px-2 py-1 text-xs outline-none focus:border-brand focus:ring-1 focus:ring-brand"
                       />

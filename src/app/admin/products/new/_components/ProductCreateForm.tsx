@@ -124,6 +124,11 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
     steps: WizardStep[];
     borderColor: string;
     borderSize: number;
+    showFooter: boolean;
+    shadow: string;
+    showBorder: boolean;
+    showPanelBorder: boolean;
+    panelBorderColor: string;
   } | null>(null);
   const [showComparisonWizard, setShowComparisonWizard] = useState(false);
   const [editingComparisonWizard, setEditingComparisonWizard] = useState<{
@@ -724,7 +729,7 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                         try {
                           const data = decodeWizard(encoded);
                           const { borderColor, borderSize } = parseWizardBorderStyle(form.description[code], encoded);
-                          setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize });
+                          setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize, showFooter: data.showFooter ?? true, shadow: data.shadow ?? "shadow-sm", showBorder: data.showBorder ?? true, showPanelBorder: data.showPanelBorder ?? true, panelBorderColor: data.panelBorderColor ?? "#e2e8f0" });
                         } catch {
                           // ignore
                         }
@@ -801,6 +806,11 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
               initialSteps={editingWizard.steps}
               initialBorderColor={editingWizard.borderColor}
               initialBorderSize={editingWizard.borderSize}
+              initialShowFooter={editingWizard.showFooter}
+              initialShadow={editingWizard.shadow}
+              initialShowBorder={editingWizard.showBorder}
+              initialShowPanelBorder={editingWizard.showPanelBorder}
+              initialPanelBorderColor={editingWizard.panelBorderColor}
               isEditing
               onInsert={(newHtml) => {
                 const locale = activeLocaleTab;

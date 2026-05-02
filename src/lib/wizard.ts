@@ -7,6 +7,11 @@ export interface WizardStep {
 export interface WizardData {
   type: "wizard";
   steps: WizardStep[];
+  showFooter?: boolean;
+  shadow?: string;
+  showBorder?: boolean;
+  showPanelBorder?: boolean;
+  panelBorderColor?: string;
 }
 
 // ── Comparison types ──────────────────────────────────────────────────────────
@@ -17,6 +22,7 @@ export interface ComparisonColumn {
   subtitle?: string;
   imageUrl?: string;
   price?: string;
+  rating?: number;
   link?: string;
   badge?: string;
 }
@@ -38,7 +44,7 @@ export interface ComparisonData {
 
 export type ContentSegment =
   | { type: "html"; content: string }
-  | { type: "wizard"; steps: WizardStep[] }
+  | { type: "wizard"; steps: WizardStep[]; showFooter: boolean; shadow: string; showBorder: boolean; showPanelBorder: boolean; panelBorderColor: string }
   | { type: "comparison"; data: ComparisonData };
 
 // ── Wizard encode / decode ────────────────────────────────────────────────────
@@ -87,7 +93,7 @@ export function parseContentSegments(html: string): ContentSegment[] {
   while ((m = WIZARD_RE.exec(html)) !== null) {
     try {
       const data = decodeWizard(m[1]);
-      matches.push({ index: m.index, length: m[0].length, segment: { type: "wizard", steps: data.steps } });
+      matches.push({ index: m.index, length: m[0].length, segment: { type: "wizard", steps: data.steps, showFooter: data.showFooter ?? true, shadow: data.shadow ?? "shadow-sm", showBorder: data.showBorder ?? true, showPanelBorder: data.showPanelBorder ?? true, panelBorderColor: data.panelBorderColor ?? "#e2e8f0" } });
     } catch {
       // skip malformed
     }
