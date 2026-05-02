@@ -9,6 +9,8 @@ import { getProductBySlug, getRelatedProducts } from "@/lib/queries/products";
 import { getSiteSettings } from "@/lib/queries/settings";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
+import { parseContentSegments } from "@/lib/wizard";
+import { WizardBlock } from "@/app/[locale]/blog/[slug]/_components/WizardBlock";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -267,7 +269,17 @@ export default async function ProductPage({
                 <h2 className="text-lg font-semibold text-foreground mb-3">
                   {tProduct("description")}
                 </h2>
-                <p className="text-muted leading-relaxed">{description}</p>
+                {parseContentSegments(description).map((seg, i) =>
+                  seg.type === "html" ? (
+                    <div
+                      key={i}
+                      className="prose prose-sm max-w-none text-muted leading-relaxed [&_a]:text-brand [&_a]:underline"
+                      dangerouslySetInnerHTML={{ __html: seg.content }}
+                    />
+                  ) : (
+                    <WizardBlock key={i} steps={seg.steps} />
+                  ),
+                )}
               </div>
             )}
             {/* Features */}

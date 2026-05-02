@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Image from "next/image";
+import type { ClassicEditor } from "ckeditor5";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Select } from "@/app/admin/_components/ui/select";
@@ -14,6 +15,10 @@ import { LocaleFieldGroup } from "./LocaleFieldGroup";
 import { ForceSyncButton } from "./ForceSyncButton";
 import { PublishScheduler } from "./PublishScheduler";
 import { WorkflowActions } from "./WorkflowActions";
+import { WizardBuilder } from "@/app/admin/blog/_components/WizardBuilder";
+import { WizardHelp } from "@/app/admin/blog/_components/WizardHelp";
+import { decodeWizard } from "@/lib/wizard";
+import type { WizardStep } from "@/lib/wizard";
 import type { Product, ProductStatus } from "@/types/domain";
 
 const RichTextEditor = dynamic(
@@ -66,6 +71,15 @@ export function ProductEditForm({
   });
 
   const [addImageUrl, setAddImageUrl] = useState("");
+  const [activeLocaleTab, setActiveLocaleTab] = useState<string>("en");
+  const editorRefs = useRef<Record<string, ClassicEditor | null>>({ en: null, "bn-BD": null, sv: null });
+  const [showWizard, setShowWizard] = useState(false);
+  const [editingWizard, setEditingWizard] = useState<{
+    encoded: string;
+    steps: WizardStep[];
+    borderColor: string;
+    borderSize: number;
+  } | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof form) => {
@@ -107,6 +121,55 @@ export function ProductEditForm({
       ...prev,
       features: prev.features.filter((_, i) => i !== index),
     }));
+  }
+
+  function extractWizardBlocks(content: string): Array<{ encoded: string; label: string }> {
+    const re = /data-wizard="([^"]+)"/g;
+    const results: Array<{ encoded: string; label: string }> = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(content)) !== null) {
+      try {
+        const data = decodeWizard(m[1]);
+        results.push({ encoded: m[1], label: data.steps.map((s) => s.title).filter(Boolean).join(" | ") });
+      } catch { /* skip malformed */ }
+    }
+    return results;
+  }
+
+  function replaceWizardBlock(content: string, oldEncoded: string, newHtml: string): string {
+    const marker = `data-wizard="${oldEncoded}"`;
+    const markerIdx = content.indexOf(marker);
+    if (markerIdx === -1) return newHtml ? content + newHtml : content;
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return newHtml ? content + newHtml : content;
+    const endIdx = content.indexOf("</div>", markerIdx);
+    if (endIdx === -1) return newHtml ? content + newHtml : content;
+    return content.slice(0, divStart) + newHtml + content.slice(endIdx + "</div>".length);
+  }
+
+  function parseWizardBorderStyle(content: string, encoded: string): { borderColor: string; borderSize: number } {
+    const markerIdx = content.indexOf(`data-wizard="${encoded}"`);
+    if (markerIdx === -1) return { borderColor: "#94a3b8", borderSize: 2 };
+    const divStart = content.lastIndexOf("<div", markerIdx);
+    if (divStart === -1) return { borderColor: "#94a3b8", borderSize: 2 };
+    const tagEnd = content.indexOf(">", divStart);
+    const tag = content.slice(divStart, tagEnd);
+    const styleMatch = tag.match(/style="([^"]*)"/);
+    if (!styleMatch) return { borderColor: "#94a3b8", borderSize: 2 };
+    const borderMatch = styleMatch[1].match(/border:(\d+)px\s+dashed\s+(#[0-9a-fA-F]{3,8})/);
+    return {
+      borderSize: borderMatch ? parseInt(borderMatch[1]) : 2,
+      borderColor: borderMatch ? borderMatch[2] : "#94a3b8",
+    };
+  }
+
+  function deleteWizardBlock(encoded: string, locale?: string) {
+    const loc = locale ?? activeLocaleTab;
+    const desc = form.description as Record<string, string>;
+    const newContent = replaceWizardBlock(desc[loc] ?? "", encoded, "");
+    const editor = editorRefs.current[loc];
+    if (editor) editor.setData(newContent);
+    updateLocaleField(loc, "description", newContent);
   }
 
   return (
@@ -234,10 +297,123 @@ export function ProductEditForm({
         </TabsContent>
 
         <TabsContent value="description" className="mt-4 space-y-4">
-          <DescriptionEditor
-            description={form.description as Record<string, string>}
-            onChange={(locale, html) => updateLocaleField(locale, "description", html)}
-          />
+          <div
+            role="tablist"
+            className="inline-flex gap-1 rounded-lg border border-border bg-surface p-1"
+          >
+            {LOCALES.map(({ code, label }) => (
+              <button
+                key={code}
+                type="button"
+                role="tab"
+                aria-selected={activeLocaleTab === code}
+                onClick={() => setActiveLocaleTab(code)}
+                className={
+                  activeLocaleTab === code
+                    ? "rounded-md bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
+                    : "rounded-md px-3 py-1.5 text-sm font-medium text-muted hover:text-foreground"
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {LOCALES.map(({ code, label }) =>
+            activeLocaleTab === code ? (
+              <div key={code} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-medium">
+                    Description ({label})
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowWizard(true)}
+                      className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
+                    >
+                      Add Wizard
+                    </button>
+                    <WizardHelp />
+                  </div>
+                </div>
+                <RichTextEditor
+                  value={(form.description as Record<string, string>)[code] ?? ""}
+                  onChange={(html) => updateLocaleField(code, "description", html)}
+                  onReady={(editor) => { editorRefs.current[code] = editor; }}
+                  placeholder={`Description (${label})`}
+                />
+                {extractWizardBlocks((form.description as Record<string, string>)[code] ?? "").map(({ encoded, label: wLabel }, i) => (
+                  <div
+                    key={encoded}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs"
+                  >
+                    <span className="flex-1 truncate text-muted">
+                      Wizard {i + 1}{wLabel ? `: ${wLabel}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          const data = decodeWizard(encoded);
+                          const content = (form.description as Record<string, string>)[code] ?? "";
+                          const { borderColor, borderSize } = parseWizardBorderStyle(content, encoded);
+                          setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize });
+                        } catch { /* ignore */ }
+                      }}
+                      className="font-medium text-brand hover:underline"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteWizardBlock(encoded, code)}
+                      className="font-medium text-red-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null,
+          )}
+
+          {showWizard && (
+            <WizardBuilder
+              onInsert={(html) => {
+                const locale = activeLocaleTab;
+                const editor = editorRefs.current[locale];
+                const current = (form.description as Record<string, string>)[locale] ?? "";
+                if (editor) {
+                  editor.setData(current + html);
+                  updateLocaleField(locale, "description", current + html);
+                } else {
+                  updateLocaleField(locale, "description", current + html);
+                }
+                setShowWizard(false);
+              }}
+              onClose={() => setShowWizard(false)}
+            />
+          )}
+
+          {editingWizard && (
+            <WizardBuilder
+              initialSteps={editingWizard.steps}
+              initialBorderColor={editingWizard.borderColor}
+              initialBorderSize={editingWizard.borderSize}
+              isEditing
+              onInsert={(newHtml) => {
+                const locale = activeLocaleTab;
+                const content = (form.description as Record<string, string>)[locale] ?? "";
+                const newContent = replaceWizardBlock(content, editingWizard.encoded, newHtml);
+                const editor = editorRefs.current[locale];
+                if (editor) editor.setData(newContent);
+                updateLocaleField(locale, "description", newContent);
+                setEditingWizard(null);
+              }}
+              onClose={() => setEditingWizard(null)}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="features" className="mt-4 space-y-3">
@@ -395,51 +571,3 @@ export function ProductEditForm({
   );
 }
 
-function DescriptionEditor({
-  description,
-  onChange,
-}: {
-  description: Record<string, string>;
-  onChange: (locale: string, html: string) => void;
-}) {
-  const [activeLocale, setActiveLocale] = useState<string>("en");
-  return (
-    <div className="space-y-3">
-      <div
-        role="tablist"
-        className="inline-flex gap-1 rounded-lg border border-border bg-surface p-1"
-      >
-        {LOCALES.map(({ code, label }) => (
-          <button
-            key={code}
-            type="button"
-            role="tab"
-            aria-selected={activeLocale === code}
-            onClick={() => setActiveLocale(code)}
-            className={
-              activeLocale === code
-                ? "rounded-md bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
-                : "rounded-md px-3 py-1.5 text-sm font-medium text-muted hover:text-foreground"
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {LOCALES.map(({ code, label }) =>
-        activeLocale === code ? (
-          <div key={code} className="space-y-1">
-            <label className="block text-sm font-medium">
-              Description ({label})
-            </label>
-            <RichTextEditor
-              value={description[code] ?? ""}
-              onChange={(html) => onChange(code, html)}
-              placeholder={`Description (${label})`}
-            />
-          </div>
-        ) : null
-      )}
-    </div>
-  );
-}
