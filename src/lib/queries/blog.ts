@@ -1,6 +1,17 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { BlogPost, BlogCategory } from "@/types/domain";
+import { DATA_SOURCE } from "@/lib/config/datasource";
+import {
+  gwGetPublishedBlogPosts,
+  gwGetFeaturedBlogPosts,
+  gwGetTrendingBlogPosts,
+  gwGetBlogPostBySlug,
+  gwGetActiveBlogCategories,
+  gwGetBlogPostsByCategory,
+  gwGetBlogCategoryBySlug,
+  gwGetRelatedBlogPosts,
+} from "@/lib/api/gateway";
 
 const BLOG_SELECT = `
   *,
@@ -14,6 +25,9 @@ export async function getPublishedBlogPosts(
   categoryId?: string,
   search?: string,
 ): Promise<BlogPost[]> {
+  if (DATA_SOURCE === "mysql")
+    return gwGetPublishedBlogPosts(limit, offset, categoryId, search);
+
   const supabase = await createServerClient();
   let query = supabase
     .from("blog_posts")
@@ -41,6 +55,8 @@ export async function getPublishedBlogPosts(
 }
 
 export async function getFeaturedBlogPosts(limit = 3): Promise<BlogPost[]> {
+  if (DATA_SOURCE === "mysql") return gwGetFeaturedBlogPosts(limit);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_posts")
@@ -58,6 +74,8 @@ export async function getFeaturedBlogPosts(limit = 3): Promise<BlogPost[]> {
 }
 
 export async function getTrendingBlogPosts(limit = 5): Promise<BlogPost[]> {
+  if (DATA_SOURCE === "mysql") return gwGetTrendingBlogPosts(limit);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_posts")
@@ -74,6 +92,8 @@ export async function getTrendingBlogPosts(limit = 5): Promise<BlogPost[]> {
 }
 
 export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> {
+  if (DATA_SOURCE === "mysql") return gwGetBlogPostBySlug(slug);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_posts")
@@ -90,6 +110,8 @@ export async function getBlogPostBySlug(slug: string): Promise<BlogPost | null> 
 }
 
 export async function getActiveBlogCategories(): Promise<BlogCategory[]> {
+  if (DATA_SOURCE === "mysql") return gwGetActiveBlogCategories();
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_categories")
@@ -108,6 +130,9 @@ export async function getBlogPostsByCategory(
   categoryId: string,
   limit = 12,
 ): Promise<BlogPost[]> {
+  if (DATA_SOURCE === "mysql")
+    return gwGetBlogPostsByCategory(categoryId, limit);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_posts")
@@ -127,6 +152,8 @@ export async function getBlogPostsByCategory(
 export async function getBlogCategoryBySlug(
   slug: string,
 ): Promise<BlogCategory | null> {
+  if (DATA_SOURCE === "mysql") return gwGetBlogCategoryBySlug(slug);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_categories")
@@ -149,6 +176,9 @@ export async function getRelatedBlogPosts(
   categoryId: string | null,
   limit = 3,
 ): Promise<BlogPost[]> {
+  if (DATA_SOURCE === "mysql")
+    return gwGetRelatedBlogPosts(postId, categoryId, limit);
+
   const supabase = await createServerClient();
 
   let query = supabase
@@ -235,7 +265,7 @@ export async function searchBlogPosts(
 
   const { data, error } = await supabase
     .from("blog_posts")
-    .select(BLOG_SELECT)
+    .select(`*, blog_categories(*), blog_post_tags(blog_tags(*))`)
     .eq("status", "published")
     .textSearch("search_vector", trimmed, {
       type: "websearch",
@@ -271,7 +301,6 @@ export async function getPublishedBlogPostsCount(
   }
 
   const { count, error } = await query;
-
   if (error) {
     console.error("getPublishedBlogPostsCount error:", error.message);
     return 0;
@@ -283,7 +312,7 @@ export async function getBlogPostById(id: string): Promise<BlogPost | null> {
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("blog_posts")
-    .select(BLOG_SELECT)
+    .select(`*, blog_categories(*), blog_post_tags(blog_tags(*))`)
     .eq("id", id)
     .maybeSingle();
 
@@ -329,7 +358,10 @@ export async function getAllPublishedSlugs(): Promise<
       updated_at: (row as { updated_at: string }).updated_at,
     })) as { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[];
   } catch (err) {
-    console.warn("getAllPublishedSlugs unavailable during build - relying on ISR:", err instanceof Error ? err.message : String(err));
+    console.warn(
+      "getAllPublishedSlugs unavailable during build - relying on ISR:",
+      err instanceof Error ? err.message : String(err),
+    );
     return [];
   }
 }
@@ -352,7 +384,10 @@ export async function getAllActiveCategorySlugs(): Promise<
       (row) => (row as { slug: Record<string, string> }).slug ?? { en: "" },
     ) as { en: string; "bn-BD"?: string; sv?: string }[];
   } catch (err) {
-    console.warn("getAllActiveCategorySlugs unavailable during build - relying on ISR:", err instanceof Error ? err.message : String(err));
+    console.warn(
+      "getAllActiveCategorySlugs unavailable during build - relying on ISR:",
+      err instanceof Error ? err.message : String(err),
+    );
     return [];
   }
 }

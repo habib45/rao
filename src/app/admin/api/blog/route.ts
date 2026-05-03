@@ -4,6 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { blogPostInputSchema } from "@/app/admin/_lib/schemas/blog";
 import { syncPostTags } from "@/app/admin/_lib/blog-tags";
 
+const DATA_SOURCE = process.env.DATA_SOURCE ?? "supabase";
+const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
+
 const BLOG_SELECT = `
   *,
   blog_categories(id, name, slug, color),
@@ -12,8 +15,14 @@ const BLOG_SELECT = `
 
 export async function GET() {
   await requireAdmin();
-  const supabase = createAdminClient();
 
+  if (DATA_SOURCE === "mysql") {
+    const res = await fetch(`${MYSQL_API_URL}/api/blog/posts?limit=200`, { cache: "no-store" });
+    const json = await res.json() as { data: unknown[] };
+    return NextResponse.json({ posts: json.data ?? [] });
+  }
+
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("blog_posts")
     .select(BLOG_SELECT)
@@ -39,9 +48,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
   const { tag_names, published_at, ...rest } = parsed.data;
-
   const insertPayload: Record<string, unknown> = { ...rest };
 
   if (rest.status === "published") {
@@ -50,6 +57,19 @@ export async function POST(request: NextRequest) {
     insertPayload.published_at = published_at;
   }
 
+  if (DATA_SOURCE === "mysql") {
+    const tags = tag_names ?? [];
+    const res = await fetch(`${MYSQL_API_URL}/api/blog/posts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...insertPayload, tags }),
+    });
+    const json = await res.json() as { id?: string; error?: string };
+    if (!res.ok) return NextResponse.json({ error: json.error ?? "Gateway error" }, { status: res.status });
+    return NextResponse.json({ id: json.id }, { status: 201 });
+  }
+
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("blog_posts")
     .insert(insertPayload)

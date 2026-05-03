@@ -5,22 +5,36 @@ import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createIntlMiddleware(routing);
+const DATA_SOURCE = process.env.DATA_SOURCE ?? "supabase";
+const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 async function handleAdminAuth(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  // Allow login page through without auth
-  if (pathname === "/admin/login") {
-    return NextResponse.next();
+  if (pathname === "/admin/login") return NextResponse.next();
+  if (pathname.startsWith("/admin/api/")) return NextResponse.next();
+
+  if (DATA_SOURCE === "mysql") {
+    const token = request.cookies.get("admin_token")?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    try {
+      const res = await fetch(`${MYSQL_API_URL}/api/auth/me`, {
+        headers: { Cookie: `admin_token=${token}` },
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
+      }
+      return NextResponse.next();
+    } catch {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
   }
 
-  // Allow admin API routes to handle their own auth
-  if (pathname.startsWith("/admin/api/")) {
-    return NextResponse.next();
-  }
-
+  // Supabase auth path
   let response = NextResponse.next({ request });
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,7 +43,13 @@ async function handleAdminAuth(request: NextRequest): Promise<NextResponse> {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options: CookieOptions;
+          }[],
+        ) {
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value);
             response = NextResponse.next({ request });
@@ -37,18 +57,15 @@ async function handleAdminAuth(request: NextRequest): Promise<NextResponse> {
           });
         },
       },
-    }
+    },
   );
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAdmin = user?.app_metadata?.role === "admin";
-
-  if (!isAdmin) {
-    const loginUrl = new URL("/admin/login", request.url);
-    return NextResponse.redirect(loginUrl);
+  if (!user || user.app_metadata?.role !== "admin") {
+    return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
   return response;
@@ -56,11 +73,7 @@ async function handleAdminAuth(request: NextRequest): Promise<NextResponse> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (pathname.startsWith("/admin")) {
-    return handleAdminAuth(request);
-  }
-
+  if (pathname.startsWith("/admin")) return handleAdminAuth(request);
   return intlMiddleware(request);
 }
 

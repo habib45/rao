@@ -22,7 +22,7 @@ const homeTitles: Record<string, string> = {
 };
 
 const homeDescriptions: Record<string, string> = {
-  en: "Discover the best products on Amazon — curated deals, honest reviews, and comparisons of trusted products at the best prices.",
+  en: "Discover the best products on RaoFinds — curated deals, honest reviews, and comparisons of trusted products at the best prices.",
   "bn-BD": "Amazon-এ সেরা পণ্য খুঁজুন — নির্বাচিত ডিল, সৎ রিভিউ এবং বিশ্বস্ত পণ্যের তুলনা সেরা দামে।",
   sv: "Upptäck de bästa produkterna på Amazon — utvalda erbjudanden, ärliga recensioner och jämförelser av pålitliga produkter till bästa pris.",
 };
@@ -99,7 +99,7 @@ function getHeroCopy(locale: LocaleCode): HeroCopy {
     };
   }
   return {
-    tagline: "Discover the best products on Amazon",
+    tagline: "Discover the best products on RaoFinds",
     description:
       "Curated deals, honest reviews, and comparisons of trusted products at the best prices.",
     shopNow: "Shop now",

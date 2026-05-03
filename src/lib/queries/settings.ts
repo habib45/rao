@@ -1,6 +1,8 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DATA_SOURCE } from "@/lib/config/datasource";
+import { gwGetComparisonKeys, gwGetSiteSettings } from "@/lib/api/gateway";
 
 export interface SiteSettings {
   showPrice: boolean;
@@ -8,6 +10,8 @@ export interface SiteSettings {
 
 export const getComparisonKeys = unstable_cache(
   async (): Promise<string[]> => {
+    if (DATA_SOURCE === "mysql") return gwGetComparisonKeys();
+
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("admin_settings")
@@ -24,6 +28,8 @@ export const getComparisonKeys = unstable_cache(
 
 export const getSiteSettings = unstable_cache(
   async (): Promise<SiteSettings> => {
+    if (DATA_SOURCE === "mysql") return gwGetSiteSettings();
+
     const supabase = createAdminClient();
     const { data } = await supabase
       .from("admin_settings")

@@ -34,7 +34,8 @@ const navItems = [
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/translations", label: "Translations", icon: Languages },
-  { href: "/admin/media", label: "Media", icon: ImageIcon },
+  { href: "/admin/media", label: "Media (Cloud)", icon: ImageIcon },
+  { href: "/admin/public-media", label: "Public Media", icon: ImageIcon },
   { href: "/admin/sitemap", label: "Sitemap", icon: Map },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

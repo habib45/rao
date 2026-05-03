@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { Package } from "lucide-react";
 
+const DATA_SOURCE = process.env.NEXT_PUBLIC_DATA_SOURCE ?? "supabase";
+const MYSQL_API_URL = process.env.NEXT_PUBLIC_MYSQL_API_URL ?? "http://localhost:4000";
+
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -17,6 +20,27 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
+    if (DATA_SOURCE === "mysql") {
+      const res = await fetch(`${MYSQL_API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError((body as { error?: string }).error ?? "Invalid credentials");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/admin");
+      router.refresh();
+      return;
+    }
+
+    // Supabase path
     const supabase = createBrowserClient();
     const { error: authError } = await supabase.auth.signInWithPassword({
       email,

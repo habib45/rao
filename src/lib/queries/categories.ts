@@ -1,7 +1,11 @@
 import { createServerClient } from "@/lib/supabase/server";
 import type { Category, LocaleCode } from "@/types/domain";
+import { DATA_SOURCE } from "@/lib/config/datasource";
+import { gwGetActiveCategories, gwGetCategoryBySlug } from "@/lib/api/gateway";
 
 export async function getActiveCategories(): Promise<Category[]> {
+  if (DATA_SOURCE === "mysql") return gwGetActiveCategories();
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("categories")
@@ -20,6 +24,8 @@ export async function getCategoryBySlug(
   slug: string,
   locale: LocaleCode,
 ): Promise<Category | null> {
+  if (DATA_SOURCE === "mysql") return gwGetCategoryBySlug(slug, locale);
+
   const supabase = await createServerClient();
 
   const { data, error } = await supabase

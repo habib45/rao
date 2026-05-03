@@ -1,7 +1,21 @@
 import { createServerClient } from "@/lib/supabase/server";
 import type { Product, LocaleCode } from "@/types/domain";
+import { DATA_SOURCE } from "@/lib/config/datasource";
+import {
+  gwGetFeaturedProducts,
+  gwGetProductsByCategory,
+  gwGetProductsByCategoryLimit,
+  gwGetProductBySlug,
+  gwGetAllProducts,
+  gwGetProductsFiltered,
+  gwGetProductFilterMeta,
+  gwGetProductFilterMetaByCategory,
+  gwSearchProducts,
+} from "@/lib/api/gateway";
 
 export async function getFeaturedProducts(): Promise<Product[]> {
+  if (DATA_SOURCE === "mysql") return gwGetFeaturedProducts();
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("products")
@@ -21,6 +35,8 @@ export async function getFeaturedProducts(): Promise<Product[]> {
 export async function getProductsByCategory(
   categoryId: string,
 ): Promise<Product[]> {
+  if (DATA_SOURCE === "mysql") return gwGetProductsByCategory(categoryId);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("products")
@@ -40,6 +56,9 @@ export async function getProductsByCategoryLimit(
   categoryId: string,
   limit: number,
 ): Promise<Product[]> {
+  if (DATA_SOURCE === "mysql")
+    return gwGetProductsByCategoryLimit(categoryId, limit);
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("products")
@@ -60,6 +79,8 @@ export async function getProductBySlug(
   slug: string,
   locale: LocaleCode,
 ): Promise<Product | null> {
+  if (DATA_SOURCE === "mysql") return gwGetProductBySlug(slug, locale);
+
   const supabase = await createServerClient();
 
   // Query using the JSONB slug field for the given locale
@@ -88,6 +109,8 @@ export async function getProductBySlug(
 }
 
 export async function getAllProducts(): Promise<Product[]> {
+  if (DATA_SOURCE === "mysql") return gwGetAllProducts();
+
   const supabase = await createServerClient();
   const { data, error } = await supabase
     .from("products")
@@ -102,10 +125,7 @@ export async function getAllProducts(): Promise<Product[]> {
   return (data ?? []) as unknown as Product[];
 }
 
-export type ProductSortOrder =
-  | "newest"
-  | "price_asc"
-  | "price_desc";
+export type ProductSortOrder = "newest" | "price_asc" | "price_desc";
 
 export interface ProductFilterParams {
   categoryIds?: string[];
@@ -119,17 +139,23 @@ export interface ProductFilterParams {
   pageSize?: number;
 }
 
-export async function getProductsFiltered({
-  categoryIds,
-  minPriceCents,
-  maxPriceCents,
-  brands,
-  onlySale,
-  onlyNew,
-  sort = "newest",
-  page = 1,
-  pageSize = 16,
-}: ProductFilterParams): Promise<{ products: Product[]; total: number }> {
+export async function getProductsFiltered(
+  params: ProductFilterParams,
+): Promise<{ products: Product[]; total: number }> {
+  if (DATA_SOURCE === "mysql") return gwGetProductsFiltered(params);
+
+  const {
+    categoryIds,
+    minPriceCents,
+    maxPriceCents,
+    brands,
+    onlySale,
+    onlyNew,
+    sort = "newest",
+    page = 1,
+    pageSize = 16,
+  } = params;
+
   const supabase = await createServerClient();
   let query = supabase
     .from("products")
@@ -183,6 +209,8 @@ export async function getProductsFiltered({
 }
 
 export async function getProductFilterMeta(): Promise<{ brands: string[] }> {
+  if (DATA_SOURCE === "mysql") return gwGetProductFilterMeta();
+
   const supabase = await createServerClient();
   const { data } = await supabase
     .from("products")
@@ -190,9 +218,7 @@ export async function getProductFilterMeta(): Promise<{ brands: string[] }> {
     .eq("is_active", true)
     .not("brand", "is", null);
 
-  const brands = [
-    ...new Set((data ?? []).map((p) => p.brand as string)),
-  ]
+  const brands = [...new Set((data ?? []).map((p) => p.brand as string))]
     .filter(Boolean)
     .sort();
 
@@ -202,6 +228,9 @@ export async function getProductFilterMeta(): Promise<{ brands: string[] }> {
 export async function getProductFilterMetaByCategory(
   categoryId: string,
 ): Promise<{ brands: string[] }> {
+  if (DATA_SOURCE === "mysql")
+    return gwGetProductFilterMetaByCategory(categoryId);
+
   const supabase = await createServerClient();
   const { data } = await supabase
     .from("products")
@@ -210,9 +239,7 @@ export async function getProductFilterMetaByCategory(
     .eq("category_id", categoryId)
     .not("brand", "is", null);
 
-  const brands = [
-    ...new Set((data ?? []).map((p) => p.brand as string)),
-  ]
+  const brands = [...new Set((data ?? []).map((p) => p.brand as string))]
     .filter(Boolean)
     .sort();
 
@@ -225,6 +252,9 @@ export async function searchProducts(
   page: number = 1,
   pageSize: number = 12,
 ): Promise<{ products: Product[]; total: number }> {
+  if (DATA_SOURCE === "mysql")
+    return gwSearchProducts(query, locale, page, pageSize);
+
   const supabase = await createServerClient();
 
   const vectorColumn =

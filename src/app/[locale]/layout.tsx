@@ -26,7 +26,7 @@ const notoSansBengali = Noto_Sans_Bengali({
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
 
 const descriptions: Record<LocaleCode, string> = {
-  en: "Discover the best products on Amazon — curated deals, reviews, and comparisons.",
+  en: "Discover the best products on RaoFinds — curated deals, reviews, and comparisons.",
   "bn-BD":
     "Amazon-এ সেরা পণ্য খুঁজুন — নির্বাচিত ডিল, রিভিউ এবং তুলনা।",
   sv: "Upptäck de bästa produkterna på Amazon — utvalda erbjudanden, recensioner och jämförelser.",

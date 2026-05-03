@@ -390,6 +390,38 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **New Tests:** 40 (sitemap logic, robots logic, schemas, API routes, UI components)  
 **Dependencies:** Phase 8 (admin auth, AdminShell), Phase 9 (revalidation hook)
 
+### Phase 21: Public Folder Media Manager
+**Goal:** Add a second media manager inside the admin panel that stores files in `public/uploads/` and serves them via Next.js static file server — no Supabase Storage required. Ideal for VPS/local deployments and stable-URL static assets.  
+**Duration estimate:** 0.5 sprint  
+**Status:** 🚧 In Progress  
+**Deliverables:**
+
+#### Feature 21.1 — File System API Routes
+- `GET /admin/api/public-media?folder=<sub>` — list images and sub-folders in `public/uploads/<sub>`, images only (jpg/jpeg/png/webp/gif/svg), folders first
+- `POST /admin/api/public-media?folder=<sub>` — create named sub-folder (`^[a-zA-Z0-9_-]{1,64}$`) with `.gitkeep` placeholder
+- `DELETE /admin/api/public-media?path=<rel>` — delete a single image file
+- `POST /admin/api/public-media/upload` — multipart upload (multiple files), 10 MB limit per file, MIME whitelist, writes to `public/uploads/<folder>/`
+- All routes enforce `requireAdmin()`; path sanitisation rejects `..` and absolute paths
+
+#### Feature 21.2 — Admin Public Media UI
+- `src/app/admin/public-media/page.tsx` — server component, `requireAdmin()`, wraps `AdminShell`
+- `src/app/admin/public-media/PublicMediaClient.tsx` — client component:
+  - Breadcrumb navigation (uploads / folder / subfolder)
+  - Folder cards (click to navigate into)
+  - Image cards with `next/image` thumbnail, size, Copy URL button, Delete button
+  - Upload button (hidden `<input multiple accept="image/*">`)
+  - Create Folder modal (validated name input)
+  - Refresh button
+- AdminShell sidebar: "Public Media" nav link (below existing "Media (Cloud)" link)
+
+**Deployment note:** Filesystem writes persist on VPS/Docker/local. On Vercel (serverless), use the Supabase Storage media manager (Phase 13) instead.
+
+**New Dependencies:** None (uses Node.js `fs` module — built-in).
+
+**Dependencies:** Phase 8 (admin auth, AdminShell).
+
+---
+
 ### Phase 19: Blog Wizard Component
 **Goal:** Allow blog and product editors to insert interactive multi-step wizard blocks directly inside the CKEditor rich-text content. Each wizard renders as a tabbed/stepper UI on the public frontend.  
 **Duration estimate:** 1 sprint  
@@ -504,3 +536,4 @@ Phase 1 (Foundation)
 | Phase 18 — Blog Enhancements (Pagination, Filtering, Newsletter, Comments) | [phase-18/PHASE_18_PLAN.md](phase-18/PHASE_18_PLAN.md) | 🚧 In Progress |
 | Phase 19 — Blog Wizard Component (multi-step tabs in editor + frontend, full style controls) | [phase-19/PHASE_19_PLAN.md](phase-19/PHASE_19_PLAN.md) | ✅ Complete |
 | Phase 20 — Product Comparison Wizard | [phase-20/PHASE_20_PLAN.md](phase-20/PHASE_20_PLAN.md) | ✅ Complete |
+| Phase 21 — Public Folder Media Manager | [phase-21/PHASE_21_PLAN.md](phase-21/PHASE_21_PLAN.md) | 🚧 In Progress |
