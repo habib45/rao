@@ -83,13 +83,19 @@ function CandidateCard({
   );
 }
 
-export function ComparisonStep1({ currentProduct, candidates, locale, onNext }: Props) {
+export function ComparisonStep1({
+  currentProduct,
+  candidates,
+  locale,
+  onNext,
+}: Props) {
   const { selectedIds } = useComparison();
 
   return (
     <div>
       <p className="mb-5 text-sm text-muted">
-        Select up to 5 products to compare with the current item. ({selectedIds.length}/5 selected)
+        Select up to 5 products to compare with the current item. (
+        {selectedIds.length}/5 selected)
       </p>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

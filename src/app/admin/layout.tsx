@@ -15,7 +15,7 @@ const inter = Inter({
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: { template: "%s | BestFinds Admin", default: "BestFinds Admin" },
+  title: { template: "%s | RaoFinds Admin", default: "RaoFinds Admin" },
   robots: { index: false, follow: false },
 };
 

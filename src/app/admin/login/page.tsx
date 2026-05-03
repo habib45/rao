@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
       <div className="rounded-xl border border-border bg-background p-8 shadow-sm">
         <div className="mb-6 flex flex-col items-center gap-2">
           <Package className="h-8 w-8 text-brand" />
-          <h1 className="text-xl font-semibold">BestFinds Admin</h1>
+          <h1 className="text-xl font-semibold">RaoFinds Admin</h1>
           <p className="text-sm text-muted">Sign in to continue</p>
         </div>
 

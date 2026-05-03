@@ -12,7 +12,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
 import { parseContentSegments } from "@/lib/wizard";
 import { WizardBlock } from "@/app/[locale]/blog/[slug]/_components/WizardBlock";
-import { ComparisonWizard } from "./_components/ComparisonWizard";
+// import { ComparisonWizard } from "./_components/ComparisonWizard";
 import { ComparisonBlock } from "./_components/ComparisonBlock";
 
 export const revalidate = 3600; // ISR: revalidate every hour
@@ -284,7 +284,15 @@ export default async function ProductPage({
                       dangerouslySetInnerHTML={{ __html: seg.content }}
                     />
                   ) : seg.type === "wizard" ? (
-                    <WizardBlock key={i} steps={seg.steps} showFooter={seg.showFooter} shadow={seg.shadow} showBorder={seg.showBorder} showPanelBorder={seg.showPanelBorder} panelBorderColor={seg.panelBorderColor} />
+                    <WizardBlock
+                      key={i}
+                      steps={seg.steps}
+                      showFooter={seg.showFooter}
+                      shadow={seg.shadow}
+                      showBorder={seg.showBorder}
+                      showPanelBorder={seg.showPanelBorder}
+                      panelBorderColor={seg.panelBorderColor}
+                    />
                   ) : (
                     <ComparisonBlock key={i} data={seg.data} />
                   ),
@@ -308,7 +316,7 @@ export default async function ProductPage({
         </div>
 
         {/* Comparison Wizard — full width below product grid */}
-        {comparisonCandidates.length > 0 && (
+        {/* {comparisonCandidates.length > 0 && (
           <div className="mt-8">
             <ComparisonWizard
               currentProduct={product}
@@ -318,7 +326,7 @@ export default async function ProductPage({
               showPrice={showPrice}
             />
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Related products */}

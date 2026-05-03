@@ -16,9 +16,9 @@ import { t } from "@/lib/i18n/translate";
 export const revalidate = 3600;
 
 const homeTitles: Record<string, string> = {
-  en: "BestFinds — Best Products on Amazon",
-  "bn-BD": "BestFinds — Amazon-এ সেরা পণ্য",
-  sv: "BestFinds — Bästa produkterna på Amazon",
+  en: "RaoFinds — Best Products on Amazon",
+  "bn-BD": "RaoFinds — Amazon-এ সেরা পণ্য",
+  sv: "RaoFinds — Bästa produkterna på Amazon",
 };
 
 const homeDescriptions: Record<string, string> = {
@@ -51,10 +51,10 @@ export async function generateMetadata({
     openGraph: {
       type: "website",
       url: `${siteUrl}/${locale}`,
-      siteName: "BestFinds",
+      siteName: "RaoFinds",
       title,
       description,
-      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "BestFinds" }],
+      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "RaoFinds" }],
     },
     twitter: {
       card: "summary_large_image",
@@ -252,7 +252,7 @@ export default async function HomePage({
                 "@type": "WebSite",
                 "@id": `${siteUrl}/#website`,
                 url: siteUrl,
-                name: "BestFinds",
+                name: "RaoFinds",
                 description: hero.description,
                 potentialAction: {
                   "@type": "SearchAction",
@@ -266,7 +266,7 @@ export default async function HomePage({
               {
                 "@type": "Organization",
                 "@id": `${siteUrl}/#organization`,
-                name: "BestFinds",
+                name: "RaoFinds",
                 url: siteUrl,
               },
             ],

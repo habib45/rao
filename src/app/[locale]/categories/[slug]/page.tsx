@@ -10,6 +10,7 @@ import {
   getProductFilterMetaByCategory,
   type ProductSortOrder,
 } from "@/lib/queries/products";
+import { getSiteSettings } from "@/lib/queries/settings";
 import ProductCard from "@/components/ProductCard";
 import { Link } from "@/i18n/routing";
 import SidebarFilters from "@/app/[locale]/products/_components/SidebarFilters";
@@ -35,7 +36,7 @@ export async function generateMetadata({
 
   const name = t(category.name, loc) as string;
   const description = t(category.description, loc) as string;
-  const metaDescription = description || `Browse the best ${name} products on BestFinds — curated Amazon deals and reviews.`;
+  const metaDescription = description || `Browse the best ${name} products on RaoFinds — curated Amazon deals and reviews.`;
 
   const enSlug = t(category.slug, "en") as string;
   const bnSlug = t(category.slug, "bn-BD") as string;
@@ -97,7 +98,7 @@ export default async function CategoryPage({
   const onlySale = sp.sale === "1";
   const onlyNew = sp.new === "1";
 
-  const [{ products, total }, { brands: allBrands }] = await Promise.all([
+  const [{ products, total }, { brands: allBrands }, { showPrice }] = await Promise.all([
     getProductsFiltered({
       categoryIds: [category.id],
       minPriceCents,
@@ -110,6 +111,7 @@ export default async function CategoryPage({
       pageSize: PAGE_SIZE,
     }),
     getProductFilterMetaByCategory(category.id),
+    getSiteSettings(),
   ]);
 
   const name = t(category.name, loc) as string;
@@ -202,6 +204,7 @@ export default async function CategoryPage({
                     product={product}
                     locale={loc}
                     categoryName={name}
+                    showPrice={showPrice}
                   />
                 ))}
               </div>

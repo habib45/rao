@@ -1,6 +1,6 @@
 {
   "common": {
-    "site_name": "BestFinds",
+    "site_name": "RaoFinds",
     "search_placeholder": "Sök produkter...",
     "view_all": "Visa alla",
     "loading": "Laddar...",
@@ -43,12 +43,32 @@
     "terms": "Användarvillkor",
     "affiliate_disclaimer": "Affiliateansvarsfriskrivning"
   },
+  "aboutUs": {
+    "meta_title": "Om oss — RaoFinds",
+    "meta_description": "Lär dig vilka vi är, hur vi väljer produktrekommendationer och varför du kan lita på RaoFinds för att handla smartare på Amazon.",
+    "title": "Om RaoFinds",
+    "intro": "RaoFinds är en oberoende produktupptäckningsplattform dedikerad till att hjälpa vanliga shoppare hitta produkter värda att köpa på Amazon.",
+    "mission_title": "Vårt uppdrag",
+    "mission_body": "Vi tror att bra shoppingbeslut börjar med ärlig information. Vårt uppdrag är att undersöka, testa och sammanställa de bästa produkterna på Amazon så att du kan handla med självförtroende.",
+    "how_title": "Hur vi väljer produkter",
+    "how_body": "Varje produkt på RaoFinds utvärderas mot verkliga kriterier: kundbetyg, verifierade recensioner, valuta för pengarna och långsiktig hållbarhet. Vi accepterar inte betalning för att visa produkter. Våra rekommendationer är redaktionellt oberoende.",
+    "trust_title": "Varför lita på oss?",
+    "trust_1": "Vi rekommenderar bara produkter vi själva genuint skulle använda.",
+    "trust_2": "Vi redovisar alla affiliaterelationer öppet.",
+    "trust_3": "Vi uppdaterar listningar regelbundet för att ta bort utgångna eller dåligt betygsatta produkter.",
+    "trust_4": "Vårt team övervakar läsarfeedback och justerar rekommendationer därefter.",
+    "editorial_title": "Redaktionellt oberoende",
+    "editorial_body": "RaoFinds deltar i Amazon Associates Program. Det innebär att vi tjänar en liten provision när du köper via våra länkar — utan extra kostnad för dig. Denna inkomst hjälper oss hålla sajten gratis och oberoende. Det påverkar aldrig vilka produkter vi rekommenderar.",
+    "contact_title": "Kontakta oss",
+    "contact_body": "Har du en fråga, ett produktförslag eller feedback? Vi vill gärna höra från dig. Nå oss på:",
+    "contact_email": "hello@bestfinds.com"
+  },
   "affiliateDisclaimer": {
-    "meta_title": "Affiliateansvarsfriskrivning — BestFinds",
+    "meta_title": "Affiliateansvarsfriskrivning — RaoFinds",
     "meta_description": "Läs vår affiliateansvarsfriskrivning för att förstå hur vi tjänar på kvalificerade köp via Amazon och andra partnerslänkar.",
     "title": "Affiliateansvarsfriskrivning",
     "amazon_program_title": "Amazon Associates-programmet",
-    "amazon_program_body": "BestFinds deltar i Amazon Services LLC Associates Program, ett affiliateannonseringsprogram utformat för att ge webbplatser möjlighet att tjäna annonseringsavgifter genom att annonsera och länka till Amazon.com och anknutna webbplatser.",
+    "amazon_program_body": "RaoFinds deltar i Amazon Services LLC Associates Program, ett affiliateannonseringsprogram utformat för att ge webbplatser möjlighet att tjäna annonseringsavgifter genom att annonsera och länka till Amazon.com och anknutna webbplatser.",
     "compensation_title": "Ersättningsupplysning",
     "compensation_body": "När du klickar på länkar till olika återförsäljare på den här webbplatsen och gör ett köp kan det resultera i att webbplatsen tjänar en provision. Affiliateprogram inkluderar, men är inte begränsade till, Amazon Associates Program.",
     "honesty_title": "Vårt åtagande för ärliga recensioner",

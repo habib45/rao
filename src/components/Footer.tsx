@@ -5,6 +5,7 @@ export default function Footer() {
   const t = useTranslations("footer");
   const tCommon = useTranslations("common");
   const tNav = useTranslations("nav");
+  const tAbout = useTranslations("aboutUs");
   const year = new Date().getFullYear();
 
   return (
@@ -52,6 +53,14 @@ export default function Footer() {
                   className="transition-colors hover:text-brand"
                 >
                   {tNav("cart")}
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/about"
+                  className="transition-colors hover:text-brand"
+                >
+                  {tAbout("title")}
                 </Link>
               </li>
             </ul>

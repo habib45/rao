@@ -110,7 +110,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     excerpt: readTranslation(post?.excerpt),
     content: post?.content ?? "",
     cover_image_url: post?.cover_image_url ?? "",
-    author_name: post?.author_name ?? "BestFinds",
+    author_name: post?.author_name ?? "RaoFinds",
     author_avatar_url: post?.author_avatar_url ?? "",
     meta_title: readTranslation(post?.meta_title),
     meta_description: readTranslation(post?.meta_description),

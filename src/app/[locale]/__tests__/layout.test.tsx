@@ -17,7 +17,7 @@ vi.mock("next/font/google", () => ({
 // Mock next-intl
 vi.mock("next-intl/server", () => ({
   getMessages: vi.fn().mockResolvedValue({
-    common: { site_name: "BestFinds" },
+    common: { site_name: "RaoFinds" },
     nav: { home: "Home" },
     footer: {
       affiliate_disclosure:
@@ -237,7 +237,7 @@ describe("generateMetadata", () => {
     });
     expect(metadata.title).toEqual(
       expect.objectContaining({
-        template: expect.stringContaining("BestFinds"),
+        template: expect.stringContaining("RaoFinds"),
         default: expect.any(String),
       })
     );

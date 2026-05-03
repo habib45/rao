@@ -27,9 +27,9 @@ const titles: Record<string, string> = {
 };
 
 const descriptions: Record<string, string> = {
-  en: "Browse all products on BestFinds — curated Amazon deals, honest reviews, and comparisons at the best prices.",
-  "bn-BD": "BestFinds-এ সব পণ্য দেখুন — নির্বাচিত Amazon ডিল, সৎ রিভিউ এবং সেরা দামে তুলনা।",
-  sv: "Bläddra bland alla produkter på BestFinds — utvalda Amazon-erbjudanden, ärliga recensioner och jämförelser.",
+  en: "Browse all products on RaoFinds — curated Amazon deals, honest reviews, and comparisons at the best prices.",
+  "bn-BD": "RaoFinds-এ সব পণ্য দেখুন — নির্বাচিত Amazon ডিল, সৎ রিভিউ এবং সেরা দামে তুলনা।",
+  sv: "Bläddra bland alla produkter på RaoFinds — utvalda Amazon-erbjudanden, ärliga recensioner och jämförelser.",
 };
 
 export async function generateMetadata({

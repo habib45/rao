@@ -17,11 +17,7 @@ interface Props {
   showPrice: boolean;
 }
 
-const STEP_LABELS = [
-  "Select products",
-  "Compare",
-  "Add to cart",
-];
+const STEP_LABELS = ["Select products", "Compare", "Add to cart"];
 
 export function ComparisonWizard({
   currentProduct,
@@ -64,9 +60,7 @@ export function ComparisonWizard({
     <div className="rounded-2xl border border-border bg-background shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-6 py-4">
-        <h2 className="text-lg font-bold text-foreground">
-          Compare products
-        </h2>
+        <h2 className="text-lg font-bold text-foreground">Compare products</h2>
         <button
           type="button"
           onClick={() => {
@@ -95,8 +89,8 @@ export function ComparisonWizard({
                     isActive
                       ? "bg-brand text-white"
                       : isDone
-                      ? "bg-brand/20 text-brand"
-                      : "bg-surface text-muted border border-border"
+                        ? "bg-brand/20 text-brand"
+                        : "bg-surface text-muted border border-border"
                   }`}
                 >
                   {isDone ? "✓" : n}

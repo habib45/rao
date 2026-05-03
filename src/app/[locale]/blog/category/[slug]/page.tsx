@@ -40,14 +40,14 @@ export async function generateMetadata({
   const category = await getBlogCategoryBySlug(slug);
 
   if (!category) {
-    return { title: "Category not found — BestFinds" };
+    return { title: "Category not found — RaoFinds" };
   }
 
   const loc = locale as LocaleCode;
   const name = t(category.name, loc) as string;
   const description =
     (t(category.description, loc) as string) ||
-    `Articles in ${name} on BestFinds.`;
+    `Articles in ${name} on RaoFinds.`;
 
   const languages: Record<string, string> = {};
   for (const l of SUPPORTED_LOCALES) {
@@ -60,7 +60,7 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${name} — BestFinds Blog`,
+    title: `${name} — RaoFinds Blog`,
     description,
     alternates: { languages },
   };
@@ -115,7 +115,7 @@ function PostCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-muted">
-            BestFinds
+            RaoFinds
           </div>
         )}
       </div>

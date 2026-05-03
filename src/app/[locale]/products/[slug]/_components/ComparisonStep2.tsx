@@ -48,7 +48,9 @@ export function ComparisonStep2({
 
   const gridCols = `grid-cols-[180px_repeat(${selected.length},minmax(160px,1fr))]`;
   const INITIAL_DYNAMIC = 2;
-  const visibleKeys = expanded ? comparisonKeys : comparisonKeys.slice(0, INITIAL_DYNAMIC);
+  const visibleKeys = expanded
+    ? comparisonKeys
+    : comparisonKeys.slice(0, INITIAL_DYNAMIC);
   const hasMoreKeys = comparisonKeys.length > INITIAL_DYNAMIC;
 
   function cell(product: Product, key: string): string {
@@ -113,9 +115,16 @@ export function ComparisonStep2({
                 {name}
               </p>
               {p.rating !== null && (
-                <p className="mt-1 text-center text-xs text-amber-500" title={`${p.rating.toFixed(1)} out of 5`}>
-                  {"★".repeat(Math.round(p.rating))}{"☆".repeat(5 - Math.round(p.rating))}
-                  <span className="ml-1 text-muted">{p.rating.toFixed(1)}{p.review_count ? ` (${p.review_count})` : ""}</span>
+                <p
+                  className="mt-1 text-center text-xs text-amber-500"
+                  title={`${p.rating.toFixed(1)} out of 5`}
+                >
+                  {"★".repeat(Math.round(p.rating))}
+                  {"☆".repeat(5 - Math.round(p.rating))}
+                  <span className="ml-1 text-muted">
+                    {p.rating.toFixed(1)}
+                    {p.review_count ? ` (${p.review_count})` : ""}
+                  </span>
                 </p>
               )}
               {i === 0 && (
@@ -192,9 +201,14 @@ export function ComparisonStep2({
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-brand-dark transition-colors"
             >
               {expanded ? (
-                <>See Less <span className="text-base">∧</span></>
+                <>
+                  See Less <span className="text-base">∧</span>
+                </>
               ) : (
-                <>See More ({comparisonKeys.length - INITIAL_DYNAMIC} more specs) <span className="text-base">∨</span></>
+                <>
+                  See More ({comparisonKeys.length - INITIAL_DYNAMIC} more
+                  specs) <span className="text-base">∨</span>
+                </>
               )}
             </button>
           </div>

@@ -112,7 +112,7 @@ export async function GET(
               marginTop: 24,
             }}
           >
-            BestFinds
+            RaoFinds
           </div>
         </div>
       </div>

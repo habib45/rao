@@ -81,7 +81,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
       >
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
           <Package className="h-6 w-6 text-brand" />
-          <span className="text-lg font-semibold">BestFinds Admin</span>
+          <span className="text-lg font-semibold">RaoFinds Admin</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3">

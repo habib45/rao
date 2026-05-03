@@ -10,7 +10,7 @@ export const getComparisonKeys = unstable_cache(
   async (): Promise<string[]> => {
     const supabase = createAdminClient();
     const { data } = await supabase
-      .from("store_settings")
+      .from("admin_settings")
       .select("value")
       .eq("key", "comparison")
       .single();
@@ -26,7 +26,7 @@ export const getSiteSettings = unstable_cache(
   async (): Promise<SiteSettings> => {
     const supabase = createAdminClient();
     const { data } = await supabase
-      .from("store_settings")
+      .from("admin_settings")
       .select("value")
       .eq("key", "features")
       .single();

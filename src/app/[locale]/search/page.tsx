@@ -2,6 +2,7 @@ import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
 import type { LocaleCode } from "@/types/domain";
 import { searchProducts, getAllProducts } from "@/lib/queries/products";
+import { getSiteSettings } from "@/lib/queries/settings";
 import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
 
@@ -39,17 +40,12 @@ export default async function SearchPage({
   const query = q?.trim() ?? "";
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
-  let products;
-  let total: number;
-
-  if (query) {
-    const result = await searchProducts(query, loc, page);
-    products = result.products;
-    total = result.total;
-  } else {
-    products = await getAllProducts();
-    total = products.length;
-  }
+  const [{ products, total }, { showPrice }] = await Promise.all([
+    query
+      ? searchProducts(query, loc, page).then((r) => ({ products: r.products, total: r.total }))
+      : getAllProducts().then((p) => ({ products: p, total: p.length })),
+    getSiteSettings(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -74,7 +70,7 @@ export default async function SearchPage({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} locale={loc} />
+            <ProductCard key={product.id} product={product} locale={loc} showPrice={showPrice} />
           ))}
         </div>
       )}

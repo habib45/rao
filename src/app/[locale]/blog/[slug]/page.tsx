@@ -47,7 +47,7 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const post = await getBlogPostBySlug(slug);
 
-  if (!post) return { title: "Post not found — BestFinds" };
+  if (!post) return { title: "Post not found — RaoFinds" };
 
   const loc = locale as LocaleCode;
   const title = (t(post.meta_title, loc) as string) || (t(post.title, loc) as string);
@@ -244,7 +244,7 @@ export default async function BlogDetailPage({
     headline: title,
     image: post.cover_image_url ? [post.cover_image_url] : undefined,
     author: { "@type": "Person", name: post.author_name },
-    publisher: { "@type": "Organization", name: "BestFinds" },
+    publisher: { "@type": "Organization", name: "RaoFinds" },
     datePublished: post.published_at ?? post.created_at,
     dateModified: post.updated_at,
     mainEntityOfPage: articleUrl,

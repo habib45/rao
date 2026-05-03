@@ -16,9 +16,9 @@ export async function generateMetadata({
     sv: "Alla kategorier",
   };
   const descriptions: Record<string, string> = {
-    en: "Browse all product categories on BestFinds — find curated Amazon deals by category.",
-    "bn-BD": "BestFinds-এ সব পণ্যের বিভাগ দেখুন — বিভাগ অনুযায়ী নির্বাচিত Amazon ডিল খুঁজুন।",
-    sv: "Bläddra bland alla produktkategorier på BestFinds — hitta utvalda Amazon-erbjudanden per kategori.",
+    en: "Browse all product categories on RaoFinds — find curated Amazon deals by category.",
+    "bn-BD": "RaoFinds-এ সব পণ্যের বিভাগ দেখুন — বিভাগ অনুযায়ী নির্বাচিত Amazon ডিল খুঁজুন।",
+    sv: "Bläddra bland alla produktkategorier på RaoFinds — hitta utvalda Amazon-erbjudanden per kategori.",
   };
   return {
     title: titles[locale] ?? titles.en,

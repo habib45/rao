@@ -42,8 +42,8 @@ export async function generateMetadata({
 
   return {
     title: {
-      template: "%s | BestFinds",
-      default: "BestFinds — Best Products on Amazon",
+      template: "%s | RaoFinds",
+      default: "RaoFinds — Best Products on Amazon",
     },
     description: descriptions[loc] ?? descriptions.en,
     metadataBase: process.env.NEXT_PUBLIC_SITE_URL
@@ -75,7 +75,7 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir="ltr">
-      <body className={`${bodyClassName} min-h-screen flex flex-col`}>
+      <body className={`${bodyClassName} min-h-screen flex flex-col`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CartProvider>
             <ComparisonProvider>

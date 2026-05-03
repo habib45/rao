@@ -32,7 +32,7 @@ export const blogPostInputSchema = z.object({
   content: z.string().optional().default(""),
   cover_image_url: nullableUrl.optional(),
   cover_image_alt: optionalTranslation.optional(),
-  author_name: z.string().min(1).default("BestFinds"),
+  author_name: z.string().min(1).default("RaoFinds"),
   author_avatar_url: nullableUrl.optional(),
   meta_title: optionalTranslation.optional(),
   meta_description: optionalTranslation.optional(),

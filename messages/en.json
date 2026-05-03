@@ -1,6 +1,6 @@
 {
   "common": {
-    "site_name": "BestFinds",
+    "site_name": "RaoFinds",
     "search_placeholder": "Search products...",
     "view_all": "View all",
     "loading": "Loading...",
@@ -43,12 +43,32 @@
     "terms": "Terms of Service",
     "affiliate_disclaimer": "Affiliate Disclaimer"
   },
+  "aboutUs": {
+    "meta_title": "About Us — RaoFinds",
+    "meta_description": "Learn who we are, how we curate product recommendations, and why you can trust RaoFinds to help you shop smarter on Amazon.",
+    "title": "About RaoFinds",
+    "intro": "RaoFinds is an independent product discovery platform dedicated to helping everyday shoppers cut through the noise and find products worth buying.",
+    "mission_title": "Our Mission",
+    "mission_body": "We believe great shopping decisions start with honest information. Our mission is to research, test, and curate the best products on Amazon so you can shop with confidence — not guesswork.",
+    "how_title": "How We Pick Products",
+    "how_body": "Every product featured on RaoFinds is evaluated against real criteria: customer ratings, verified reviews, value for money, and long-term durability. We do not accept payment to feature products. Our recommendations are editorially independent.",
+    "trust_title": "Why Trust Us?",
+    "trust_1": "We only recommend products we would genuinely use ourselves.",
+    "trust_2": "We disclose all affiliate relationships transparently.",
+    "trust_3": "We update listings regularly to remove discontinued or poorly-rated products.",
+    "trust_4": "Our team monitors reader feedback and adjusts recommendations accordingly.",
+    "editorial_title": "Editorial Independence",
+    "editorial_body": "RaoFinds participates in the Amazon Associates Program. This means we earn a small commission when you purchase through our links — at no extra cost to you. This income helps us keep the site free and independent. It never influences which products we recommend.",
+    "contact_title": "Get in Touch",
+    "contact_body": "Have a question, a product suggestion, or feedback? We would love to hear from you. Reach us at:",
+    "contact_email": "hello@bestfinds.com"
+  },
   "affiliateDisclaimer": {
-    "meta_title": "Affiliate Disclaimer — BestFinds",
+    "meta_title": "Affiliate Disclaimer — RaoFinds",
     "meta_description": "Read our affiliate disclaimer to understand how we earn from qualifying purchases through Amazon and other partner links.",
     "title": "Affiliate Disclaimer",
     "amazon_program_title": "Amazon Associates Program",
-    "amazon_program_body": "BestFinds is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com and affiliated sites.",
+    "amazon_program_body": "RaoFinds is a participant in the Amazon Services LLC Associates Program, an affiliate advertising program designed to provide a means for sites to earn advertising fees by advertising and linking to Amazon.com and affiliated sites.",
     "compensation_title": "Compensation Disclosure",
     "compensation_body": "When you click on links to various merchants on this site and make a purchase, this can result in this site earning a commission. Affiliate programs and affiliations include, but are not limited to, the Amazon Associates Program.",
     "honesty_title": "Our Commitment to Honest Reviews",

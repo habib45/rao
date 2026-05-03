@@ -36,9 +36,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const titles: Record<string, string> = {
-    en: "Blog — BestFinds",
-    "bn-BD": "ব্লগ — BestFinds",
-    sv: "Blogg — BestFinds",
+    en: "Blog — RaoFinds",
+    "bn-BD": "ব্লগ — RaoFinds",
+    sv: "Blogg — RaoFinds",
   };
   const descriptions: Record<string, string> = {
     en: "Insights, reviews, and guides to help you shop smarter on Amazon.",
@@ -369,7 +369,7 @@ function FeaturedPostCard({
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-muted">
-            BestFinds
+            RaoFinds
           </div>
         )}
       </div>
@@ -475,7 +475,7 @@ export default async function BlogPage({
       <section className="bg-linear-to-r from-gray-900 to-gray-800 py-12 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand">
-            BestFinds
+            RaoFinds
           </p>
           <h1 className="text-3xl font-extrabold sm:text-4xl">
             {tBlog("title")}

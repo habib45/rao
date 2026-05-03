@@ -14,10 +14,8 @@ export async function getComparisonCandidates(
     .from("products")
     .select("*, product_images(*)")
     .eq("is_active", true)
-    .eq("show_in_comparison", true)
     .eq("category_id", categoryId)
     .neq("id", productId)
-    .order("rating", { ascending: false })
     .limit(limit);
 
   if (error) {
