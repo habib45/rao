@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Inter, Noto_Sans_Bengali } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -10,18 +9,6 @@ import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { ComparisonProvider } from "@/lib/comparison/index";
 import "../globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-});
-
-const notoSansBengali = Noto_Sans_Bengali({
-  subsets: ["bengali"],
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-});
 
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
 
@@ -68,14 +55,11 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
   const messages = await getMessages();
 
-  const isBengali = locale === "bn-BD";
-  const bodyClassName = isBengali
-    ? `${inter.className} ${notoSansBengali.className} leading-[1.75]`
-    : inter.className;
+  const bodyClassName = locale === "bn-BD" ? "leading-[1.75]" : "";
 
   return (
     <html lang={locale} dir="ltr">
-      <body className={`${bodyClassName} min-h-screen flex flex-col`} suppressHydrationWarning>
+      <body className={`${bodyClassName} min-h-screen flex flex-col font-sans`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CartProvider>
             <ComparisonProvider>

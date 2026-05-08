@@ -116,7 +116,7 @@ export default async function ProductPage({
   ]);
   if (!product) notFound();
 
-  const [related, comparisonCandidates, comparisonKeys] = await Promise.all([
+  const [related] = await Promise.all([
     getRelatedProducts(product.id, product.category_id, 4),
     getComparisonCandidates(product.id, product.category_id, 10),
     getComparisonKeys(),

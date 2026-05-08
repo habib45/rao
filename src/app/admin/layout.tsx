@@ -1,16 +1,9 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import { Providers } from "./_components/Providers";
 import "../globals.css";
 import "./admin.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-});
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +15,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-background text-foreground`}>
+      <body className="font-sans bg-background text-foreground">
         <Providers>
           {children}
           <Toaster position="top-right" richColors />
