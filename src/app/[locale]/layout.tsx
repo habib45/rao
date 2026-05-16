@@ -36,6 +36,11 @@ export async function generateMetadata({
     metadataBase: process.env.NEXT_PUBLIC_SITE_URL
       ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
       : undefined,
+    viewport: {
+      width: "device-width",
+      initialScale: 1,
+      maximumScale: 5,
+    },
   };
 }
 
@@ -59,6 +64,10 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} dir="ltr">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+        <meta name="theme-color" content="#f59e0b" />
+      </head>
       <body className={`${bodyClassName} min-h-screen flex flex-col font-sans`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CartProvider>

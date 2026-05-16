@@ -41,6 +41,12 @@ export async function generateMetadata({
       description: description?.slice(0, 160),
       images: primaryImage ? [{ url: primaryImage.url }] : undefined,
     },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description: description?.slice(0, 160),
+      images: primaryImage ? [primaryImage.url] : [],
+    },
     alternates: {
       languages: {
         en: `/en/products/${t(product.slug, "en")}`,

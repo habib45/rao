@@ -1,6 +1,5 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface NewsletterSettings {
   show: boolean;
@@ -19,27 +18,8 @@ const DEFAULT_SETTINGS: NewsletterSettings = {
 
 export const getNewsletterSettings = unstable_cache(
   async (): Promise<NewsletterSettings> => {
-    const supabase = createAdminClient();
-    const { data } = await supabase
-      .from("admin_settings")
-      .select("value")
-      .eq("key", "newsletter_settings")
-      .maybeSingle();
-
-    if (!data?.value) return DEFAULT_SETTINGS;
-    const v = data.value as Record<string, unknown>;
-    return {
-      show: typeof v.show === "boolean" ? v.show : DEFAULT_SETTINGS.show,
-      title: typeof v.title === "string" ? v.title : DEFAULT_SETTINGS.title,
-      subtitle:
-        typeof v.subtitle === "string"
-          ? v.subtitle
-          : DEFAULT_SETTINGS.subtitle,
-      background:
-        v.background === "gray" || v.background === "dark"
-          ? v.background
-          : "indigo",
-    };
+    // TODO: Implement via API gateway when available
+    return DEFAULT_SETTINGS;
   },
   ["newsletter-settings"],
   { revalidate: 60, tags: ["newsletter-settings"] },

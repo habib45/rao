@@ -35,26 +35,31 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const titles: Record<string, string> = {
-    en: "Blog — RaoFinds",
-    "bn-BD": "ব্লগ — RaoFinds",
-    sv: "Blogg — RaoFinds",
-  };
-  const descriptions: Record<string, string> = {
-    en: "Insights, reviews, and guides to help you shop smarter on Amazon.",
-    "bn-BD":
-      "স্মার্টভাবে কেনাকাটা করতে সাহায্য করার জন্য অন্তর্দৃষ্টি, রিভিউ এবং গাইড।",
-    sv: "Insikter, recensioner och guider för att hjälpa dig handla smartare på Amazon.",
-  };
+  const loc = locale as LocaleCode;
+  const tBlog = await getTranslations("blog");
+  const title = tBlog("title");
+  const description = "Insights, reviews, and guides to help you shop smarter";
+
   return {
-    title: titles[locale] ?? titles.en,
-    description: descriptions[locale] ?? descriptions.en,
+    title,
+    description,
     alternates: {
       languages: {
         en: `/en/blog`,
         "bn-BD": `/bn-BD/blog`,
         sv: `/sv/blog`,
       },
+    },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}/${locale}/blog`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }

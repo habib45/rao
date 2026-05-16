@@ -1,6 +1,11 @@
 import type { MetadataRoute } from "next";
-import { createServerClient } from "@/lib/supabase/server";
 import type { LocaleCode } from "@/types/domain";
+import {
+  gwGetAllProducts,
+  gwGetActiveCategories,
+  gwGetPublishedBlogPosts,
+  gwGetActiveBlogCategories,
+} from "@/lib/api/gateway";
 
 export const revalidate = 3600;
 
@@ -17,32 +22,12 @@ function alternateLanguages(path: string): Record<string, string> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createServerClient();
-
-  const [
-    { data: products },
-    { data: categories },
-    { data: blogPosts },
-    { data: blogCategories },
-    { data: exclusionsSetting },
-    { data: customEntriesData },
-  ] = await Promise.all([
-    supabase.from("products").select("slug, updated_at").eq("is_active", true),
-    supabase.from("categories").select("slug, updated_at").eq("is_active", true),
-    supabase.from("blog_posts").select("slug, updated_at").eq("status", "published"),
-    supabase.from("blog_categories").select("slug").eq("is_active", true),
-    supabase
-      .from("admin_settings")
-      .select("value")
-      .eq("key", "sitemap_exclusions")
-      .single(),
-    supabase
-      .from("sitemap_custom_entries")
-      .select("url, priority, changefreq, last_modified")
-      .eq("is_active", true),
+  const [products, categories, blogPosts, blogCategories] = await Promise.all([
+    gwGetAllProducts(),
+    gwGetActiveCategories(),
+    gwGetPublishedBlogPosts(),
+    gwGetActiveBlogCategories(),
   ]);
-
-  const excludedSlugs: string[] = (exclusionsSetting?.value as { slugs?: string[] })?.slugs ?? [];
 
   const entries: MetadataRoute.Sitemap = [];
 
@@ -57,57 +42,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   // Product pages
-  for (const product of products ?? []) {
-    const slug = (product.slug as Record<string, string>)?.en;
-    if (!slug || excludedSlugs.includes(slug)) continue;
+  for (const product of products) {
+    const slug = product.slug?.en;
+    if (!slug) continue;
     entries.push({
       url: `${BASE_URL}/en/products/${slug}`,
-      lastModified: new Date(product.updated_at as string),
+      lastModified: new Date(product.updated_at),
       alternates: { languages: alternateLanguages(`/products/${slug}`) },
     });
   }
 
   // Category pages
-  for (const category of categories ?? []) {
-    const slug = (category.slug as Record<string, string>)?.en;
-    if (!slug || excludedSlugs.includes(slug)) continue;
+  for (const category of categories) {
+    const slug = category.slug?.en;
+    if (!slug) continue;
     entries.push({
       url: `${BASE_URL}/en/categories/${slug}`,
-      lastModified: new Date(category.updated_at as string),
+      lastModified: new Date(),
       alternates: { languages: alternateLanguages(`/categories/${slug}`) },
     });
   }
 
   // Blog post pages
-  for (const post of blogPosts ?? []) {
-    const slug = (post.slug as Record<string, string>)?.en;
-    if (!slug || excludedSlugs.includes(slug)) continue;
+  for (const post of blogPosts) {
+    const slug = post.slug?.en;
+    if (!slug) continue;
     entries.push({
       url: `${BASE_URL}/en/blog/${slug}`,
-      lastModified: new Date(post.updated_at as string),
+      lastModified: new Date(post.updated_at),
       alternates: { languages: alternateLanguages(`/blog/${slug}`) },
     });
   }
 
   // Blog category pages
-  for (const cat of blogCategories ?? []) {
-    const slug = (cat.slug as Record<string, string>)?.en;
-    if (!slug || excludedSlugs.includes(slug)) continue;
+  for (const cat of blogCategories) {
+    const slug = cat.slug?.en;
+    if (!slug) continue;
     entries.push({
       url: `${BASE_URL}/en/blog/category/${slug}`,
       alternates: { languages: alternateLanguages(`/blog/category/${slug}`) },
-    });
-  }
-
-  // Admin-managed custom entries
-  for (const entry of customEntriesData ?? []) {
-    entries.push({
-      url: entry.url as string,
-      lastModified: entry.last_modified
-        ? new Date(entry.last_modified as string)
-        : new Date(),
-      changeFrequency: entry.changefreq as MetadataRoute.Sitemap[number]["changeFrequency"],
-      priority: Number(entry.priority),
     });
   }
 

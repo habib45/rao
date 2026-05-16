@@ -446,6 +446,87 @@ export async function gwGetRelatedBlogPosts(
   }
 }
 
+export async function gwGetRelatedProducts(
+  productId: string,
+  categoryId: string | null,
+  limit = 4,
+): Promise<Product[]> {
+  try {
+    const params: Params = { is_active: "true", limit: limit + 1 };
+    if (categoryId) params.category_id = categoryId;
+    const { data } = await gw<{ data: Record<string, unknown>[] }>(
+      "/api/products",
+      params,
+    );
+    return data
+      .filter((p) => p.id !== productId)
+      .slice(0, limit)
+      .map(adaptProductRow);
+  } catch (e) {
+    console.error("gwGetRelatedProducts:", e);
+    return [];
+  }
+}
+
+export async function gwGetPublishedBlogPostsCount(
+  categoryId?: string,
+  search?: string,
+): Promise<number> {
+  try {
+    const params: Params = { status: "published", count: "true" };
+    if (categoryId) params.category_id = categoryId;
+    if (search) params.search = search;
+    const { total } = await gw<{ total: number }>("/api/blog/posts", params);
+    return total;
+  } catch (e) {
+    console.error("gwGetPublishedBlogPostsCount:", e);
+    return 0;
+  }
+}
+
+export async function gwGetApprovedBlogComments(postId: string) {
+  try {
+    return await gw<{ id: string; author_name: string; body: string; created_at: string }[]>(
+      `/api/blog/posts/${postId}/comments`,
+      { is_approved: "true" },
+    );
+  } catch (e) {
+    console.error("gwGetApprovedBlogComments:", e);
+    return [];
+  }
+}
+
+export async function gwGetAllPublishedSlugs(): Promise<
+  { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[]
+> {
+  try {
+    const posts = await gw<
+      { id: string; slug: Record<string, string>; updated_at: string }[]
+    >("/api/blog/posts", { status: "published", limit: 1000 });
+    return posts.map((p) => ({
+      ...(p.slug as { en: string; "bn-BD"?: string; sv?: string }),
+      updated_at: p.updated_at,
+    }));
+  } catch (e) {
+    console.error("gwGetAllPublishedSlugs:", e);
+    return [];
+  }
+}
+
+export async function gwGetAllActiveCategorySlugs(): Promise<
+  { en: string; "bn-BD"?: string; sv?: string }[]
+> {
+  try {
+    const categories = await gw<{ slug: Record<string, string> }[]>(
+      "/api/blog/categories",
+    );
+    return categories.map((c) => c.slug as { en: string; "bn-BD"?: string; sv?: string });
+  } catch (e) {
+    console.error("gwGetAllActiveCategorySlugs:", e);
+    return [];
+  }
+}
+
 // ── Settings ──────────────────────────────────────────────────
 
 export async function gwGetComparisonKeys(): Promise<string[]> {

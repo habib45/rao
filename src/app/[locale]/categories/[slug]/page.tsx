@@ -66,6 +66,12 @@ export async function generateMetadata({
       type: "website",
       title: name,
       description: metaDescription,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}/${locale}/categories/${slug}`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description: metaDescription,
     },
     ...(hasFilters && { robots: { index: false, follow: true } }),
   };

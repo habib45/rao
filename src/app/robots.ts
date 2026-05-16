@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { createServerClient } from "@/lib/supabase/server";
 import type { RobotsRule } from "@/app/admin/_lib/schemas/sitemap";
 
 export const revalidate = 3600;
@@ -11,15 +10,8 @@ const DEFAULT_RULES: RobotsRule[] = [
 ];
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  const supabase = await createServerClient();
-  const { data } = await supabase
-    .from("admin_settings")
-    .select("value")
-    .eq("key", "robots_config")
-    .single();
-
-  const rules: RobotsRule[] =
-    (data?.value as { rules?: RobotsRule[] })?.rules ?? DEFAULT_RULES;
+  // TODO: Fetch custom rules from API gateway when available
+  const rules: RobotsRule[] = DEFAULT_RULES;
 
   return {
     rules: rules.map((r) => ({

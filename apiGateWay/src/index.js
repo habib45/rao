@@ -16,7 +16,36 @@ import authRouter       from './routes/auth.js';
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: true, credentials: true }));
+// Trust proxy for proper header handling behind reverse proxy
+app.set('trust proxy', true);
+
+// CORS: Only HTTPS in production, allow HTTP for local development
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+      'https://raofinds.com',
+      'https://www.raofinds.com',
+    ]
+  : [
+      'https://raofinds.com',
+      'https://www.raofinds.com',
+      'http://raofinds.com',
+      'http://www.raofinds.com',
+      'http://localhost:3000',
+    ];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
@@ -28,6 +57,58 @@ app.get('/health', async (_req, res) => {
   } catch {
     res.status(503).json({ status: 'error', db: 'disconnected' });
   }
+});
+
+// ── Database debug endpoint ───────────────────────────────────
+app.get('/debug/db', async (_req, res) => {
+  const debugInfo = {
+    timestamp: new Date().toISOString(),
+    config: {
+      host: process.env.DB_HOST,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER,
+      database: process.env.DB_NAME,
+      hasPassword: !!process.env.DB_PASSWORD,
+    },
+    connection: null,
+    error: null,
+  };
+
+  try {
+    // Test basic connection
+    const connection = await pool.getConnection();
+    debugInfo.connection = {
+      status: 'connected',
+      threadId: connection.threadId,
+      serverVersion: connection.serverVersion,
+    };
+    
+    // Test query
+    const [rows] = await connection.query('SELECT VERSION() as version, NOW() as server_time, DATABASE() as current_db');
+    debugInfo.connection.serverInfo = rows[0];
+    
+    // Test table access
+    const [tables] = await connection.query('SHOW TABLES');
+    debugInfo.connection.tableCount = tables.length;
+    debugInfo.connection.tables = tables.map(t => Object.values(t)[0]);
+    
+    connection.release();
+    
+    res.json(debugInfo);
+  } catch (error) {
+    debugInfo.error = {
+      message: error.message,
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage,
+    };
+    res.status(500).json(debugInfo);
+  }
+});
+
+app.get('/', (req, res) => {
+    res.send('API running on Namecheap!');
 });
 
 // ── Auth routes (public) ─────────────────────────────────────

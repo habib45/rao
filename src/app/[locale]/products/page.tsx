@@ -55,6 +55,17 @@ export async function generateMetadata({
   return {
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
+    openGraph: {
+      type: "website",
+      title: titles[locale] ?? titles.en,
+      description: descriptions[locale] ?? descriptions.en,
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}/${locale}/products`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: titles[locale] ?? titles.en,
+      description: descriptions[locale] ?? descriptions.en,
+    },
     ...(hasFilters && { robots: { index: false, follow: true } }),
   };
 }
