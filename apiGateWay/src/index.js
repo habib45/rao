@@ -118,12 +118,12 @@ app.get('/', (req, res) => {
 // ── Auth routes (public) ─────────────────────────────────────
 app.use('/api/auth', authRouter);
 
-// ── Public routes (API key or JWT token required for third-party access) ──────
-app.use('/api/categories',  requireApiKeyOrJwt, categoriesRouter);
-app.use('/api/products',    requireApiKeyOrJwt, productsRouter);
-app.use('/api/blog',        requireApiKeyOrJwt, blogRouter);
-app.use('/api/newsletter',  requireApiKeyOrJwt, newsletterRouter);
-app.use('/api/tracking',    requireApiKeyOrJwt, trackingRouter);
+// ── Public routes (no authentication required for public API) ──────
+app.use('/api/categories',  categoriesRouter);
+app.use('/api/products',    productsRouter);
+app.use('/api/blog',        blogRouter);
+app.use('/api/newsletter',  newsletterRouter);
+app.use('/api/tracking',    trackingRouter);
 
 // ── Token management routes (auth required) ──────────────────
 app.use('/api/tokens', requireAuth, tokensRouter);
