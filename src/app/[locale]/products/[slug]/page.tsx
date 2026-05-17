@@ -28,26 +28,29 @@ export async function generateMetadata({
   if (!product) return { title: "Product Not Found" };
 
   const name = t(product.name, loc) as string;
-  const description =
-    (t(product.meta_description, loc) as string) ||
-    (t(product.description, loc) as string);
+  const description = t(product.description, loc) as string;
   const primaryImage = product.product_images?.find((img) => img.is_primary);
+
+  const metaDescription = description
+    ? `${description.slice(0, 140)}... Buy on Amazon at best price.`
+    : `Buy ${name} on Amazon at best price. Expert reviews and comparisons.`;
 
   return {
     title: (t(product.meta_title, loc) as string) || name,
-    description: description?.slice(0, 160) || `Buy ${name} on Amazon`,
+    description: (t(product.meta_description, loc) as string) || metaDescription,
     openGraph: {
       title: name,
-      description: description?.slice(0, 160),
+      description: (t(product.meta_description, loc) as string) || metaDescription,
       images: primaryImage ? [{ url: primaryImage.url }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: name,
-      description: description?.slice(0, 160),
+      description: (t(product.meta_description, loc) as string) || metaDescription,
       images: primaryImage ? [primaryImage.url] : [],
     },
     alternates: {
+      canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}/products/${t(product.slug, loc)}`,
       languages: {
         en: `/en/products/${t(product.slug, "en")}`,
         "bn-BD": `/bn-BD/products/${t(product.slug, "bn-BD")}`,
@@ -145,7 +148,7 @@ export default async function ProductPage({
           {/* Image Gallery */}
           <div>
             {primaryImage ? (
-              <div className="relative aspect-square bg-surface rounded-lg overflow-hidden">
+              <div className="relative aspect-square bg-surface rounded-lg overflow-hidden" role="img" aria-label={`${name} - Main product image`}>
                 <Image
                   src={primaryImage.url}
                   alt={(t(primaryImage.alt_text, loc) as string) || name}
@@ -156,7 +159,7 @@ export default async function ProductPage({
                 />
               </div>
             ) : (
-              <div className="aspect-square bg-surface rounded-lg flex items-center justify-center text-muted">
+              <div className="aspect-square bg-surface rounded-lg flex items-center justify-center text-muted" role="img" aria-label="No product image available">
                 No Image
               </div>
             )}
@@ -167,6 +170,8 @@ export default async function ProductPage({
                   <div
                     key={img.id}
                     className="relative aspect-square bg-surface rounded border border-border overflow-hidden"
+                    role="img"
+                    aria-label={`${name} - Thumbnail image`}
                   >
                     <Image
                       src={img.url}
@@ -174,6 +179,7 @@ export default async function ProductPage({
                       fill
                       sizes="100px"
                       className="object-contain p-2"
+                      loading="lazy"
                     />
                   </div>
                 ))}
@@ -270,7 +276,8 @@ export default async function ProductPage({
               href={product.affiliate_url}
               target="_blank"
               rel="noopener noreferrer nofollow"
-              className="mt-6 inline-flex items-center justify-center w-full sm:w-auto rounded-lg bg-brand px-8 py-3 text-base font-semibold text-white hover:bg-brand-dark transition-colors"
+              className="mt-6 inline-flex items-center justify-center w-full sm:w-auto rounded-lg bg-brand px-8 py-3 text-base font-semibold text-white hover:bg-brand-dark transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+              aria-label={`Buy ${name} on Amazon`}
             >
               {tProduct("buy_on_amazon")}
             </a>

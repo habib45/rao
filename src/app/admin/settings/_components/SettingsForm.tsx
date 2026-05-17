@@ -146,7 +146,7 @@ export function SettingsForm() {
             </div>
           </div>
           <p className="mt-3 text-xs text-muted">
-            Sync settings are managed via Supabase Edge Functions configuration.
+            Sync settings are managed via the MySQL API gateway configuration.
           </p>
         </CardContent>
       </Card>

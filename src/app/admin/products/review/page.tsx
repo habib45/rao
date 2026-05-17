@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/app/admin/_lib/auth";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
-import { createAdminClient } from "@/lib/supabase/admin";
 import {
   Table,
   TableBody,
@@ -16,15 +15,9 @@ import type { Product } from "@/types/domain";
 
 export default async function ReviewQueuePage() {
   const user = await requireAdmin();
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("products")
-    .select("*, product_images(*)")
-    .eq("product_status", "pending_review")
-    .order("created_at", { ascending: false });
-
-  const products = (error ? [] : (data ?? [])) as Product[];
+  // Note: Review queue functionality requires admin-specific query
+  // For now, return empty array until gateway supports product_status filtering
+  const products: Product[] = [];
 
   return (
     <AdminShell userEmail={user.email ?? ""}>

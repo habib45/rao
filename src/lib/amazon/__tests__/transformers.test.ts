@@ -4,8 +4,10 @@ import {
   transformPAAPIItem,
   transformPrice,
   extractPrimaryImage,
+  previewFromPAAPIItem,
+  transformCatalogItemResponse,
 } from "../transformers";
-import type { PAAPIItem } from "../types";
+import type { PAAPIItem, CatalogItemResponse } from "../types";
 
 function createMockPAAPIItem(overrides?: Partial<PAAPIItem>): PAAPIItem {
   return {
@@ -161,6 +163,248 @@ describe("F3.4 — Data Transformers", () => {
     it("TC-3.4.12: returns null when no primary image", () => {
       const item = createMockPAAPIItem({ Images: undefined });
       expect(extractPrimaryImage(item)).toBeNull();
+    });
+  });
+
+  describe("previewFromPAAPIItem", () => {
+    it("transforms PAAPIItem into ProductPreviewData with images", () => {
+      const item = createMockPAAPIItem({
+        Images: {
+          Primary: {
+            Large: {
+              URL: "https://m.media-amazon.com/images/I/51example.jpg",
+              Width: 500,
+              Height: 500,
+            },
+          },
+          Variants: [
+            {
+              Large: {
+                URL: "https://m.media-amazon.com/images/I/52variant.jpg",
+                Width: 600,
+                Height: 600,
+              },
+            },
+          ],
+        },
+      });
+
+      const preview = previewFromPAAPIItem(item);
+
+      expect(preview.asin).toBe("B09V3KXJPB");
+      expect(preview.name).toEqual({ en: "Sony WH-1000XM5 Headphones" });
+      expect(preview.slug).toEqual({ en: "sony-wh-1000xm5-headphones" });
+      expect(preview.price_cents).toBe(2999);
+      expect(preview.original_price_cents).toBe(4999);
+      expect(preview.brand).toBe("Sony");
+      expect(preview.availability).toBe("in_stock");
+      expect(preview.images).toHaveLength(2);
+      expect(preview.images[0].variant).toBe("MAIN");
+      expect(preview.images[1].variant).toBe("PT");
+    });
+
+    it("handles item with no images", () => {
+      const item = createMockPAAPIItem({ Images: undefined });
+      const preview = previewFromPAAPIItem(item);
+
+      expect(preview.images).toEqual([]);
+    });
+
+    it("handles item with no primary image but has variants", () => {
+      const item = createMockPAAPIItem({
+        Images: {
+          Variants: [
+            {
+              Large: {
+                URL: "https://m.media-amazon.com/images/I/52variant.jpg",
+                Width: 600,
+                Height: 600,
+              },
+            },
+          ],
+        },
+      });
+
+      const preview = previewFromPAAPIItem(item);
+
+      expect(preview.images).toHaveLength(1);
+      expect(preview.images[0].variant).toBe("PT");
+    });
+  });
+
+  describe("transformCatalogItemResponse", () => {
+    function createMockCatalogItem(overrides?: Partial<CatalogItemResponse>): CatalogItemResponse {
+      return {
+        asin: "B09V3KXJPB",
+        attributes: {
+          item_name: [{ value: "Sony WH-1000XM5 Headphones" }],
+          brand: [{ value: "Sony" }],
+          bullet_point: [
+            { value: "Noise cancelling" },
+            { value: "30h battery" },
+            { value: "Bluetooth 5.2" },
+          ],
+          list_price: [{ value: 29.99, currency: "USD" }],
+          color: [{ value: "Black" }],
+          model_number: [{ value: "WH-1000XM5" }],
+          warranty_description: [{ value: "1 year warranty" }],
+        },
+        summaries: [
+          {
+            marketplaceId: "ATVPDKIKX0DER",
+            itemName: "Sony WH-1000XM5 Headphones",
+            brand: "Sony",
+            modelNumber: "WH-1000XM5",
+            color: "Black",
+          },
+        ],
+        images: [
+          {
+            marketplaceId: "ATVPDKIKX0DER",
+            images: [
+              { variant: "MAIN", link: "https://example.com/main.jpg", width: 500, height: 500 },
+              { variant: "PT01", link: "https://example.com/pt1.jpg", width: 600, height: 600 },
+              { variant: "PT02", link: "https://example.com/pt2.jpg", width: 600, height: 600 },
+            ],
+          },
+        ],
+        ...overrides,
+      };
+    }
+
+    it("transforms CatalogItemResponse into ProductPreviewData", () => {
+      const catalogItem = createMockCatalogItem();
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.asin).toBe("B09V3KXJPB");
+      expect(preview.name).toEqual({ en: "Sony WH-1000XM5 Headphones" });
+      expect(preview.slug).toEqual({ en: "sony-wh-1000xm5-headphones" });
+      expect(preview.brand).toBe("Sony");
+      expect(preview.price_cents).toBe(2999);
+      expect(preview.currency).toBe("USD");
+      expect(preview.features).toEqual(["Noise cancelling", "30h battery", "Bluetooth 5.2"]);
+      expect(preview.availability).toBe("unknown");
+      expect(preview.affiliate_url).toBe("https://www.amazon.com/dp/B09V3KXJPB");
+    });
+
+    it("uses item_name from attributes when summary missing", () => {
+      const catalogItem = createMockCatalogItem({ summaries: undefined });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.name).toEqual({ en: "Sony WH-1000XM5 Headphones" });
+    });
+
+    it("falls back to ASIN when no title available", () => {
+      const catalogItem = createMockCatalogItem({
+        summaries: undefined,
+        attributes: { item_name: undefined },
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.name).toEqual({ en: "B09V3KXJPB" });
+    });
+
+    it("handles missing list price", () => {
+      const catalogItem = createMockCatalogItem({
+        attributes: { list_price: undefined },
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.price_cents).toBeNull();
+      expect(preview.currency).toBe("USD");
+    });
+
+    it("deduplicates images by link", () => {
+      const catalogItem = createMockCatalogItem({
+        images: [
+          {
+            marketplaceId: "ATVPDKIKX0DER",
+            images: [
+              { variant: "MAIN", link: "https://example.com/main.jpg", width: 500, height: 500 },
+              { variant: "MAIN", link: "https://example.com/main.jpg", width: 600, height: 600 },
+              { variant: "PT01", link: "https://example.com/pt1.jpg", width: 600, height: 600 },
+            ],
+          },
+        ],
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.images).toHaveLength(2);
+    });
+
+    it("limits images to 10", () => {
+      const images = Array.from({ length: 15 }, (_, i) => ({
+        variant: `PT${i}`,
+        link: `https://example.com/img${i}.jpg`,
+        width: 500,
+        height: 500,
+      }));
+
+      const catalogItem = createMockCatalogItem({
+        images: [
+          {
+            marketplaceId: "ATVPDKIKX0DER",
+            images,
+          },
+        ],
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.images).toHaveLength(10);
+    });
+
+    it("builds attributes map from catalog attributes", () => {
+      const catalogItem = createMockCatalogItem({
+        attributes: {
+          item_name: [{ value: "Test" }],
+          color: [{ value: "Black" }],
+          style: [{ value: "Modern" }],
+          warranty_description: [{ value: "2 years" }],
+          connectivity_technology: [{ value: "Bluetooth" }, { value: "WiFi" }],
+          resolution: [{ value: "4K" }],
+          refresh_rate: [{ value: 60, unit: "Hz" }],
+          item_weight: [{ value: 250, unit: "g" }],
+          special_feature: [{ value: "Water resistant" }],
+        },
+        summaries: [
+          {
+            marketplaceId: "ATVPDKIKX0DER",
+            itemName: "Test",
+            modelNumber: "WH-1000XM5",
+            size: "Large",
+          },
+        ],
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.attributes).toEqual({
+        model_number: "WH-1000XM5",
+        color: "Black",
+        size: "Large",
+        style: "Modern",
+        warranty: "2 years",
+        connectivity: "Bluetooth, WiFi",
+        resolution: "4K",
+        refresh_rate: "60 Hz",
+        weight: "250 g",
+        special_features: "Water resistant",
+      });
+    });
+
+    it("handles missing attributes gracefully", () => {
+      const catalogItem = createMockCatalogItem({
+        attributes: undefined,
+        summaries: undefined,
+        images: undefined,
+      });
+      const preview = transformCatalogItemResponse(catalogItem);
+
+      expect(preview.name).toEqual({ en: "B09V3KXJPB" });
+      expect(preview.brand).toBeNull();
+      expect(preview.features).toEqual([]);
+      expect(preview.price_cents).toBeNull();
+      expect(preview.images).toEqual([]);
+      expect(preview.attributes).toEqual({});
     });
   });
 });

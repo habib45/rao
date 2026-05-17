@@ -27,9 +27,9 @@ describe("Project Configuration", () => {
       path.join(root, ".env.example"),
       "utf-8"
     );
-    expect(envExample).toContain("NEXT_PUBLIC_SUPABASE_URL");
-    expect(envExample).toContain("NEXT_PUBLIC_SUPABASE_ANON_KEY");
     expect(envExample).toContain("NEXT_PUBLIC_SITE_URL");
+    expect(envExample).toContain("MYSQL_API_URL");
+    expect(envExample).toContain("MYSQL_API_SECRET");
   });
 
   // TC-1.1.4: Vitest configuration loads
@@ -57,9 +57,6 @@ describe("Project Configuration", () => {
     for (const file of files) {
       const content = fs.readFileSync(file, "utf-8");
       // Check for common secret patterns
-      expect(content).not.toMatch(
-        /SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"][^'"]+['"]/
-      );
       expect(content).not.toMatch(/sk_live_[a-zA-Z0-9]/);
       expect(content).not.toMatch(/eyJhbGciOi[a-zA-Z0-9]/);
     }

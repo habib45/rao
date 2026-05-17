@@ -1,111 +1,251 @@
-// F18.2 — Newsletter subscribe API route tests (TC-18.2.1 – 18.2.3)
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
+import { POST } from "../subscribe/route";
 
-function makeSupabaseStub(
-  overrides: { error?: { message: string } | null } = {},
-) {
-  const chain = {
-    data: null,
-    error: overrides.error ?? null,
-  };
-  const stub: Record<string, unknown> = {
-    from: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockReturnThis(),
-    then(
-      resolve: (v: typeof chain) => unknown,
-      reject?: (e: unknown) => unknown,
-    ) {
-      return Promise.resolve(chain).then(resolve, reject);
-    },
-  };
-  return stub;
-}
-
-vi.mock("server-only", () => ({}));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
-
-import { createAdminClient } from "@/lib/supabase/admin";
-import { POST } from "@/app/api/newsletter/subscribe/route";
-
-function makeRequest(body: unknown) {
-  return new NextRequest("http://localhost/api/newsletter/subscribe", {
-    method: "POST",
-    body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+// Mock fetch
+global.fetch = vi.fn();
 
 describe("POST /api/newsletter/subscribe", () => {
-  it("TC-18.2.1 returns 200 with valid email and consent", async () => {
-    const stub = makeSupabaseStub();
-    vi.mocked(createAdminClient).mockReturnValue(
-      stub as unknown as ReturnType<typeof createAdminClient>,
-    );
-
-    const res = await POST(makeRequest({ email: "user@example.com", consent: true }));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.success).toBe(true);
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("TC-18.2.2 returns 400 for invalid email", async () => {
-    const res = await POST(makeRequest({ email: "not-an-email", consent: true }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe("Validation failed");
-  });
-
-  it("TC-18.2.3 returns 400 when consent is false", async () => {
-    const res = await POST(makeRequest({ email: "user@example.com", consent: false }));
-    expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe("Validation failed");
-  });
-
-  it("returns 400 when consent is missing", async () => {
-    const res = await POST(makeRequest({ email: "user@example.com" }));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 for missing email", async () => {
-    const res = await POST(makeRequest({ consent: true }));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 for invalid JSON", async () => {
-    const req = new NextRequest("http://localhost/api/newsletter/subscribe", {
+  function makeRequest(body: unknown) {
+    return new NextRequest("http://localhost:3000/api/newsletter/subscribe", {
       method: "POST",
-      body: "not-json",
-      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
+  }
+
+  it("returns 200 with valid email and consent", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: true,
+    });
+
     const res = await POST(req);
-    expect(res.status).toBe(400);
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data).toEqual({ ok: true });
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/newsletter/subscribe"),
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: expect.stringContaining("test@example.com"),
+      })
+    );
   });
 
-  it("returns 500 on Supabase error", async () => {
-    const stub = makeSupabaseStub({ error: { message: "DB write failed" } });
-    vi.mocked(createAdminClient).mockReturnValue(
-      stub as unknown as ReturnType<typeof createAdminClient>,
-    );
+  it("returns 400 with invalid email", async () => {
+    const req = makeRequest({
+      email: "not-an-email",
+      consent: true,
+    });
 
-    const res = await POST(makeRequest({ email: "user@example.com", consent: true }));
-    expect(res.status).toBe(500);
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
+  });
+
+  it("returns 400 when consent is false", async () => {
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: false,
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error).toBe("Consent required");
+  });
+
+  it("accepts an optional name", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      name: "John Doe",
+      consent: true,
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: expect.stringContaining("John Doe"),
+      })
+    );
   });
 
   it("accepts an optional locale", async () => {
-    const stub = makeSupabaseStub();
-    vi.mocked(createAdminClient).mockReturnValue(
-      stub as unknown as ReturnType<typeof createAdminClient>,
-    );
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
 
-    const res = await POST(
-      makeRequest({ email: "user@example.com", consent: true, locale: "sv" }),
-    );
+    const req = makeRequest({
+      email: "test@example.com",
+      locale: "bn-BD",
+      consent: true,
+    });
+
+    const res = await POST(req);
+
     expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        body: expect.stringContaining("bn-BD"),
+      })
+    );
+  });
+
+  it("defaults locale to en when not provided", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: true,
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const fetchCall = vi.mocked(fetch).mock.calls[0];
+    const body = fetchCall[1] as { body: string };
+    const parsedBody = JSON.parse(body.body);
+    expect(parsedBody.locale).toBe("en");
+  });
+
+  it("hashes IP address from x-real-ip header", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = new NextRequest("http://localhost:3000/api/newsletter/subscribe", {
+      method: "POST",
+      headers: { "x-real-ip": "192.168.1.1" },
+      body: JSON.stringify({ email: "test@example.com", consent: true }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const fetchCall = vi.mocked(fetch).mock.calls[0];
+    const body = fetchCall[1] as { body: string };
+    const parsedBody = JSON.parse(body.body);
+    expect(parsedBody.ip_hash).toBeDefined();
+    expect(parsedBody.ip_hash).not.toBe("192.168.1.1");
+  });
+
+  it("hashes IP address from x-forwarded-for header", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = new NextRequest("http://localhost:3000/api/newsletter/subscribe", {
+      method: "POST",
+      headers: { "x-forwarded-for": "10.0.0.1, 10.0.0.2" },
+      body: JSON.stringify({ email: "test@example.com", consent: true }),
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const fetchCall = vi.mocked(fetch).mock.calls[0];
+    const body = fetchCall[1] as { body: string };
+    const parsedBody = JSON.parse(body.body);
+    expect(parsedBody.ip_hash).toBeDefined();
+  });
+
+  it("defaults to unknown IP when headers missing", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ok: true }),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: true,
+    });
+
+    const res = await POST(req);
+
+    expect(res.status).toBe(200);
+    const fetchCall = vi.mocked(fetch).mock.calls[0];
+    const body = fetchCall[1] as { body: string };
+    const parsedBody = JSON.parse(body.body);
+    expect(parsedBody.ip_hash).toBeDefined();
+  });
+
+  it("returns 500 when MySQL API fails", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "Database error" }),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: true,
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe("Database error");
+  });
+
+  it("returns 500 when MySQL API fails with no error message", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    } as Response);
+
+    const req = makeRequest({
+      email: "test@example.com",
+      consent: true,
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(data.error).toBe("Subscription failed");
+  });
+
+  it("handles malformed JSON body", async () => {
+    const req = new NextRequest("http://localhost:3000/api/newsletter/subscribe", {
+      method: "POST",
+      body: "invalid json",
+    });
+
+    const res = await POST(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(data.error).toBe("Invalid input");
   });
 });

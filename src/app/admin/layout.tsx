@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className="font-sans bg-background text-foreground">
+      <body className="font-sans bg-background text-foreground" suppressHydrationWarning>
         <Providers>
           {children}
           <Toaster position="top-right" richColors />

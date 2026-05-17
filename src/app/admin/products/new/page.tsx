@@ -1,17 +1,11 @@
 import { requireAdmin } from "@/app/admin/_lib/auth";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getActiveCategories } from "@/lib/queries/categories";
 import { ProductCreateForm } from "./_components/ProductCreateForm";
 
 export default async function NewProductPage() {
   const user = await requireAdmin();
-  const supabase = createAdminClient();
-
-  const { data: categories } = await supabase
-    .from("categories")
-    .select("id, name")
-    .eq("is_active", true)
-    .order("sort_order");
+  const categories = await getActiveCategories();
 
   return (
     <AdminShell userEmail={user.email ?? ""}>

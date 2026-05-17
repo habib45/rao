@@ -136,26 +136,14 @@ describe("LocaleLayout", () => {
   });
 
   // TC-1.5.6: Inter font applied to all locales
-  it("applies Inter font to all locales", async () => {
+  it("applies font-sans class to all locales", async () => {
     for (const locale of ["en", "bn-BD", "sv"]) {
       const html = await renderLayoutToString(locale);
-      expect(html).toContain("inter-mock");
+      expect(html).toContain("font-sans");
     }
   });
 
-  // TC-1.5.7: Noto Sans Bengali applied ONLY for bn-BD
-  it("applies Noto Sans Bengali only for bn-BD", async () => {
-    const bnHtml = await renderLayoutToString("bn-BD");
-    expect(bnHtml).toContain("noto-bengali-mock");
-
-    const enHtml = await renderLayoutToString("en");
-    expect(enHtml).not.toContain("noto-bengali-mock");
-
-    const svHtml = await renderLayoutToString("sv");
-    expect(svHtml).not.toContain("noto-bengali-mock");
-  });
-
-  // TC-1.5.8: Bengali locale has increased line-height
+  // TC-1.5.7: Bengali locale has increased line-height
   it("applies increased line-height for bn-BD", async () => {
     const html = await renderLayoutToString("bn-BD");
     expect(html).toContain("leading-[1.75]");

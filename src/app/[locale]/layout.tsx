@@ -13,10 +13,10 @@ import "../globals.css";
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
 
 const descriptions: Record<LocaleCode, string> = {
-  en: "Discover the best products on RaoFinds — curated deals, reviews, and comparisons.",
+  en: "Shop the best Amazon products with expert reviews, comparisons & deals. Find trusted products at unbeatable prices. Start saving today!",
   "bn-BD":
-    "Amazon-এ সেরা পণ্য খুঁজুন — নির্বাচিত ডিল, রিভিউ এবং তুলনা।",
-  sv: "Upptäck de bästa produkterna på Amazon — utvalda erbjudanden, recensioner och jämförelser.",
+    "Amazon-এ সেরা পণ্য খুঁজুন — বিশেষজ্ঞ রিভিউ, তুলনা ও ডিল। বিশ্বস্ত পণ্য সেরা দামে পান। আজই সাশ্রয় শুরু করুন!",
+  sv: "Hitta de bästa Amazon-produkterna med expertrecensioner, jämförelser & erbjudanden. Hitta pålitliga produkter till oslagbara priser. Spara nu!",
 };
 
 export async function generateMetadata({
@@ -40,6 +40,14 @@ export async function generateMetadata({
       width: "device-width",
       initialScale: 1,
       maximumScale: 5,
+    },
+    alternates: {
+      canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}`,
+      languages: {
+        en: "/en",
+        "bn-BD": "/bn-BD",
+        sv: "/sv",
+      },
     },
   };
 }
@@ -68,12 +76,12 @@ export default async function LocaleLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#f59e0b" />
       </head>
-      <body className={`${bodyClassName} min-h-screen flex flex-col font-sans`} suppressHydrationWarning>
+      <body className={`${bodyClassName} min-h-screen flex flex-col font-sans antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <CartProvider>
             <ComparisonProvider>
               <Header locale={locale as LocaleCode} />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1" id="main-content" tabIndex={-1}>{children}</main>
               <Footer />
             </ComparisonProvider>
           </CartProvider>

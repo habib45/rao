@@ -1,74 +1,84 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { CKEditor } from "@ckeditor/ckeditor5-react";
-import {
-  ClassicEditor,
-  Essentials,
-  Paragraph,
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Subscript,
-  Superscript,
-  Font,
-  FontColor,
-  FontBackgroundColor,
-  Heading,
-  Alignment,
-  List,
-  ListProperties,
-  TodoList,
-  Link,
-  AutoLink,
-  Image,
-  ImageCaption,
-  ImageStyle,
-  ImageToolbar,
-  ImageUpload,
-  ImageResizeEditing,
-  ImageResizeHandles,
-  ImageInsert,
-  ImageInsertViaUrl,
-  Table,
-  TableToolbar,
-  TableProperties,
-  TableCellProperties,
-  TableColumnResize,
-  TableCaption,
-  CodeBlock,
-  Code,
-  BlockQuote,
-  Indent,
-  IndentBlock,
-  Highlight,
-  HorizontalLine,
-  HtmlEmbed,
-  FindAndReplace,
-  SelectAll,
-  RemoveFormat,
-  SpecialCharacters,
-  SpecialCharactersArrows,
-  SpecialCharactersCurrency,
-  SpecialCharactersEssentials,
-  SpecialCharactersLatin,
-  SpecialCharactersMathematical,
-  SpecialCharactersText,
-  PageBreak,
-  WordCount,
-  AutoImage,
-  PastePlainText,
-  TextPartLanguage,
-  ShowBlocks,
-  SourceEditing,
-  GeneralHtmlSupport,
-  Autoformat,
-  Undo,
-} from "ckeditor5";
-import "ckeditor5/ckeditor5.css";
+import dynamic from "next/dynamic";
 import { encodeWizard } from "@/lib/wizard";
 import type { WizardStep } from "@/lib/wizard";
+
+// Dynamically import CKEditor to avoid SSR issues
+const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then(mod => mod.CKEditor), {
+  ssr: false,
+  loading: () => <div className="h-40 animate-pulse rounded-lg bg-border" />,
+});
+
+// Dynamically import CKEditor modules to avoid SSR issues
+const loadCKEditorModules = async () => {
+  const ckeditor5 = await import("ckeditor5");
+  return {
+    ClassicEditor: ckeditor5.ClassicEditor,
+    Essentials: ckeditor5.Essentials,
+    Paragraph: ckeditor5.Paragraph,
+    Bold: ckeditor5.Bold,
+    Italic: ckeditor5.Italic,
+    Underline: ckeditor5.Underline,
+    Strikethrough: ckeditor5.Strikethrough,
+    Subscript: ckeditor5.Subscript,
+    Superscript: ckeditor5.Superscript,
+    Font: ckeditor5.Font,
+    FontColor: ckeditor5.FontColor,
+    FontBackgroundColor: ckeditor5.FontBackgroundColor,
+    Heading: ckeditor5.Heading,
+    Alignment: ckeditor5.Alignment,
+    List: ckeditor5.List,
+    ListProperties: ckeditor5.ListProperties,
+    TodoList: ckeditor5.TodoList,
+    Link: ckeditor5.Link,
+    AutoLink: ckeditor5.AutoLink,
+    Image: ckeditor5.Image,
+    ImageCaption: ckeditor5.ImageCaption,
+    ImageStyle: ckeditor5.ImageStyle,
+    ImageToolbar: ckeditor5.ImageToolbar,
+    ImageUpload: ckeditor5.ImageUpload,
+    ImageResizeEditing: ckeditor5.ImageResizeEditing,
+    ImageResizeHandles: ckeditor5.ImageResizeHandles,
+    ImageInsert: ckeditor5.ImageInsert,
+    ImageInsertViaUrl: ckeditor5.ImageInsertViaUrl,
+    Table: ckeditor5.Table,
+    TableToolbar: ckeditor5.TableToolbar,
+    TableProperties: ckeditor5.TableProperties,
+    TableCellProperties: ckeditor5.TableCellProperties,
+    TableColumnResize: ckeditor5.TableColumnResize,
+    TableCaption: ckeditor5.TableCaption,
+    CodeBlock: ckeditor5.CodeBlock,
+    Code: ckeditor5.Code,
+    BlockQuote: ckeditor5.BlockQuote,
+    Indent: ckeditor5.Indent,
+    IndentBlock: ckeditor5.IndentBlock,
+    Highlight: ckeditor5.Highlight,
+    HorizontalLine: ckeditor5.HorizontalLine,
+    HtmlEmbed: ckeditor5.HtmlEmbed,
+    FindAndReplace: ckeditor5.FindAndReplace,
+    SelectAll: ckeditor5.SelectAll,
+    RemoveFormat: ckeditor5.RemoveFormat,
+    SpecialCharacters: ckeditor5.SpecialCharacters,
+    SpecialCharactersArrows: ckeditor5.SpecialCharactersArrows,
+    SpecialCharactersCurrency: ckeditor5.SpecialCharactersCurrency,
+    SpecialCharactersEssentials: ckeditor5.SpecialCharactersEssentials,
+    SpecialCharactersLatin: ckeditor5.SpecialCharactersLatin,
+    SpecialCharactersMathematical: ckeditor5.SpecialCharactersMathematical,
+    SpecialCharactersText: ckeditor5.SpecialCharactersText,
+    PageBreak: ckeditor5.PageBreak,
+    WordCount: ckeditor5.WordCount,
+    AutoImage: ckeditor5.AutoImage,
+    PastePlainText: ckeditor5.PastePlainText,
+    TextPartLanguage: ckeditor5.TextPartLanguage,
+    ShowBlocks: ckeditor5.ShowBlocks,
+    SourceEditing: ckeditor5.SourceEditing,
+    GeneralHtmlSupport: ckeditor5.GeneralHtmlSupport,
+    Autoformat: ckeditor5.Autoformat,
+    Undo: ckeditor5.Undo,
+  };
+};
 
 interface Props {
   initialSteps?: WizardStep[];
@@ -84,25 +94,25 @@ interface Props {
   onClose: () => void;
 }
 
-const STEP_EDITOR_CONFIG = {
+const STEP_EDITOR_CONFIG = (modules: any) => ({
   licenseKey: "GPL" as const,
   plugins: [
-    Essentials, Autoformat, Paragraph,
-    Bold, Italic, Underline, Strikethrough, Subscript, Superscript,
-    Font, FontColor, FontBackgroundColor,
-    Heading, Alignment,
-    List, ListProperties, TodoList,
-    Link, AutoLink,
-    Image, ImageCaption, ImageStyle, ImageToolbar, ImageUpload,
-    ImageResizeEditing, ImageResizeHandles, ImageInsert, ImageInsertViaUrl, AutoImage,
-    Table, TableToolbar, TableProperties, TableCellProperties, TableColumnResize, TableCaption,
-    CodeBlock, Code, BlockQuote, Indent, IndentBlock,
-    Highlight, HorizontalLine, HtmlEmbed,
-    FindAndReplace, SelectAll, RemoveFormat,
-    SpecialCharacters, SpecialCharactersArrows, SpecialCharactersCurrency,
-    SpecialCharactersEssentials, SpecialCharactersLatin, SpecialCharactersMathematical, SpecialCharactersText,
-    PageBreak, WordCount, PastePlainText, TextPartLanguage, ShowBlocks,
-    SourceEditing, GeneralHtmlSupport, Undo,
+    modules.Essentials, modules.Autoformat, modules.Paragraph,
+    modules.Bold, modules.Italic, modules.Underline, modules.Strikethrough, modules.Subscript, modules.Superscript,
+    modules.Font, modules.FontColor, modules.FontBackgroundColor,
+    modules.Heading, modules.Alignment,
+    modules.List, modules.ListProperties, modules.TodoList,
+    modules.Link, modules.AutoLink,
+    modules.Image, modules.ImageCaption, modules.ImageStyle, modules.ImageToolbar, modules.ImageUpload,
+    modules.ImageResizeEditing, modules.ImageResizeHandles, modules.ImageInsert, modules.ImageInsertViaUrl, modules.AutoImage,
+    modules.Table, modules.TableToolbar, modules.TableProperties, modules.TableCellProperties, modules.TableColumnResize, modules.TableCaption,
+    modules.CodeBlock, modules.Code, modules.BlockQuote, modules.Indent, modules.IndentBlock,
+    modules.Highlight, modules.HorizontalLine, modules.HtmlEmbed,
+    modules.FindAndReplace, modules.SelectAll, modules.RemoveFormat,
+    modules.SpecialCharacters, modules.SpecialCharactersArrows, modules.SpecialCharactersCurrency,
+    modules.SpecialCharactersEssentials, modules.SpecialCharactersLatin, modules.SpecialCharactersMathematical, modules.SpecialCharactersText,
+    modules.PageBreak, modules.WordCount, modules.PastePlainText, modules.TextPartLanguage, modules.ShowBlocks,
+    modules.SourceEditing, modules.GeneralHtmlSupport, modules.Undo,
   ],
   toolbar: {
     items: [
@@ -162,7 +172,7 @@ const STEP_EDITOR_CONFIG = {
   htmlSupport: {
     allow: [{ name: /.*/, attributes: true as const, classes: true as const, styles: true as const }],
   },
-};
+});
 
 function makeStep(): WizardStep {
   return { id: `step-${Math.random().toString(36).slice(2, 9)}`, title: "", content: "" };
@@ -192,12 +202,17 @@ export function WizardBuilder({
   const [showBorder, setShowBorder] = useState(initialShowBorder ?? true);
   const [showPanelBorder, setShowPanelBorder] = useState(initialShowPanelBorder ?? true);
   const [panelBorderColor, setPanelBorderColor] = useState(initialPanelBorderColor ?? "#e2e8f0");
+  const [ckeditorModules, setCkeditorModules] = useState<any>(null);
   const dragStepRef = useRef<number | null>(null);
   const [pos, setPos] = useState(() => ({
     x: typeof window !== "undefined" ? Math.max(0, (window.innerWidth - 960) / 2) : 400,
     y: 60,
   }));
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  useEffect(() => {
+    loadCKEditorModules().then(setCkeditorModules);
+  }, []);
 
   useEffect(() => {
     function onMove(e: MouseEvent) {
@@ -472,14 +487,16 @@ export function WizardBuilder({
                     overflow-y: auto;
                   }
                 `}</style>
-                <CKEditor
-                  editor={ClassicEditor}
-                  data={step.content}
-                  config={STEP_EDITOR_CONFIG}
-                  onChange={(_event, editor) => {
-                    updateStep(activeIdx, { content: editor.getData() });
-                  }}
-                />
+                {ckeditorModules && (
+                  <CKEditor
+                    editor={ckeditorModules.ClassicEditor}
+                    data={step.content}
+                    config={STEP_EDITOR_CONFIG(ckeditorModules)}
+                    onChange={(_event, editor) => {
+                      updateStep(activeIdx, { content: editor.getData() });
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}

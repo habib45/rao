@@ -2,11 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBrowserClient } from "@/lib/supabase/client";
 import { Package } from "lucide-react";
-
-const DATA_SOURCE = process.env.NEXT_PUBLIC_DATA_SOURCE ?? "supabase";
-const MYSQL_API_URL = process.env.NEXT_PUBLIC_MYSQL_API_URL ?? "http://localhost:4000";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -20,41 +16,27 @@ export default function AdminLoginPage() {
     setError(null);
     setLoading(true);
 
-    if (DATA_SOURCE === "mysql") {
-      const res = await fetch(`${MYSQL_API_URL}/api/auth/login`, {
+    try {
+      const res = await fetch("/admin/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+
+      setLoading(false);
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setError((body as { error?: string }).error ?? "Invalid credentials");
-        setLoading(false);
         return;
       }
 
       router.push("/admin");
       router.refresh();
-      return;
-    }
-
-    // Supabase path
-    const supabase = createBrowserClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (authError) {
-      setError(authError.message);
+    } catch (err) {
       setLoading(false);
-      return;
+      setError("An error occurred. Please try again.");
     }
-
-    router.push("/admin");
-    router.refresh();
   }
 
   return (
@@ -78,7 +60,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-              placeholder="admin@example.com"
+              placeholder="admin@admin.com"
             />
           </div>
 
@@ -93,6 +75,7 @@ export default function AdminLoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              placeholder="Password@123"
             />
           </div>
 

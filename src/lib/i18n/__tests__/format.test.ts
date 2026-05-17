@@ -1,5 +1,27 @@
 import { describe, it, expect } from "vitest";
-import { formatPrice } from "@/lib/i18n/format";
+import { formatPrice, formatDate } from "@/lib/i18n/format";
+
+describe("formatDate()", () => {
+  it("formats date with short month by default", () => {
+    expect(formatDate("2024-01-15", "en-US")).toBe("Jan 15, 2024");
+  });
+
+  it("formats date with long month", () => {
+    expect(formatDate("2024-01-15", "en-US", "long")).toBe("January 15, 2024");
+  });
+
+  it("formats date for Bengali locale", () => {
+    const result = formatDate("2024-01-15", "bn-BD");
+    expect(result).toContain("১৫");
+    expect(result).toContain("২০২৪");
+  });
+
+  it("formats date for Swedish locale", () => {
+    const result = formatDate("2024-01-15", "sv-SE");
+    expect(result).toContain("15");
+    expect(result).toContain("2024");
+  });
+});
 
 describe("formatPrice()", () => {
   // TC-1.4.11: formatPrice basic USD/en

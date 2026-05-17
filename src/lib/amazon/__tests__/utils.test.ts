@@ -90,6 +90,21 @@ describe("F3.3 — Utility Functions", () => {
       expect(fn).toHaveBeenCalledTimes(1);
       expect(mockDelay).not.toHaveBeenCalled();
     });
+
+    it("TC-3.3.9: uses default delay function when no custom delayFn provided", async () => {
+      const fn = vi.fn()
+        .mockRejectedValueOnce(new Error("429"))
+        .mockResolvedValue("recovered");
+
+      const result = await exponentialBackoff(fn, {
+        maxRetries: 1,
+        baseDelay: 10,
+        retryOn: () => true,
+      });
+
+      expect(result).toBe("recovered");
+      expect(fn).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("RateLimiter", () => {

@@ -1,15 +1,13 @@
 /**
  * Datasource configuration.
- * Set DATA_SOURCE=mysql in .env to route all queries through the local
- * Express / MySQL API gateway instead of Supabase directly.
+ * All queries route through the Express / MySQL API gateway.
  */
 
-export type DataSource = "supabase" | "mysql";
+export type DataSource = "mysql";
 
-export const DATA_SOURCE: DataSource =
-  (process.env.DATA_SOURCE as DataSource) ?? "supabase";
+export const DATA_SOURCE: DataSource = "mysql";
 
-/** Base URL of the Express API gateway (used only when DATA_SOURCE=mysql) */
+/** Base URL of the Express API gateway */
 export const MYSQL_API_URL: string =
   process.env.MYSQL_API_URL ?? "http://localhost:4000";
 

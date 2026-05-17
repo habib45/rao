@@ -22,9 +22,9 @@ const homeTitles: Record<string, string> = {
 };
 
 const homeDescriptions: Record<string, string> = {
-  en: "Discover the best products on RaoFinds — curated deals, honest reviews, and comparisons of trusted products at the best prices.",
-  "bn-BD": "Amazon-এ সেরা পণ্য খুঁজুন — নির্বাচিত ডিল, সৎ রিভিউ এবং বিশ্বস্ত পণ্যের তুলনা সেরা দামে।",
-  sv: "Upptäck de bästa produkterna på Amazon — utvalda erbjudanden, ärliga recensioner och jämförelser av pålitliga produkter till bästa pris.",
+  en: "Shop the best Amazon products with expert reviews, comparisons & deals. Find trusted products at unbeatable prices. Start saving today!",
+  "bn-BD": "Amazon-এ সেরা পণ্য খুঁজুন — বিশেষজ্ঞ রিভিউ, তুলনা ও ডিল। বিশ্বস্ত পণ্য সেরা দামে পান। আজই সাশ্রয় শুরু করুন!",
+  sv: "Hitta de bästa Amazon-produkterna med expertrecensioner, jämförelser & erbjudanden. Hitta pålitliga produkter till oslagbara priser. Spara nu!",
 };
 
 export async function generateMetadata({
@@ -149,11 +149,11 @@ function SectionHeader({
         <h2 className="text-xl font-bold text-foreground sm:text-2xl">
           {title}
         </h2>
-        <div className="mt-2 h-1 w-12 rounded-full bg-brand" />
+        <div className="mt-2 h-1 w-12 rounded-full bg-brand" aria-hidden="true" />
       </div>
       <Link
         href={href}
-        className="inline-flex items-center gap-1 text-sm font-medium text-brand transition-colors hover:text-brand-dark"
+        className="inline-flex items-center gap-1 text-sm font-medium text-brand transition-colors hover:text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 rounded"
       >
         {viewAllLabel}
         <span aria-hidden="true">→</span>
@@ -181,7 +181,7 @@ function CategoryProductsSection({
   const categorySlug = t(category.slug, locale) as string;
 
   return (
-    <section className="py-10">
+    <section className="py-10" aria-labelledby={`category-${category.id}-heading`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeader
           title={categoryName}
@@ -274,10 +274,10 @@ export default async function HomePage({
         }}
       />
       {/* Hero Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-brand to-brand-dark">
+      <section className="relative overflow-hidden bg-gradient-to-r from-brand to-brand-dark" aria-labelledby="hero-heading">
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-20">
           <div className="max-w-lg text-white">
-            <h1 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+            <h1 id="hero-heading" className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
               {hero.tagline}
             </h1>
             <p className="mt-4 text-base text-white/90 sm:text-lg">
@@ -286,7 +286,7 @@ export default async function HomePage({
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/products"
-                className="rounded-lg bg-white px-6 py-3 font-semibold text-brand transition-colors hover:bg-gray-100"
+                className="rounded-lg bg-white px-6 py-3 font-semibold text-brand transition-colors hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand"
               >
                 {hero.shopNow}
               </Link>
@@ -312,8 +312,9 @@ export default async function HomePage({
 
       {/* Category Icons Row */}
       {categories.length > 0 && (
-        <section className="border-b border-border bg-white py-6">
+        <section className="border-b border-border bg-white py-6" aria-labelledby="categories-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <h2 id="categories-heading" className="sr-only">Browse by Category</h2>
             <div className="flex items-center gap-6 overflow-x-auto pb-2">
               {categories.map((category) => {
                 const name = t(category.name, loc) as string;
@@ -322,9 +323,10 @@ export default async function HomePage({
                   <Link
                     key={category.id}
                     href={`/categories/${slug}`}
-                    className="group flex min-w-[72px] flex-col items-center gap-2"
+                    className="group flex min-w-[72px] flex-col items-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 rounded-lg"
+                    aria-label={`Browse ${name} products`}
                   >
-                    <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-transparent bg-brand/10 transition-colors group-hover:border-brand">
+                    <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-transparent bg-brand/10 transition-colors group-hover:border-brand group-focus:ring-2 group-focus:ring-brand">
                       {category.image_url ? (
                         <Image
                           src={category.image_url}
@@ -332,6 +334,7 @@ export default async function HomePage({
                           fill
                           sizes="64px"
                           className="object-cover"
+                          loading="lazy"
                         />
                       ) : (
                         <span className="text-lg font-bold text-brand">
@@ -352,7 +355,7 @@ export default async function HomePage({
 
       {/* Featured Products */}
       {featuredProducts.length > 0 && (
-        <section className="bg-surface py-10">
+        <section className="bg-surface py-10" aria-labelledby="featured-heading">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <SectionHeader
               title={featured.title}
@@ -379,16 +382,16 @@ export default async function HomePage({
       )}
 
       {/* Promotional Banner */}
-      <section className="py-8">
+      <section className="py-8" aria-labelledby="promo-heading">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-start justify-between gap-6 rounded-2xl bg-gradient-to-r from-brand-dark to-brand p-8 text-white sm:flex-row sm:items-center">
             <div>
-              <h3 className="text-xl font-bold sm:text-2xl">{promo.title}</h3>
+              <h3 id="promo-heading" className="text-xl font-bold sm:text-2xl">{promo.title}</h3>
               <p className="mt-2 text-white/80">{promo.description}</p>
             </div>
             <Link
               href="/products"
-              className="whitespace-nowrap rounded-lg bg-white px-6 py-3 font-semibold text-brand transition-colors hover:bg-gray-50"
+              className="whitespace-nowrap rounded-lg bg-white px-6 py-3 font-semibold text-brand transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-brand"
             >
               {promo.explore}
             </Link>

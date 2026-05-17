@@ -11,6 +11,37 @@
   --color-surface: #f9fafb;
 }
 
+:root.dark {
+  --color-background: #0a0a0a !important;
+  --color-foreground: #fafafa !important;
+  --color-muted: #a1a1aa !important;
+  --color-border: #27272a !important;
+  --color-surface: #18181b !important;
+}
+
+.dark aside {
+  background-color: #18181b !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+}
+
+.dark main {
+  background-color: #0a0a0a !important;
+}
+
+.dark header {
+  background-color: #0a0a0a !important;
+  border-color: transparent !important;
+  border-width: 0 !important;
+}
+.dark .bg-surface{
+  background-color: #0a0a0a;
+}
+.dark .rounded-xl {
+  background-color: #18181b !important;
+  border-color: #27272a !important;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);

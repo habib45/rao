@@ -1,18 +1,11 @@
 import { requireAdmin } from "@/app/admin/_lib/auth";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getAllProducts } from "@/lib/queries/products";
 import { AnalyticsTabs } from "./_components/AnalyticsTabs";
 
 export default async function AdminAnalyticsPage() {
   const user = await requireAdmin();
-  const supabase = createAdminClient();
-
-  const { data: products } = await supabase
-    .from("products")
-    .select("id, name, asin")
-    .eq("is_active", true)
-    .order("name->en")
-    .limit(500);
+  const products = await getAllProducts();
 
   return (
     <AdminShell userEmail={user.email ?? ""}>

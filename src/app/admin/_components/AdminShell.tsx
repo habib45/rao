@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -34,7 +34,6 @@ const navItems = [
   { href: "/admin/newsletter", label: "Newsletter", icon: Mail },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/translations", label: "Translations", icon: Languages },
-  { href: "/admin/media", label: "Media (Cloud)", icon: ImageIcon },
   { href: "/admin/public-media", label: "Public Media", icon: ImageIcon },
   { href: "/admin/sitemap", label: "Sitemap", icon: Map },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -50,12 +49,26 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
 
+  // Initialize dark mode from localStorage or system preference
+  useEffect(() => {
+    const stored = localStorage.getItem("darkMode");
+    let initialDark = false;
+
+    if (stored !== null) {
+      initialDark = stored === "true";
+    } else {
+      initialDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+
+    setDarkMode(initialDark);
+    document.documentElement.classList.toggle("dark", initialDark);
+  }, []);
+
   function toggleDarkMode() {
-    setDarkMode((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle("dark", next);
-      return next;
-    });
+    const next = !darkMode;
+    setDarkMode(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("darkMode", next.toString());
   }
 
   async function handleSignOut() {
@@ -148,7 +161,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 bg-background">{children}</main>
       </div>
     </div>
   );

@@ -107,9 +107,9 @@ export default async function AdminDashboardPage() {
                         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-surface text-xs font-medium text-muted">
                           {i + 1}
                         </span>
-                        <span className="font-medium">{p.name}</span>
+                        <span className="font-medium">{p.name?.en || "Unknown"}</span>
                       </div>
-                      <span className="text-muted">{p.clicks} clicks</span>
+                      <span className="text-muted">{p.click_count} clicks</span>
                     </div>
                   ))}
                 </div>

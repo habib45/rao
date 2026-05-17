@@ -192,6 +192,20 @@ export async function gwGetProductBySlug(
   }
 }
 
+export async function gwGetProductById(
+  id: string,
+): Promise<Product | null> {
+  try {
+    const detail = await gw<Record<string, unknown>>(
+      `/api/products/${id}`,
+    );
+    return adaptProductDetail(detail);
+  } catch (e) {
+    console.error("gwGetProductById:", e);
+    return null;
+  }
+}
+
 export async function gwGetAllProducts(): Promise<Product[]> {
   try {
     const { data } = await gw<{ data: Record<string, unknown>[] }>(
@@ -376,6 +390,20 @@ export async function gwGetBlogPostBySlug(
     return adaptBlogPost(detail);
   } catch (e) {
     console.error("gwGetBlogPostBySlug:", e);
+    return null;
+  }
+}
+
+export async function gwGetBlogPostById(
+  id: string,
+): Promise<BlogPost | null> {
+  try {
+    const detail = await gw<Record<string, unknown>>(
+      `/api/blog/posts/${id}`,
+    );
+    return adaptBlogPost(detail);
+  } catch (e) {
+    console.error("gwGetBlogPostById:", e);
     return null;
   }
 }

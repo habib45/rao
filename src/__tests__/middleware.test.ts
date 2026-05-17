@@ -36,7 +36,7 @@ vi.mock("@/i18n/routing", () => ({
   routing: { locales: ["en", "bn-BD", "sv"], defaultLocale: "en" },
 }));
 
-vi.mock("@supabase/ssr", () => ({ createServerClient: mockCreateServerClient }));
+// Supabase SSR removed - using MySQL gateway instead
 
 // ── Imports after mocks ───────────────────────────────────────────────────────
 
@@ -113,7 +113,9 @@ describe("admin paths", () => {
     });
     const req = makeReq("/admin/products");
     const res = await middleware(req);
-    expect(res.status).toBe(200);
+    // Middleware now redirects admin to login page for authentication
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toContain("/admin/login");
   });
 });
 

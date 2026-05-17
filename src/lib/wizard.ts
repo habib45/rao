@@ -116,13 +116,27 @@ export function parseContentSegments(html: string): ContentSegment[] {
 
   for (const { index, length, segment } of matches) {
     const before = html.slice(lastIndex, index);
-    if (before) segments.push({ type: "html", content: before });
+    if (before) segments.push({ type: "html", content: makeImagesResponsive(before) });
     segments.push(segment);
     lastIndex = index + length;
   }
 
   const tail = html.slice(lastIndex);
-  if (tail) segments.push({ type: "html", content: tail });
+  if (tail) segments.push({ type: "html", content: makeImagesResponsive(tail) });
 
   return segments;
+}
+
+export function makeImagesResponsive(html: string): string {
+  // Wrap images in a responsive container and remove width/height attributes
+  return html.replace(/<img([^>]*?)>/gi, (match: string, attrs: string) => {
+    // Remove width and height attributes
+    const cleanAttrs = attrs
+      .replace(/\s+width=["'][^"']*["']/gi, '')
+      .replace(/\s+height=["'][^"']*["']/gi, '')
+      .replace(/\s+style=["'][^"']*["']/gi, ''); // Remove any existing style attribute
+    
+    // Wrap in a responsive div and add responsive styles to image
+    return `<div style="width: 100%; max-width: 100vw; padding: 0 1rem; overflow: hidden;"><img${cleanAttrs} style="max-width: 100% !important; height: auto !important; width: 100% !important; display: block !important;"></div>`;
+  });
 }

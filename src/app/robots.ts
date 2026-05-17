@@ -3,7 +3,7 @@ import type { RobotsRule } from "@/app/admin/_lib/schemas/sitemap";
 
 export const revalidate = 3600;
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bestfinds.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
 
 const DEFAULT_RULES: RobotsRule[] = [
   { userAgent: "*", allow: ["/"], disallow: ["/api/", "/_next/", "/admin/"] },

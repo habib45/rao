@@ -9,7 +9,7 @@ import {
 
 export const revalidate = 3600;
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bestfinds.com";
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
 
 function alternateLanguages(path: string): Record<string, string> {

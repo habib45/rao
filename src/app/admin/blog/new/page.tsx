@@ -1,17 +1,12 @@
 import { requireAdmin } from "@/app/admin/_lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminShell } from "@/app/admin/_components/AdminShell";
 import { BlogPostForm } from "../_components/BlogPostForm";
+import { gwGetActiveBlogCategories } from "@/lib/api/gateway";
 import type { BlogCategory } from "@/types/domain";
 
 export default async function NewBlogPostPage() {
   const user = await requireAdmin();
-  const supabase = createAdminClient();
-
-  const { data: categories } = await supabase
-    .from("blog_categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
+  const categories = await gwGetActiveBlogCategories();
 
   return (
     <AdminShell userEmail={user.email ?? ""}>

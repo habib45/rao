@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/admin/_lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { blogPostInputSchema } from "@/app/admin/_lib/schemas/blog";
-import { syncPostTags } from "@/app/admin/_lib/blog-tags";
 
-const DATA_SOURCE = process.env.DATA_SOURCE ?? "supabase";
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 const BLOG_SELECT = `
@@ -16,24 +13,9 @@ const BLOG_SELECT = `
 export async function GET() {
   await requireAdmin();
 
-  if (DATA_SOURCE === "mysql") {
-    const res = await fetch(`${MYSQL_API_URL}/api/blog/posts?limit=200`, { cache: "no-store" });
-    const json = await res.json() as { data: unknown[] };
-    return NextResponse.json({ posts: json.data ?? [] });
-  }
-
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select(BLOG_SELECT)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("[admin/blog GET]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ posts: data ?? [] });
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts?limit=200`, { cache: "no-store" });
+  const json = await res.json() as { data: unknown[] };
+  return NextResponse.json({ posts: json.data ?? [] });
 }
 
 export async function POST(request: NextRequest) {
@@ -57,33 +39,13 @@ export async function POST(request: NextRequest) {
     insertPayload.published_at = published_at;
   }
 
-  if (DATA_SOURCE === "mysql") {
-    const tags = tag_names ?? [];
-    const res = await fetch(`${MYSQL_API_URL}/api/blog/posts`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...insertPayload, tags }),
-    });
-    const json = await res.json() as { id?: string; error?: string };
-    if (!res.ok) return NextResponse.json({ error: json.error ?? "Gateway error" }, { status: res.status });
-    return NextResponse.json({ id: json.id }, { status: 201 });
-  }
-
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .insert(insertPayload)
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("[admin/blog POST]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  if (tag_names && tag_names.length > 0) {
-    await syncPostTags(data.id, tag_names);
-  }
-
-  return NextResponse.json({ id: data.id }, { status: 201 });
+  const tags = tag_names ?? [];
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...insertPayload, tags }),
+  });
+  const json = await res.json() as { id?: string; error?: string };
+  if (!res.ok) return NextResponse.json({ error: json.error ?? "Gateway error" }, { status: res.status });
+  return NextResponse.json({ id: json.id }, { status: 201 });
 }

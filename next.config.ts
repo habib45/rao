@@ -8,13 +8,37 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com" },
       { protocol: "https", hostname: "m.media-amazon.com" },
-      { protocol: "https", hostname: "cjyjsagxcabwzvrlfizs.supabase.co" },
       { protocol: "https", hostname: "encrypted-tbn0.gstatic.com" },
       { protocol: "https", hostname: "encrypted-tbn1.gstatic.com" },
       { protocol: "https", hostname: "encrypted-tbn2.gstatic.com" },
       { protocol: "https", hostname: "encrypted-tbn3.gstatic.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'ckeditor5': 'ckeditor5/ckeditor5.js',
+    };
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        ...config.optimization?.splitChunks,
+        cacheGroups: {
+          ...config.optimization?.splitChunks?.cacheGroups,
+          ckeditor: {
+            test: /[\\/]node_modules[\\/](ckeditor5|@ckeditor)[\\/]/,
+            name: 'ckeditor',
+            chunks: 'all',
+          },
+        },
+      },
+    };
+    return config;
   },
 
   async headers() {

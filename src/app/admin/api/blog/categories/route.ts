@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/admin/_lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { blogCategoryInputSchema } from "@/app/admin/_lib/schemas/blog";
+
+const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 export async function GET() {
   await requireAdmin();
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("blog_categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
-
-  if (error) {
-    console.error("[admin/blog/categories GET]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ categories: data ?? [] });
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/categories`, { cache: "no-store" });
+  const json = await res.json() as { data?: unknown[] };
+  return NextResponse.json({ categories: json.data ?? [] });
 }
 
 export async function POST(request: NextRequest) {
@@ -31,16 +23,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("blog_categories")
-    .insert(parsed.data)
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("[admin/blog/categories POST]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ id: data.id }, { status: 201 });
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/categories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(parsed.data),
+  });
+  const json = await res.json() as { id?: string; error?: string };
+  if (!res.ok) return NextResponse.json({ error: json.error ?? "Gateway error" }, { status: res.status });
+  return NextResponse.json({ id: json.id }, { status: 201 });
 }

@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/admin/_lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { blogPostInputSchema } from "@/app/admin/_lib/schemas/blog";
-import { syncPostTags } from "@/app/admin/_lib/blog-tags";
 
-const BLOG_SELECT = `
-  *,
-  blog_categories(id, name, slug, color),
-  blog_post_tags(blog_tags(id, name, slug))
-`;
+const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 export async function GET(
   _request: NextRequest,
@@ -16,18 +10,9 @@ export async function GET(
 ) {
   await requireAdmin();
   const { id } = await params;
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .select(BLOG_SELECT)
-    .eq("id", id)
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 404 });
-  }
-  return NextResponse.json(data);
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts/${id}`, { cache: "no-store" });
+  if (!res.ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(await res.json());
 }
 
 export async function PATCH(
@@ -46,44 +31,17 @@ export async function PATCH(
     );
   }
 
-  const supabase = createAdminClient();
   const { tag_names, ...rest } = parsed.data;
   const updatePayload: Record<string, unknown> = { ...rest };
 
-  // If transitioning to published and published_at is not set, set it now.
-  if (rest.status === "published") {
-    const { data: existing } = await supabase
-      .from("blog_posts")
-      .select("published_at")
-      .eq("id", id)
-      .maybeSingle();
-
-    const existingPublishedAt = (
-      existing as { published_at: string | null } | null
-    )?.published_at;
-
-    if (!existingPublishedAt && rest.published_at === undefined) {
-      updatePayload.published_at = new Date().toISOString();
-    }
-  }
-
-  const { data, error } = await supabase
-    .from("blog_posts")
-    .update(updatePayload)
-    .eq("id", id)
-    .select("id")
-    .single();
-
-  if (error) {
-    console.error("[admin/blog PATCH]", error.message);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  if (tag_names !== undefined) {
-    await syncPostTags(id, tag_names);
-  }
-
-  return NextResponse.json(data);
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...updatePayload, tags: tag_names }),
+  });
+  const json = await res.json() as { error?: string };
+  if (!res.ok) return NextResponse.json({ error: json.error ?? "Gateway error" }, { status: res.status });
+  return NextResponse.json({ id });
 }
 
 export async function DELETE(
@@ -92,13 +50,7 @@ export async function DELETE(
 ) {
   await requireAdmin();
   const { id } = await params;
-  const supabase = createAdminClient();
-
-  const { error } = await supabase.from("blog_posts").delete().eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts/${id}`, { method: "DELETE" });
+  if (!res.ok) return NextResponse.json({ error: "Failed to delete" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
