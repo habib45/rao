@@ -2,16 +2,16 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import pool from './db/connection.js';
-import { requireApiKey } from './middleware/auth.js';
-
+import { requireAuth, requireRole, requireApiKey, requireApiKeyOrJwt } from './middleware/auth.js';
+import authRouter from './routes/auth.js';
+import adminRouter from './routes/admin.js';
 import categoriesRouter from './routes/categories.js';
-import productsRouter   from './routes/products.js';
-import blogRouter       from './routes/blog.js';
+import productsRouter from './routes/products.js';
+import blogRouter from './routes/blog.js';
 import newsletterRouter from './routes/newsletter.js';
-import trackingRouter   from './routes/tracking.js';
-import adminRouter      from './routes/admin.js';
-import authRouter       from './routes/auth.js';
+import trackingRouter from './routes/tracking.js';
+import tokensRouter from './routes/tokens.js';
+import pool from './db/connection.js';
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
@@ -31,6 +31,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       'http://raofinds.com',
       'http://www.raofinds.com',
       'http://localhost:3000',
+      'http://localhost:4000',
     ];
 
 app.use(cors({
@@ -48,6 +49,9 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
+
+// Serve static files for admin UI
+app.use(express.static('public'));
 
 // ── Health check (public) ─────────────────────────────────────
 app.get('/health', async (_req, res) => {
@@ -108,18 +112,21 @@ app.get('/debug/db', async (_req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('API running on Namecheap!');
+  res.redirect('/admin/login.html');
 });
 
 // ── Auth routes (public) ─────────────────────────────────────
 app.use('/api/auth', authRouter);
 
-// ── Public routes ─────────────────────────────────────────────
-app.use('/api/categories',  categoriesRouter);
-app.use('/api/products',    productsRouter);
-app.use('/api/blog',        blogRouter);
-app.use('/api/newsletter',  newsletterRouter);
-app.use('/api/tracking',    trackingRouter);
+// ── Public routes (API key or JWT token required for third-party access) ──────
+app.use('/api/categories',  requireApiKeyOrJwt, categoriesRouter);
+app.use('/api/products',    requireApiKeyOrJwt, productsRouter);
+app.use('/api/blog',        requireApiKeyOrJwt, blogRouter);
+app.use('/api/newsletter',  requireApiKeyOrJwt, newsletterRouter);
+app.use('/api/tracking',    requireApiKeyOrJwt, trackingRouter);
+
+// ── Token management routes (auth required) ──────────────────
+app.use('/api/tokens', requireAuth, tokensRouter);
 
 // ── Admin routes (API key required) ──────────────────────────
 app.use('/api/admin', requireApiKey, adminRouter);

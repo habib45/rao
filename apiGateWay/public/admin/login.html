@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - ORH API Gateway</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1e40af;
+      --secondary-color: #64748b;
+      --bg-light: #f8fafc;
+      --bg-dark: #0f172a;
+      --text-light: #f1f5f9;
+      --text-dark: #1e293b;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 2rem;
+    }
+
+    .login-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      padding: 2.5rem;
+      transition: transform 0.3s ease;
+    }
+
+    .login-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header h2 {
+      color: var(--text-dark);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--secondary-color);
+      font-size: 0.95rem;
+    }
+
+    .login-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      color: white;
+      font-size: 1.75rem;
+    }
+
+    .form-floating {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-floating > .form-control {
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      padding: 1rem 1rem 1rem 3rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-floating > .form-control:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+    }
+
+    .form-floating > label {
+      padding: 1rem 1rem 1rem 3rem;
+      color: var(--secondary-color);
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--secondary-color);
+      z-index: 5;
+    }
+
+    .btn-login {
+      background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+      border: none;
+      border-radius: 8px;
+      padding: 0.875rem;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .form-check {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-check-input {
+      border: 2px solid #e2e8f0;
+      border-radius: 4px;
+    }
+
+    .form-check-input:checked {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+
+    .form-check-label {
+      color: var(--secondary-color);
+      font-size: 0.9rem;
+    }
+
+    .forgot-password {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .forgot-password a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: color 0.3s ease;
+    }
+
+    .forgot-password a:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    .alert {
+      border-radius: 8px;
+      border: none;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .alert-danger {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .alert-success {
+      background: #f0fdf4;
+      color: #16a34a;
+    }
+
+    .spinner-border {
+      width: 1rem;
+      height: 1rem;
+      margin-right: 0.5rem;
+    }
+
+    @media (max-width: 576px) {
+      .login-container {
+        padding: 1rem;
+      }
+
+      .login-card {
+        padding: 1.5rem;
+      }
+    }
+
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+      .login-card {
+        background: #1e293b;
+      }
+
+      .login-header h2 {
+        color: var(--text-light);
+      }
+
+      .form-floating > .form-control {
+        background: #334155;
+        border-color: #475569;
+        color: var(--text-light);
+      }
+
+      .form-floating > label {
+        color: #94a3b8;
+      }
+
+      .form-check-label {
+        color: #94a3b8;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-icon">
+          <i class="bi bi-shield-lock"></i>
+        </div>
+        <h2>Admin Login</h2>
+        <p>Sign in to manage API Gateway tokens</p>
+      </div>
+
+      <div id="alert-container"></div>
+
+      <form id="loginForm">
+        <div class="form-floating position-relative">
+          <i class="bi bi-person input-icon"></i>
+          <input type="email" class="form-control" id="email" placeholder="Email" required>
+          <label for="email">Email or Username</label>
+        </div>
+
+        <div class="form-floating position-relative">
+          <i class="bi bi-lock input-icon"></i>
+          <input type="password" class="form-control" id="password" placeholder="Password" required>
+          <label for="password">Password</label>
+        </div>
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="rememberMe">
+          <label class="form-check-label" for="rememberMe">
+            Remember me
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-login w-100" id="loginBtn">
+          <span id="loginText">Sign In</span>
+          <span id="loginSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+        </button>
+      </form>
+
+      <div class="forgot-password">
+        <a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Forgot password?</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content" style="border-radius: 16px;">
+        <div class="modal-header border-0">
+          <h5 class="modal-title fw-bold">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted mb-4">Enter your email address and we'll send you a link to reset your password.</p>
+          <form id="forgotPasswordForm">
+            <div class="form-floating mb-3">
+              <input type="email" class="form-control" id="resetEmail" placeholder="Email" required>
+              <label for="resetEmail">Email</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="resetBtn">
+              <span id="resetText">Send Reset Link</span>
+              <span id="resetSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_BASE = window.location.origin + '/api/auth';
+    
+    function showAlert(message, type = 'danger') {
+      const container = document.getElementById('alert-container');
+      container.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      `;
+    }
+
+    function setLoading(btnId, textId, spinnerId, loading) {
+      const btn = document.getElementById(btnId);
+      const text = document.getElementById(textId);
+      const spinner = document.getElementById(spinnerId);
+      
+      btn.disabled = loading;
+      text.textContent = loading ? 'Please wait...' : textId === 'loginText' ? 'Sign In' : 'Send Reset Link';
+      spinner.classList.toggle('d-none', !loading);
+    }
+
+    // Login form submission
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const rememberMe = document.getElementById('rememberMe').checked;
+
+      setLoading('loginBtn', 'loginText', 'loginSpinner', true);
+
+      try {
+        const response = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password, rememberMe })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin/dashboard.html';
+          }, 1000);
+        } else {
+          showAlert(data.error || 'Login failed');
+        }
+      } catch (error) {
+        showAlert('Network error. Please try again.');
+      } finally {
+        setLoading('loginBtn', 'loginText', 'loginSpinner', false);
+      }
+    });
+
+    // Forgot password form submission
+    document.getElementById('forgotPasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('resetEmail').value;
+
+      setLoading('resetBtn', 'resetText', 'resetSpinner', true);
+
+      try {
+        const response = await fetch(`${API_BASE}/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showAlert(data.message || 'If the email exists, a reset link has been sent.', 'success');
+          bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal')).hide();
+        } else {
+          showAlert(data.error || 'Failed to send reset link');
+        }
+      } catch (error) {
+        showAlert('Network error. Please try again.');
+      } finally {
+        setLoading('resetBtn', 'resetText', 'resetSpinner', false);
+      }
+    });
+
+    // Check if already logged in
+    async function checkAuth() {
+      try {
+        const response = await fetch(`${API_BASE}/me`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          window.location.href = '/admin/dashboard.html';
+        }
+      } catch (error) {
+        // Not logged in, stay on login page
+      }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>
