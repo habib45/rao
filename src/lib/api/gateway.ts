@@ -5,7 +5,7 @@
  * domain types so the rest of the app needs zero changes.
  */
 
-import { MYSQL_API_URL, MYSQL_API_SECRET } from "@/lib/config/datasource";
+import { MYSQL_API_URL, MYSQL_API_SECRET, MYSQL_API_JWT_TOKEN } from "@/lib/config/datasource";
 import type {
   Product,
   ProductImage,
@@ -34,6 +34,13 @@ async function gw<T>(
     }
   }
   const headers: Record<string, string> = {};
+  
+  // Use JWT token for authentication (identity for authorized domains)
+  if (MYSQL_API_JWT_TOKEN) {
+    headers["Authorization"] = `Bearer ${MYSQL_API_JWT_TOKEN}`;
+  }
+  
+  // Use API key for admin routes
   if (adminAuth) headers["x-api-key"] = MYSQL_API_SECRET;
 
   const res = await fetch(url.toString(), {

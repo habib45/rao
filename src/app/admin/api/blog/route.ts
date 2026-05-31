@@ -4,12 +4,6 @@ import { blogPostInputSchema } from "@/app/admin/_lib/schemas/blog";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
-const BLOG_SELECT = `
-  *,
-  blog_categories(id, name, slug, color),
-  blog_post_tags(blog_tags(id, name, slug))
-`;
-
 export async function GET() {
   await requireAdmin();
 

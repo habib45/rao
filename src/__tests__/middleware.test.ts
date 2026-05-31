@@ -2,12 +2,9 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Hoisted mocks ─────────────────────────────────────────────────────────────
 
-const { mockGetUser, mockCreateServerClient } = vi.hoisted(() => {
+const { mockGetUser } = vi.hoisted(() => {
   const mockGetUser = vi.fn();
-  const mockCreateServerClient = vi.fn(() => ({
-    auth: { getUser: mockGetUser },
-  }));
-  return { mockGetUser, mockCreateServerClient };
+  return { mockGetUser };
 });
 
 // Partial mock for next/server — replace NextResponse.next to avoid jsdom

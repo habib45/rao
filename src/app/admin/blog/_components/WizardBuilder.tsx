@@ -12,7 +12,8 @@ const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then(mod => m
 });
 
 // Dynamically import CKEditor modules to avoid SSR issues
-const loadCKEditorModules = async () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const loadCKEditorModules = async (): Promise<any> => {
   const ckeditor5 = await import("ckeditor5");
   return {
     ClassicEditor: ckeditor5.ClassicEditor,
@@ -94,6 +95,7 @@ interface Props {
   onClose: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const STEP_EDITOR_CONFIG = (modules: any) => ({
   licenseKey: "GPL" as const,
   plugins: [
@@ -202,6 +204,7 @@ export function WizardBuilder({
   const [showBorder, setShowBorder] = useState(initialShowBorder ?? true);
   const [showPanelBorder, setShowPanelBorder] = useState(initialShowPanelBorder ?? true);
   const [panelBorderColor, setPanelBorderColor] = useState(initialPanelBorderColor ?? "#e2e8f0");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ckeditorModules, setCkeditorModules] = useState<any>(null);
   const dragStepRef = useRef<number | null>(null);
   const [pos, setPos] = useState(() => ({

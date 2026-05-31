@@ -54,22 +54,22 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export async function getClickTrends(days: number): Promise<Array<{ day: string; click_count: number }>> {
+export async function getClickTrends(_days: number): Promise<Array<{ day: string; click_count: number }>> {
   return [];
 }
 
-export async function getTopCategories(limit: number): Promise<CategoryStats[]> {
+export async function getTopCategories(_limit: number): Promise<CategoryStats[]> {
   return [];
 }
 
-export async function getRecentSyncLogs(limit: number): Promise<SyncLog[]> {
+export async function getRecentSyncLogs(_limit: number): Promise<SyncLog[]> {
   return [];
 }
 
-export async function getTopProducts(limit: number): Promise<ProductStats[]> {
+export async function getTopProducts(_limit: number): Promise<ProductStats[]> {
   return [];
 }
 
-export async function getScheduledProducts(limit: number): Promise<ScheduledProduct[]> {
+export async function getScheduledProducts(_limit: number): Promise<ScheduledProduct[]> {
   return [];
 }

@@ -3,32 +3,6 @@ import { productCreateSchema } from "@/app/admin/_lib/schemas/product";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
-function removeEmptyAttributes<T extends Record<string, unknown>>(payload: T) {
-  if (
-    payload.attributes &&
-    typeof payload.attributes === "object" &&
-    !Array.isArray(payload.attributes) &&
-    Object.keys(payload.attributes as Record<string, unknown>).length === 0
-  ) {
-    const result = { ...payload };
-    delete result.attributes;
-    return result as Omit<T, "attributes">;
-  }
-
-  return payload;
-}
-
-function removeMissingColumns<T extends Record<string, unknown>>(payload: T) {
-  const result = { ...payload };
-
-  // Remove columns that might not exist in the database schema yet
-  delete result.product_status;
-  delete result.rejection_reason;
-  delete result.submitted_by;
-
-  return result;
-}
-
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));

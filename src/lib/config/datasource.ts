@@ -14,3 +14,7 @@ export const MYSQL_API_URL: string =
 /** API secret sent as x-api-key header to admin gateway endpoints */
 export const MYSQL_API_SECRET: string =
   process.env.MYSQL_API_SECRET ?? "change-me-in-production";
+
+/** JWT token for API gateway authentication (identity for authorized domains) */
+export const MYSQL_API_JWT_TOKEN: string =
+  process.env.NEXT_PUBLIC_MYSQL_API_JWT_TOKEN ?? "";

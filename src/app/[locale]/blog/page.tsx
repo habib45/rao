@@ -35,7 +35,6 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const loc = locale as LocaleCode;
   const tBlog = await getTranslations("blog");
   const title = tBlog("title");
   const description = "Insights, reviews, and guides to help you shop smarter";

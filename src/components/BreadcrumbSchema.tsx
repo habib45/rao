@@ -10,7 +10,7 @@ interface BreadcrumbSchemaProps {
   locale: LocaleCode;
 }
 
-export function BreadcrumbSchema({ items, locale }: BreadcrumbSchemaProps) {
+export function BreadcrumbSchema({ items }: BreadcrumbSchemaProps) {
   const schema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",

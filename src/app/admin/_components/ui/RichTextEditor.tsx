@@ -10,7 +10,8 @@ const CKEditor = dynamic(() => import("@ckeditor/ckeditor5-react").then(mod => m
 });
 
 // Dynamically import CKEditor modules to avoid SSR issues
-const loadCKEditorModules = async () => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const loadCKEditorModules = async (): Promise<any> => {
   const ckeditor5 = await import("ckeditor5");
   return {
     ClassicEditor: ckeditor5.ClassicEditor,
@@ -81,6 +82,7 @@ const loadCKEditorModules = async () => {
 interface RichTextEditorProps {
   value: string;
   onChange: (html: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onReady?: (editor: any) => void;
   placeholder?: string;
   className?: string;
@@ -93,6 +95,7 @@ export default function RichTextEditor({
   placeholder,
   className,
 }: RichTextEditorProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ckeditorModules, setCkeditorModules] = useState<any>(null);
 
   useEffect(() => {
@@ -275,6 +278,7 @@ export default function RichTextEditor({
           attributes: true,
           classes: true,
           styles: true,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       ],
     },

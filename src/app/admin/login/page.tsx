@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
 
       router.push("/admin");
       router.refresh();
-    } catch (err) {
+    } catch (_err) {
       setLoading(false);
       setError("An error occurred. Please try again.");
     }
