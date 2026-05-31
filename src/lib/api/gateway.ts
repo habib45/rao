@@ -535,9 +535,15 @@ export async function gwGetAllPublishedSlugs(): Promise<
   { en: string; "bn-BD"?: string; sv?: string; updated_at: string }[]
 > {
   try {
-    const posts = await gw<
-      { id: string; slug: Record<string, string>; updated_at: string }[]
+    const response = await gw<
+      | { data: { id: string; slug: Record<string, string>; updated_at: string }[] }
+      | { id: string; slug: Record<string, string>; updated_at: string }[]
     >("/api/blog/posts", { status: "published", limit: 1000 });
+
+    const posts = Array.isArray(response)
+      ? response
+      : response?.data ?? [];
+
     return posts.map((p) => ({
       ...(p.slug as { en: string; "bn-BD"?: string; sv?: string }),
       updated_at: p.updated_at,

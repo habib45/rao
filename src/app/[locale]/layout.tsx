@@ -41,6 +41,19 @@ export async function generateMetadata({
       initialScale: 1,
       maximumScale: 5,
     },
+    icons: {
+      icon: [
+        { url: "/favicon.ico", type: "image/x-icon" },
+        { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+        { url: "/icon.svg", type: "image/svg+xml" },
+      ],
+      apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    },
+    manifest: "/manifest.json",
+    appleWebApp: {
+      title: "RaoFinds",
+      statusBarStyle: "default",
+    },
     alternates: {
       canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}`,
       languages: {
@@ -75,6 +88,12 @@ export default async function LocaleLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#f59e0b" />
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="apple-mobile-web-app-title" content="RaoFinds" />
       </head>
       <body className={`${bodyClassName} min-h-screen flex flex-col font-sans antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>

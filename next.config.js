@@ -1,9 +1,10 @@
-import type { NextConfig } from "next";
-import createNextIntlPlugin from "next-intl/plugin";
+const createNextIntlPlugin = require("next-intl/plugin");
 
 const withNextIntl = createNextIntlPlugin();
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images-na.ssl-images-amazon.com" },
@@ -14,16 +15,17 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "encrypted-tbn3.gstatic.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
-    formats: ['image/avif', 'image/webp'],
+    formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    unoptimized: process.env.NEXT_IMAGE_UNOPTIMIZED === "true",
   },
-
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      'ckeditor5': 'ckeditor5/ckeditor5.js',
+      ckeditor5: "ckeditor5/ckeditor5.js",
     };
+
     config.optimization = {
       ...config.optimization,
       splitChunks: {
@@ -32,15 +34,15 @@ const nextConfig: NextConfig = {
           ...config.optimization?.splitChunks?.cacheGroups,
           ckeditor: {
             test: /[\\/]node_modules[\\/](ckeditor5|@ckeditor)[\\/]/,
-            name: 'ckeditor',
-            chunks: 'all',
+            name: "ckeditor",
+            chunks: "all",
           },
         },
       },
     };
+
     return config;
   },
-
   async headers() {
     return [
       {
@@ -64,8 +66,17 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/_next/static/(.*)\\.js",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/javascript; charset=utf-8",
+          },
+        ],
+      },
     ];
   },
 };
 
-export default withNextIntl(nextConfig);
+module.exports = withNextIntl(nextConfig);
