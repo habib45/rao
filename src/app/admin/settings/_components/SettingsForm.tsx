@@ -29,6 +29,57 @@ interface FeatureFlags {
   show_price?: boolean;
 }
 
+const TRUE_LITERALS = new Set(["true", "1", "yes", "on"]);
+const FALSE_LITERALS = new Set(["false", "0", "no", "off"]);
+
+const coerceBoolean = (value: unknown, defaultValue: boolean): boolean => {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (TRUE_LITERALS.has(normalized)) return true;
+    if (FALSE_LITERALS.has(normalized)) return false;
+    return defaultValue;
+  }
+  return defaultValue;
+};
+
+const coerceFeatureFlags = (raw: unknown): FeatureFlags => {
+  if (!raw) {
+    return { show_price: true };
+  }
+
+  let input: Record<string, unknown> | null = null;
+  if (typeof raw === "string") {
+    try {
+      input = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      input = null;
+    }
+  } else if (typeof raw === "object") {
+    input = raw as Record<string, unknown>;
+  }
+
+  if (!input) {
+    return { show_price: true };
+  }
+
+  return {
+    cart_enabled: coerceBoolean(input.cart_enabled, false),
+    reviews_enabled: coerceBoolean(input.reviews_enabled, false),
+    price_alerts_enabled: coerceBoolean(input.price_alerts_enabled, false),
+    show_price: coerceBoolean(input.show_price, true),
+  };
+};
+
+const serializeFeatureFlags = (flags: FeatureFlags): Record<string, boolean> => ({
+  cart_enabled: coerceBoolean(flags.cart_enabled, false),
+  reviews_enabled: coerceBoolean(flags.reviews_enabled, false),
+  price_alerts_enabled: coerceBoolean(flags.price_alerts_enabled, false),
+  show_price: coerceBoolean(flags.show_price, true),
+});
+
 export function SettingsForm() {
   const queryClient = useQueryClient();
 
@@ -48,7 +99,7 @@ export function SettingsForm() {
   useEffect(() => {
     if (settings) {
       setAffiliate((settings.affiliate as AffiliateSettings) ?? {});
-      setFeatures((settings.features as FeatureFlags) ?? {});
+      setFeatures(coerceFeatureFlags(settings.features));
       const comp = settings.comparison as { keys?: string[] } | undefined;
       setComparisonKeys(comp?.keys ?? []);
     }
@@ -69,6 +120,11 @@ export function SettingsForm() {
     },
     onError: () => toast.error("Failed to save settings"),
   });
+
+  const saveFeatures = () => {
+    const normalized = serializeFeatureFlags(features);
+    saveMutation.mutate({ features: normalized });
+  };
 
   const sync = (settings?.sync as SyncSettings) ?? {};
 
@@ -174,7 +230,7 @@ export function SettingsForm() {
           </div>
           <div className="mt-4">
             <Button
-              onClick={() => saveMutation.mutate({ features })}
+              onClick={saveFeatures}
               disabled={saveMutation.isPending}
             >
               Save Display Settings
@@ -210,7 +266,7 @@ export function SettingsForm() {
           </div>
           <div className="mt-4">
             <Button
-              onClick={() => saveMutation.mutate({ features })}
+              onClick={saveFeatures}
               disabled={saveMutation.isPending}
             >
               Save Feature Flags

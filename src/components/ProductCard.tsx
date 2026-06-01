@@ -17,7 +17,18 @@ export default function ProductCard({
   showPrice?: boolean;
 }) {
   const name = t(product.name, locale) as string;
-  const slug = t(product.slug, locale) as string;
+  let slug = '';
+  const slugData = product.slug;
+  if (typeof slugData === 'string') {
+    try {
+      const parsed = JSON.parse(slugData) as Record<string, string>;
+      slug = parsed[locale] || parsed['en'] || slugData;
+    } catch {
+      slug = slugData;
+    }
+  } else if (typeof slugData === 'object' && slugData !== null) {
+    slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
+  }
   const primaryImage = product.product_images?.find((img) => img.is_primary);
 
   return (

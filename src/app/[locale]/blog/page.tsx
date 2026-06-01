@@ -84,7 +84,18 @@ function CategoryBadge({
 function GridPostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
   const title = t(post.title, locale) as string;
   const excerpt = t(post.excerpt, locale) as string;
-  const slug = t(post.slug, locale) as string;
+  let slug = '';
+  const slugData = post.slug;
+  if (typeof slugData === 'string') {
+    try {
+      const parsed = JSON.parse(slugData) as Record<string, string>;
+      slug = parsed[locale] || parsed['en'] || slugData;
+    } catch {
+      slug = slugData;
+    }
+  } else if (typeof slugData === 'object' && slugData !== null) {
+    slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
+  }
   const categoryName = post.blog_categories
     ? (t(post.blog_categories.name, locale) as string)
     : null;
@@ -151,7 +162,18 @@ function GridPostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) 
 function PostCard({ post, locale }: { post: BlogPost; locale: LocaleCode }) {
   const title = t(post.title, locale) as string;
   const excerpt = t(post.excerpt, locale) as string;
-  const slug = t(post.slug, locale) as string;
+  let slug = '';
+  const slugData = post.slug;
+  if (typeof slugData === 'string') {
+    try {
+      const parsed = JSON.parse(slugData) as Record<string, string>;
+      slug = parsed[locale] || parsed['en'] || slugData;
+    } catch {
+      slug = slugData;
+    }
+  } else if (typeof slugData === 'object' && slugData !== null) {
+    slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
+  }
   const categoryName = post.blog_categories
     ? (t(post.blog_categories.name, locale) as string)
     : null;
@@ -235,7 +257,18 @@ function TrendingPostCard({
   locale: LocaleCode;
 }) {
   const title = t(post.title, locale) as string;
-  const slug = t(post.slug, locale) as string;
+  let slug = '';
+  const slugData = post.slug;
+  if (typeof slugData === 'string') {
+    try {
+      const parsed = JSON.parse(slugData) as Record<string, string>;
+      slug = parsed[locale] || parsed['en'] || slugData;
+    } catch {
+      slug = slugData;
+    }
+  } else if (typeof slugData === 'object' && slugData !== null) {
+    slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
+  }
   const categoryName = post.blog_categories
     ? (t(post.blog_categories.name, locale) as string)
     : null;
@@ -311,8 +344,32 @@ function SidebarCategoryList({
           </Link>
         </li>
         {categories.map((cat) => {
-          const name = t(cat.name, locale) as string;
-          const enSlug = (cat.slug as Record<string, string>).en ?? "";
+          let name = '';
+          const nameData = cat.name;
+          if (typeof nameData === 'string') {
+            try {
+              const parsed = JSON.parse(nameData) as Record<string, string>;
+              name = parsed[locale] || parsed['en'] || nameData;
+            } catch {
+              name = nameData;
+            }
+          } else if (typeof nameData === 'object' && nameData !== null) {
+            name = (nameData as Record<string, string>)[locale] || (nameData as Record<string, string>)['en'] || '';
+          }
+          
+          let enSlug = '';
+          const slugData = cat.slug;
+          if (typeof slugData === 'string') {
+            try {
+              const parsed = JSON.parse(slugData) as Record<string, string>;
+              enSlug = parsed['en'] || parsed[locale] || slugData;
+            } catch {
+              enSlug = slugData;
+            }
+          } else if (typeof slugData === 'object' && slugData !== null) {
+            enSlug = (slugData as Record<string, string>)['en'] || (slugData as Record<string, string>)[locale] || '';
+          }
+          
           const isActive = activeSlug === enSlug;
           return (
             <li key={cat.id}>
@@ -348,7 +405,18 @@ function FeaturedPostCard({
   locale: LocaleCode;
 }) {
   const title = t(post.title, locale) as string;
-  const slug = t(post.slug, locale) as string;
+  let slug = '';
+  const slugData = post.slug;
+  if (typeof slugData === 'string') {
+    try {
+      const parsed = JSON.parse(slugData) as Record<string, string>;
+      slug = parsed[locale] || parsed['en'] || slugData;
+    } catch {
+      slug = slugData;
+    }
+  } else if (typeof slugData === 'object' && slugData !== null) {
+    slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
+  }
   const categoryName = post.blog_categories
     ? (t(post.blog_categories.name, locale) as string)
     : null;

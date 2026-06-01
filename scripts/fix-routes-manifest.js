@@ -15,15 +15,29 @@ try {
   const raw = fs.readFileSync(manifestPath, "utf8");
   const manifest = JSON.parse(raw);
 
-  const originalDataRoutes = manifest.dataRoutes;
-  const originalAppRoutes = manifest.appRoutes;
+  const keysToNormalize = [
+    "dataRoutes",
+    "appRoutes",
+    "dynamicRoutes",
+    "staticRoutes",
+    "dynamicRoutesV2",
+  ];
 
-  manifest.dataRoutes = ensureArray(manifest.dataRoutes);
-  manifest.appRoutes = ensureArray(manifest.appRoutes);
+  let changed = false;
 
-  if (manifest.dataRoutes !== originalDataRoutes || manifest.appRoutes !== originalAppRoutes) {
+  for (const key of keysToNormalize) {
+    const originalValue = manifest[key];
+    const normalizedValue = ensureArray(originalValue);
+
+    if (normalizedValue !== originalValue) {
+      manifest[key] = normalizedValue;
+      changed = true;
+    }
+  }
+
+  if (changed) {
     fs.writeFileSync(manifestPath, JSON.stringify(manifest));
-    console.log("fix-routes-manifest: normalized dataRoutes/appRoutes arrays");
+    console.log("fix-routes-manifest: normalized route arrays");
   } else {
     console.log("fix-routes-manifest: manifest already normalized");
   }

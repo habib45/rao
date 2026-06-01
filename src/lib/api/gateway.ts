@@ -82,12 +82,35 @@ function adaptProductRow(row: Record<string, unknown>): Product {
 
 // Product detail endpoint returns images[] instead of product_images[]
 function adaptProductDetail(row: Record<string, unknown>): Product {
-  const images = ((row.images as ProductImage[] | null) ?? []).filter(
-    (img) => img?.url,
-  );
-  const { images: _drop, ...rest } = row;
+  let images: ProductImage[] = [];
+  const imagesData = row.images;
+  if (typeof imagesData === 'string') {
+    try {
+      images = JSON.parse(imagesData) as ProductImage[];
+    } catch {
+      images = [];
+    }
+  } else if (Array.isArray(imagesData)) {
+    images = imagesData as ProductImage[];
+  }
+  const filteredImages = images.filter((img) => img?.url);
+
+  let features: string[] = [];
+  const featuresData = row.features;
+  if (typeof featuresData === 'string') {
+    try {
+      features = JSON.parse(featuresData) as string[];
+    } catch {
+      features = [];
+    }
+  } else if (Array.isArray(featuresData)) {
+    features = featuresData as string[];
+  }
+
+  const { images: _drop, features: _dropFeatures, ...rest } = row;
   void _drop;
-  return { ...(rest as unknown as Product), product_images: images };
+  void _dropFeatures;
+  return { ...(rest as unknown as Product), product_images: filteredImages, features };
 }
 
 // Blog post from gateway has tags:BlogTag[] instead of blog_post_tags
@@ -585,6 +608,35 @@ export async function gwGetComparisonKeys(): Promise<string[]> {
   }
 }
 
+function coerceBoolean(value: unknown, fallback: boolean): boolean {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true" || normalized === "1" || normalized === "yes" || normalized === "on") {
+      return true;
+    }
+    if (normalized === "false" || normalized === "0" || normalized === "no" || normalized === "off") {
+      return false;
+    }
+  }
+  return fallback;
+}
+
+function parseFeatures(raw: unknown): Record<string, unknown> | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw === "object") return raw as Record<string, unknown>;
+  return null;
+}
+
 export async function gwGetSiteSettings(): Promise<SiteSettings> {
   try {
     const settings = await gw<Record<string, unknown>>(
@@ -592,8 +644,8 @@ export async function gwGetSiteSettings(): Promise<SiteSettings> {
       undefined,
       true,
     );
-    const features = settings["features"] as Record<string, unknown> | undefined;
-    return { showPrice: (features?.show_price as boolean) ?? true };
+    const features = parseFeatures(settings["features"]);
+    return { showPrice: coerceBoolean(features?.show_price, true) };
   } catch (e) {
     console.error("gwGetSiteSettings:", e);
     return { showPrice: true };
