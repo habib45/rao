@@ -88,7 +88,7 @@ export default function CartPage() {
                   {primaryImage ? (
                     <Image
                       src={primaryImage.url}
-                      alt={name}
+                      alt={displayName}
                       fill
                       sizes="96px"
                       className="object-contain p-2"
