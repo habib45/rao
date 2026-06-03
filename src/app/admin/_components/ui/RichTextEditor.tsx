@@ -42,6 +42,7 @@ const loadCKEditorModules = async (): Promise<any> => {
     ImageResizeHandles: ckeditor5.ImageResizeHandles,
     ImageInsert: ckeditor5.ImageInsert,
     ImageInsertViaUrl: ckeditor5.ImageInsertViaUrl,
+    MediaEmbed: ckeditor5.MediaEmbed,
     Table: ckeditor5.Table,
     TableToolbar: ckeditor5.TableToolbar,
     TableProperties: ckeditor5.TableProperties,
@@ -134,6 +135,7 @@ export default function RichTextEditor({
       ckeditorModules.ImageResizeHandles,
       ckeditorModules.ImageInsert,
       ckeditorModules.ImageInsertViaUrl,
+      ckeditorModules.MediaEmbed,
       ckeditorModules.Table,
       ckeditorModules.TableToolbar,
       ckeditorModules.TableProperties,
@@ -300,6 +302,9 @@ export default function RichTextEditor({
           border-bottom: 1px solid var(--color-border) !important;
           background: var(--color-surface) !important;
           padding: 4px 8px !important;
+        }
+        .ck.ck-button .ck-button__label {
+          display: none !important;
         }
         .ck.ck-editor__main > .ck-editor__editable {
           border: none !important;

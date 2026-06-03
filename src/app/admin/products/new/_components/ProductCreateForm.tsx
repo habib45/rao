@@ -22,8 +22,8 @@ import { ComparisonWizardBuilder } from "@/app/admin/products/_components/Compar
 import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
 
-const RichTextEditor = dynamic(
-  () => import("@/app/admin/_components/ui/RichTextEditor"),
+const ProductDescriptionEditor = dynamic(
+  () => import("@/app/admin/_components/ui/ProductDescriptionEditor"),
   { ssr: false },
 );
 
@@ -709,10 +709,10 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                     <WizardHelp />
                   </div>
                 </div>
-                <RichTextEditor
+                <ProductDescriptionEditor
                   value={form.description[code]}
-                  onChange={(html) => setLocaleField("description", code, html)}
-                  onReady={(editor) => { editorRefs.current[code] = editor; }}
+                  onChange={(html: string) => setLocaleField("description", code, html)}
+                  onReady={(editor: any) => { editorRefs.current[code] = editor; }}
                   placeholder={`Description (${label})`}
                 />
                 {extractWizardBlocks(form.description[code]).map(({ encoded, label: wLabel }, i) => (

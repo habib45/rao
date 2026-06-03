@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, Star, Flame } from "lucide-react";
@@ -40,11 +41,14 @@ export function BlogPostsTable() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery<BlogPostsResponse>({
+  const { data, isLoading, error } = useQuery<BlogPostsResponse>({
     queryKey: ["admin-blog-posts"],
     queryFn: async () => {
       const res = await fetch("/admin/api/blog");
-      if (!res.ok) throw new Error("Failed to fetch posts");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
+      }
       return res.json();
     },
   });
@@ -87,6 +91,20 @@ export function BlogPostsTable() {
     onError: () => toast.error("Failed to delete post"),
   });
 
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+        <p className="font-semibold text-red-700">Error loading blog posts</p>
+        <p className="mt-1 text-sm text-red-600">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+        <p className="mt-2 text-xs text-red-500">
+          Check that the API gateway is running at the configured MYSQL_API_URL
+        </p>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-2">
@@ -104,6 +122,7 @@ export function BlogPostsTable() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Image</TableHead>
             <TableHead>Title</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Status</TableHead>
@@ -129,6 +148,23 @@ export function BlogPostsTable() {
 
             return (
               <TableRow key={post.id}>
+                <TableCell>
+                  <div className="relative h-12 w-20 overflow-hidden rounded bg-surface">
+                    {post.cover_image_url ? (
+                      <Image
+                        src={post.cover_image_url}
+                        alt={titleEn}
+                        fill
+                        className="object-cover"
+                        sizes="80px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xl text-muted">
+                        📝
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Link
                     href={`/admin/blog/${post.id}`}
@@ -200,7 +236,7 @@ export function BlogPostsTable() {
           })}
           {posts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="py-8 text-center text-muted">
+              <TableCell colSpan={8} className="py-8 text-center text-muted">
                 No blog posts yet.
               </TableCell>
             </TableRow>

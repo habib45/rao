@@ -113,13 +113,12 @@ export function ProductsTable({ categories }: { categories: Category[] }) {
           </TableHeader>
           <TableBody>
             {data?.products.map((product) => {
-              const primaryImage = product.product_images?.find((img) => img.is_primary);
               return (
                 <TableRow key={product.id}>
                   <TableCell>
-                    {primaryImage ? (
+                    {product.primary_image_url ? (
                       <Image
-                        src={primaryImage.url}
+                        src={product.primary_image_url}
                         alt=""
                         width={40}
                         height={40}

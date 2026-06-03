@@ -319,10 +319,12 @@ function SidebarCategoryList({
   categories,
   locale,
   activeSlug,
+  tBlog,
 }: {
   categories: BlogCategory[];
   locale: LocaleCode;
   activeSlug: string | undefined;
+  tBlog: (key: string) => string;
 }) {
   if (categories.length === 0) return null;
   return (
@@ -340,7 +342,7 @@ function SidebarCategoryList({
                 : "text-foreground hover:bg-surface hover:text-brand"
             }`}
           >
-            All articles
+            {tBlog("all_articles")}
           </Link>
         </li>
         {categories.map((cat) => {
@@ -770,6 +772,7 @@ export default async function BlogPage({
               categories={categories}
               locale={loc}
               activeSlug={categoryParam}
+              tBlog={tBlog}
             />
           </aside>
         </div>

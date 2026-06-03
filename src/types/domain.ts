@@ -44,6 +44,7 @@ export interface Product {
   attributes?: Record<string, unknown>;
   show_in_comparison?: boolean;
   product_images: ProductImage[];
+  primary_image_url?: string | null;
   created_at: string;
   updated_at: string;
 }

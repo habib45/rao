@@ -54,12 +54,6 @@ export default function ProductCard({
             </div>
           )}
 
-          {categoryName && (
-            <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
-              {categoryName}
-            </span>
-          )}
-
           {showPrice && product.discount_pct > 0 && (
             <span className="absolute right-2 top-2 rounded-md bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm">
               -{product.discount_pct}%
