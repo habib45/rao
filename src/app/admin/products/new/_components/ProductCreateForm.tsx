@@ -23,7 +23,7 @@ import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
 
 const ProductDescriptionEditor = dynamic(
-  () => import("@/app/admin/_components/ui/ProductDescriptionEditor"),
+  () => import("@/app/admin/_components/ui/RichTextEditor"),
   { ssr: false },
 );
 

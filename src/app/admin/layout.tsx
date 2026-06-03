@@ -15,6 +15,9 @@ export const metadata: Metadata = {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/48.2.0/ckeditor5.css" />
+      </head>
       <body className="font-sans bg-background text-foreground" suppressHydrationWarning>
         <Providers>
           {children}
