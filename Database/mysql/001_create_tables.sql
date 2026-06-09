@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS products (
   availability         ENUM('in_stock','out_of_stock','unknown') NOT NULL DEFAULT 'unknown',
   is_featured          TINYINT(1)   NOT NULL DEFAULT 0,
   is_active            TINYINT(1)   NOT NULL DEFAULT 1,
+  show_in_comparison   TINYINT(1)   NOT NULL DEFAULT 0,
 
   -- Full-text search generated columns (replace TSVECTOR columns).
   -- COALESCE(col->>'key','') maps to COALESCE(JSON_UNQUOTE(JSON_EXTRACT(col,'$.key')),'')

@@ -4,45 +4,64 @@
 
 A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon products, tracks affiliate clicks, and redirects users to Amazon for purchase. No direct checkout — all revenue is via Amazon Associates commission.
 
-**Stack:** Next.js 15 App Router | React TypeScript | Supabase (PostgreSQL + Edge Functions) | Tailwind CSS | Amazon PA-API 5.0  
-**Locales:** en (default) | bn-BD (Bangla) | sv (Swedish)
+**Stack:** Next.js 15 App Router | React 19 | TypeScript (strict) | MySQL API Gateway | Tailwind CSS v4 | Amazon PA-API 5.0  
+**Locales:** en (default) | bn-BD (Bangla) | sv (Swedish)  
+**Data Source:** MySQL API Gateway
+
+## Current Status (June 2026)
+
+**Completed Phases:** 12 (Phases 1-10, 19, 20)  
+**In Progress:** 5 (Phases 11, 14, 15, 18, 21)  
+**Planned:** 4 (Phases 12, 13, 16, 17)  
+**Test Baseline:** 332 tests passing | 0 TypeScript errors | 0 ESLint warnings
+
+**Recent Additions:**
+- Data source integration (MySQL API Gateway)
+- Blog Wizard Component with full style controls
+- Product Comparison Wizard
+- Public Folder Media Manager
+- AI integration (Gemini, OpenAI, Groq)
+
+**Documentation:**
+- `AGENT.md` — AI agent development guide
+- `PROJECT_CONTEXT.md` — Comprehensive project context
+- `CLAUDE.md` — Detailed project instructions
 
 ---
 
 ## Development Phases
 
 ### Phase 1: Project Foundation & Setup
-**Goal:** Scaffold the project, define types, configure i18n, set up Supabase clients, and establish the root layout with font loading.  
+**Goal:** Scaffold the project, define types, configure i18n, set up API Gateway client, and establish the root layout with font loading.  
 **Duration estimate:** 1 sprint  
 **Deliverables:**
 - Initialized Next.js 15 project with TypeScript strict mode, Tailwind CSS, ESLint
 - All domain types defined and exported
-- Supabase browser + server client helpers
+- API Gateway client helpers
 - next-intl configured for 3 locales with middleware
 - Root locale layout with conditional Bengali font loading
 - 100% test coverage for all utilities and configurations
 
 ### Phase 2: Database Schema & Migrations
-**Goal:** Create the full Supabase PostgreSQL schema with tables, indexes, RLS policies, triggers, and seed data.  
+**Goal:** Create the full MySQL schema with tables, indexes, and seed data.  
 **Duration estimate:** 1 sprint  
 **Deliverables:**
 - SQL migrations for all 7 tables (categories, products, product_images, click_tracking, cart_items, translations_ui, price_history)
 - GIN indexes on all JSONB and tsvector columns
-- RLS policies enforcing access control
 - Auto-update triggers for updated_at
 - Seed data for development/testing
 
-**Dependencies:** Phase 1 (types must exist for generated Supabase types)
+**Dependencies:** Phase 1 (types must exist for API client)
 
 ### Phase 3: Amazon PA-API 5.0 Integration
-**Goal:** Build Supabase Edge Functions for product sync, price updates, click tracking, and search.  
+**Goal:** Build API Gateway endpoints for product sync, price updates, click tracking, and search.  
 **Duration estimate:** 1.5 sprints  
 **Deliverables:**
 - Shared PA-API module with AWS SigV4 signing
-- sync-amazon-products Edge Function (cron: Sundays 3 AM UTC)
-- update-prices Edge Function (cron: daily 1 AM UTC)
-- track-click Edge Function (POST)
-- search-products Edge Function (GET)
+- sync-amazon-products API endpoint (cron: Sundays 3 AM UTC)
+- update-prices API endpoint (cron: daily 1 AM UTC)
+- track-click API endpoint (POST)
+- search-products API endpoint (GET)
 - Rate limiting, exponential backoff, error handling
 
 **Dependencies:** Phase 2 (database tables must exist)
@@ -62,13 +81,13 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Dependencies:** Phase 3 (API data must be available)
 
 ### Phase 5: Cart System
-**Goal:** Implement localStorage-first cart with optional Supabase sync for authenticated users.  
+**Goal:** Implement localStorage-first cart with optional API Gateway sync for authenticated users.  
 **Duration estimate:** 0.5 sprint  
 **Deliverables:**
 - CartProvider (React context)
 - localStorage CRUD helpers with SSR safety
 - Cart UI (CartItem, CartSummary, CheckoutRedirect)
-- Optional Supabase cart_items sync for auth'd users
+- Optional API Gateway cart_items sync for auth'd users
 
 **Dependencies:** Phase 4 (components must exist)
 
@@ -92,7 +111,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 - Security audit (no secrets in client bundle)
 - CI/CD pipeline (GitHub Actions)
 - Vercel deployment with ISR
-- Supabase Edge Function deployment
+- API Gateway deployment
 - Pre-launch checklist verification
 
 **Dependencies:** All prior phases
@@ -100,12 +119,12 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 ---
 
 ### Phase 8: Admin Panel
-**Goal:** Production-grade internal admin panel at `/admin` for managing products, categories, analytics, translations, and settings. Accessible only to authenticated Supabase users with `app_metadata.role = "admin"`.  
+**Goal:** Production-grade internal admin panel at `/admin` for managing products, categories, analytics, translations, and settings. Accessible only to authenticated users with `role = "admin"`.  
 **Duration estimate:** 2 sprints  
 **Deliverables:**
-- Supabase JWT-based admin auth (no extra DB table)
+- JWT-based admin auth (via API Gateway)
 - Middleware guard on all `/admin/*` routes
-- RLS policies for admin CRUD on all 7 tables
+- CRUD permissions for admin on all tables
 - `admin_settings` and `sync_logs` tables
 - Dashboard with stats cards, click trend chart, top categories chart, sync log table
 - Products CRUD: list with search/filter/pagination, edit form (multi-locale tabbed), force Amazon sync
@@ -119,28 +138,27 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 **New Dependencies:** `@tanstack/react-query`, `zod`, `recharts`, `sonner`, `lucide-react`, `clsx`, `tailwind-merge`
 
-**New Env Var:** `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+**New Env Var:** `MYSQL_JWT_SECRET` (server-only)
 
 **New Migrations:**
-- `supabase/migrations/00006_admin_rls.sql` — RLS policies, `admin_settings`, `sync_logs`
-- `supabase/migrations/00007_admin_dashboard_functions.sql` — Postgres RPC functions for dashboard aggregations
+- `mysql/admin_schema.sql` — Admin tables and permissions
 
 **Sub-phases:**
 
 #### Phase A — Foundation
-- `supabase/migrations/00006_admin_rls.sql`: Admin CRUD policies on all 7 tables, `admin_settings` table (key/value JSONB), `sync_logs` table
-- `src/lib/supabase/admin.ts`: Server-only service-role Supabase client
+- `mysql/admin_schema.sql`: Admin tables (`admin_settings`, `sync_logs`, `jwt_tokens`)
+- `src/lib/api/admin.ts`: Server-only admin API client
 - `src/middleware.ts` (modified): Admin JWT auth gate + next-intl delegation
 - `src/app/admin/layout.tsx`, `admin.css`: HTML root layout + dark mode CSS vars
 - `src/app/admin/_components/AdminShell.tsx`: Collapsible sidebar, header with email/dark-mode toggle/sign-out
 - `src/app/admin/_components/Providers.tsx`: TanStack Query provider
-- `src/app/admin/login/page.tsx`: Email/password login form (Supabase `signInWithPassword`)
+- `src/app/admin/login/page.tsx`: Email/password login form (via API Gateway)
 - `src/app/admin/_lib/auth.ts`: `getAdminUser()` + `requireAdmin()` server helpers
 - `src/app/admin/_lib/actions.ts`: `signOut()` server action
 - `src/app/admin/_components/ui/`: button, input, table, dialog, select, badge, tabs, card, skeleton
 
 #### Phase B — Admin Dashboard
-- `supabase/migrations/00007_admin_dashboard_functions.sql`: Postgres RPCs — `admin_dashboard_stats()`, `admin_click_trends(days_back)`, `admin_top_categories(lim)`
+- `mysql/admin_functions.sql`: SQL functions for dashboard aggregations
 - `src/app/admin/_lib/queries/dashboard.ts`: `getDashboardStats()`, `getClickTrends()`, `getTopCategories()`, `getRecentSyncLogs()`, `getTopProducts()`
 - `src/app/admin/(dashboard)/page.tsx`: Dashboard page with:
   - **4 stats cards**: Total Products, Active Categories, Clicks (7d), Clicks (30d)
@@ -155,7 +173,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 - `src/app/admin/_lib/schemas/product.ts`: Zod `productUpdateSchema` (multi-locale TranslationMap, availability enum, discount 0–100)
 - `src/app/admin/api/products/route.ts`: GET with search/filter/pagination
 - `src/app/admin/api/products/[id]/route.ts`: GET, PATCH (Zod validated), DELETE (soft)
-- `src/app/admin/api/products/[id]/sync/route.ts`: POST force sync via Edge Function
+- `src/app/admin/api/products/[id]/sync/route.ts`: POST force sync via API Gateway
 - `src/app/admin/products/page.tsx` + `ProductsTable.tsx`: Paginated table with image, name, ASIN, price, rating, status toggle
 - `ProductFilters.tsx`: Debounced (300ms) search, category select, status select
 - `src/app/admin/products/[id]/page.tsx` + `ProductEditForm.tsx`: Tabbed form (General, Locales en/bn-BD/sv, Features, Pricing, Images)
@@ -205,13 +223,13 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Deliverables:**
 
 #### Feature 9.1 — Import Product by ASIN
-- New Edge Function `supabase/functions/import-product/index.ts` that calls PA-API `GetItems` for a single ASIN and returns a normalized row.
-- New admin API route `src/app/admin/api/products/import/route.ts` (POST, Zod-validated, service-role) that invokes the Edge Function, upserts a draft product (`is_active: false`), inserts the primary image, and returns `{ product_id, asin, name }`.
+- New API endpoint `apiGateWay/src/routes/import-product.js` that calls PA-API `GetItems` for a single ASIN and returns a normalized row.
+- New admin API route `src/app/admin/api/products/import/route.ts` (POST, Zod-validated) that invokes the API endpoint, upserts a draft product (`is_active: false`), inserts the primary image, and returns `{ product_id, asin, name }`.
 - New dashboard widget `AsinImportWidget` (client component) with ASIN input, Sync button, loading/success/error states, and a link to the draft's edit page.
 
 #### Feature 9.2 — Schedule Product Publishing
-- New migration `supabase/migrations/00008_product_scheduling.sql` adding `publish_at TIMESTAMPTZ NULL` on `products`, a partial index, and a `publish_scheduled_products()` RPC.
-- New Edge Function `supabase/functions/publish-scheduled/index.ts` (hourly cron) that invokes the RPC and writes a `sync_logs` row.
+- New migration `mysql/008_product_scheduling.sql` adding `publish_at TIMESTAMPTZ NULL` on `products`, a partial index, and a `publish_scheduled_products()` function.
+- New API endpoint `apiGateWay/src/routes/publish-scheduled.js` (hourly cron) that invokes the function and writes a `sync_logs` row.
 - Domain type update: `Product.publish_at?: string | null`.
 - Zod schema update: `publish_at` accepted on PATCH (ISO datetime or null).
 - `ProductEditForm` scheduling section (visible only when draft): datetime-local input, "Schedule", "Publish Now", "Clear schedule".
@@ -221,7 +239,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **New Dependencies:** None (reuses existing stack).
 
 **New Migrations:**
-- `supabase/migrations/00008_product_scheduling.sql` — `publish_at` column, partial index, `publish_scheduled_products()` function.
+- `mysql/008_product_scheduling.sql` — `publish_at` column, partial index, `publish_scheduled_products()` function.
 
 **Dependencies:** Phase 8 (admin shell, auth, existing product APIs).
 
@@ -254,7 +272,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Deliverables:**
 
 #### Feature 11.1 — Product Status Workflow
-- Migration `supabase/migrations/00009_product_workflow.sql` adding `product_status` enum (`draft | pending_review | approved | published`), `rejection_reason`, `submitted_by` columns and partial index
+- Migration `mysql/009_product_workflow.sql` adding `product_status` enum (`draft | pending_review | approved | published`), `rejection_reason`, `submitted_by` columns and partial index
 - Domain type update: `Product.product_status`, `rejection_reason`, `submitted_by`
 - Zod `productUpdateSchema` accepts `product_status`
 - API routes: `POST /admin/api/products/[id]/approve`, `.../reject`, `.../publish`
@@ -279,7 +297,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **New Dependencies:** TipTap suite (see above)
 
 **New Migrations:**
-- `supabase/migrations/00009_product_workflow.sql`
+- `mysql/009_product_workflow.sql`
 
 **Dependencies:** Phase 9 (existing import + scheduling APIs reused)
 
@@ -289,8 +307,8 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Deliverables:**
 
 #### Feature 12.1 — Review Schema & RLS
-- Migration `supabase/migrations/00010_product_reviews.sql`: `product_reviews` table with rating 1-5 check, status enum (`pending | approved | rejected`), author email/name, admin note, `updated_at` trigger
-- RLS: public SELECT where `status='approved'` OR the row matches `reviewer_email` cookie claim; public INSERT; admin full access
+- Migration `mysql/010_product_reviews.sql`: `product_reviews` table with rating 1-5 check, status enum (`pending | approved | rejected`), author email/name, admin note, `updated_at` trigger
+- Access control: public SELECT where `status='approved'` OR the row matches `reviewer_email` cookie claim; public INSERT; admin full access
 
 #### Feature 12.2 — Public Review UI
 - `src/app/[locale]/products/[slug]/_components/ReviewSection.tsx` (client)
@@ -306,18 +324,18 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 - AdminShell sidebar: "Reviews" link
 
 **New Migrations:**
-- `supabase/migrations/00010_product_reviews.sql`
+- `mysql/010_product_reviews.sql`
 
 **Dependencies:** Phase 11 (admin shell link conventions), Phase 10 (product detail integration)
 
-### Phase 13: Media Manager (Supabase Storage)
+### Phase 13: Media Manager (File System)
 **Goal:** Provide a built-in media manager inside the admin panel so admins can upload, organise, and pick images without leaving the dashboard, and plug it directly into the product forms.
 **Duration estimate:** 1 sprint
 **Deliverables:**
 
-#### Feature 13.1 — Storage Setup
-- Public Supabase Storage bucket `media`
-- RLS: admin can upload/delete; public can read
+#### Feature 13.1 — File System Setup
+- Public folder `public/uploads/` for media storage
+- API routes for file management
 
 #### Feature 13.2 — Admin Media Manager UI
 - `src/app/admin/media/page.tsx` with folder tree (create + navigate) and grid of images (filename, size, copy URL)
@@ -328,7 +346,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 #### Feature 13.3 — API Routes
 - `src/app/admin/api/media/route.ts` — GET list files in path, POST create folder
-- `src/app/admin/api/media/upload/route.ts` — POST multipart upload
+- `src/app/admin/api/media/upload/route.ts` — POST multipart upload to `public/uploads/`
 - `src/app/admin/api/media/[...path]/route.ts` — DELETE file/folder
 
 #### Feature 13.4 — Product Form Integration
@@ -359,12 +377,12 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Dependencies:** Phase 14 (blog system), Phase 10 (ProductCard), Phase 15 (showPrice setting)
 
 ### Phase 17: Admin Sitemap Management
-**Goal:** Give admins full visibility and control over the sitemap and robots.txt from inside the admin panel — without requiring a redeploy. The existing `sitemap.ts` is a live dynamic Next.js route (queries Supabase on every request); this phase adds manual entry management, URL exclusions, robots.txt editing, and an in-panel preview/regenerate capability.
+**Goal:** Give admins full visibility and control over the sitemap and robots.txt from inside the admin panel — without requiring a redeploy. The existing `sitemap.ts` is a live dynamic Next.js route (queries API Gateway on every request); this phase adds manual entry management, URL exclusions, robots.txt editing, and an in-panel preview/regenerate capability.
 **Duration estimate:** 1 sprint
 **Deliverables:**
 
 #### Feature 17.1 — DB Config
-- Migration `supabase/migrations/00011_sitemap_config.sql`: `sitemap_custom_entries` table (custom URLs with priority/changefreq/lastmod), `admin_settings` seeds for `sitemap_exclusions`, `sitemap_cache_ttl`, `robots_config`
+- Migration `mysql/011_sitemap_config.sql`: `sitemap_custom_entries` table (custom URLs with priority/changefreq/lastmod), `admin_settings` seeds for `sitemap_exclusions`, `sitemap_cache_ttl`, `robots_config`
 
 #### Feature 17.2 — Modify `sitemap.ts`
 - `export const revalidate = 3600` (ISR caching)
@@ -386,12 +404,12 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 - `src/app/robots.ts` reads `robots_config` from `admin_settings`; falls back to hardcoded defaults on DB failure
 
 **New Dependencies:** None  
-**New Migrations:** `supabase/migrations/00011_sitemap_config.sql`  
+**New Migrations:** `mysql/011_sitemap_config.sql`  
 **New Tests:** 40 (sitemap logic, robots logic, schemas, API routes, UI components)  
 **Dependencies:** Phase 8 (admin auth, AdminShell), Phase 9 (revalidation hook)
 
 ### Phase 21: Public Folder Media Manager
-**Goal:** Add a second media manager inside the admin panel that stores files in `public/uploads/` and serves them via Next.js static file server — no Supabase Storage required. Ideal for VPS/local deployments and stable-URL static assets.  
+**Goal:** Add a second media manager inside the admin panel that stores files in `public/uploads/` and serves them via Next.js static file server — ideal for VPS/local deployments and stable-URL static assets.  
 **Duration estimate:** 0.5 sprint  
 **Status:** 🚧 In Progress  
 **Deliverables:**
@@ -414,7 +432,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
   - Refresh button
 - AdminShell sidebar: "Public Media" nav link (below existing "Media (Cloud)" link)
 
-**Deployment note:** Filesystem writes persist on VPS/Docker/local. On Vercel (serverless), use the Supabase Storage media manager (Phase 13) instead.
+**Deployment note:** Filesystem writes persist on VPS/Docker/local. On Vercel (serverless), use the API Gateway media manager instead.
 
 **New Dependencies:** None (uses Node.js `fs` module — built-in).
 
@@ -456,9 +474,12 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 | Cart storage | localStorage-first | Works for guests; no auth required for browsing |
 | Translated fields | JSONB TranslationMap | Single row per entity; GIN-indexable; no JOIN overhead |
 | Price storage | Integer cents | Avoids floating-point precision errors |
-| API key security | Edge Functions only | Amazon keys never touch client bundle |
-| Search | PostgreSQL tsvector | Native FTS per locale; no external search service |
+| API key security | API Gateway only | Amazon keys never touch client bundle |
+| Search | MySQL FTS | Native FTS per locale; no external search service |
 | Checkout | Amazon redirect | Required by Amazon Associates TOS |
+| Data layer | MySQL API Gateway | Consistent data layer across deployments |
+| Rich text | TipTap + CKEditor | TipTap for product/blog content, CKEditor for wizards |
+| AI integration | Multiple providers | Gemini, OpenAI, Groq for content generation |
 
 ---
 
@@ -471,9 +492,9 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 | R3 | Stale prices displayed | Medium | Medium | ISR revalidation 1h; "Price as of" disclaimer; price_history audit trail |
 | R4 | Bengali font fails to load | Low | Medium | Noto Sans Bengali via next/font with display:swap; CSS fallback chain |
 | R5 | Missing translations break UI | Medium | Medium | t() helper always falls back to en; translation completeness checks |
-| R6 | Secret key exposure | Low | Critical | All secrets in Supabase Vault; CI grep check; no NEXT_PUBLIC_ prefix on secrets |
+| R6 | Secret key exposure | Low | Critical | All secrets in environment variables; CI grep check; no NEXT_PUBLIC_ prefix on secrets |
 | R7 | JSONB query performance at scale | Low | Medium | GIN indexes; tsvector for FTS; locale-specific key path queries |
-| R8 | Cart data loss on browser clear | Medium | Low | Optional Supabase sync for auth'd users; cart_items table |
+| R8 | Cart data loss on browser clear | Medium | Low | Optional API sync for auth'd users; cart_items table |
 | R9 | Click fraud inflating analytics | Medium | Low | ip_hash + session dedup; rate limiting on inserts |
 | R10 | Product delisted on Amazon | Medium | Low | is_active=false after 3 failed lookups; "Currently unavailable" UI |
 
@@ -506,10 +527,20 @@ Phase 1 (Foundation)
                       └── Phase 8 (Admin Panel)
                            └── Phase 9 (ASIN Import + Scheduled Publishing)
                                 └── Phase 10 (Public UI Redesign)
-                                     └── Phase 11 (Rich Product Form + Approval Workflow)
-                                          ├── Phase 12 (Product Review System)
-                                          └── Phase 13 (Media Manager)
+                                     ├── Phase 11 (Rich Product Form + Approval Workflow) 🚧
+                                     ├── Phase 14 (Blog System) 🚧
+                                     ├── Phase 15 (Admin Settings: Price Display Toggle) 🚧
+                                     ├── Phase 18 (Blog Enhancements) 🚧
+                                     ├── Phase 19 (Blog Wizard Component) ✅
+                                     ├── Phase 20 (Product Comparison Wizard) ✅
+                                     └── Phase 21 (Public Folder Media Manager) 🚧
+                                          ├── Phase 12 (Product Review System) 📋
+                                          ├── Phase 13 (Media Manager - File System) 📋
+                                          ├── Phase 16 (Related Content Sections) 📋
+                                          └── Phase 17 (Admin Sitemap Management) 📋
 ```
+
+**Note:** Phases 14, 15, 18, 21 are in progress. Phases 19 and 20 were completed out of order to support blog and product comparison features.
 
 ---
 

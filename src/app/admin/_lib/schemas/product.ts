@@ -28,9 +28,9 @@ const productImageInputSchema = z.object({
 export const productUpdateSchema = z.object({
   name: translationMapSchema,
   slug: translationMapSchema,
-  description: translationMapSchema,
-  meta_title: translationMapSchema,
-  meta_description: translationMapSchema,
+  description: translationMapOptional,
+  meta_title: translationMapOptional,
+  meta_description: translationMapOptional,
   features: z.array(z.string()),
   price_cents: z.number().int().nullable(),
   original_price_cents: z.number().int().nullable(),
@@ -41,6 +41,8 @@ export const productUpdateSchema = z.object({
   availability: z.enum(["in_stock", "out_of_stock", "unknown"]),
   is_featured: z.boolean(),
   is_active: z.boolean(),
+  show_in_comparison: z.boolean(),
+  attributes: z.record(z.string(), z.unknown()).optional(),
   publish_at: z.string().datetime({ offset: true }).nullable().optional(),
   product_status: z
     .enum(["draft", "pending_review", "approved", "published"])
@@ -51,7 +53,7 @@ export const productUpdateSchema = z.object({
 });
 
 export const productCreateSchema = z.object({
-  asin: z.string().optional().default(""),
+  asin: z.string().min(1, "ASIN is required"),
   name: translationMapSchema,
   slug: translationMapSchema,
   description: translationMapOptional.optional(),
@@ -68,10 +70,11 @@ export const productCreateSchema = z.object({
     .enum(["in_stock", "out_of_stock", "unknown"])
     .default("unknown"),
   is_featured: z.boolean().default(false),
+  show_in_comparison: z.boolean().default(false),
   product_status: z.enum(["draft", "pending_review"]).default("draft").optional(),
   submitted_by: z.string().nullable().optional(),
   attributes: z.record(z.string(), z.unknown()).optional().default({}),
-  affiliate_url: z.string().optional().default(""),
+  affiliate_url: z.string().min(1, "Affiliate URL is required"),
   images: z.array(productImageInputSchema).optional().default([]),
 });
 

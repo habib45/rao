@@ -22,6 +22,7 @@ import { ComparisonWizardBuilder } from "@/app/admin/products/_components/Compar
 import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
 import type { Product, ProductStatus } from "@/types/domain";
+import { AIAssistantModal } from "@/app/admin/_components/AIAssistantModal";
 
 const RichTextEditor = dynamic(
   () => import("@/app/admin/_components/ui/RichTextEditor"),
@@ -46,6 +47,11 @@ export function ProductEditForm({
   product: Product;
   categories: Category[];
 }) {
+  console.log('ProductEditForm received product:', {
+    is_featured: product.is_featured,
+    is_active: product.is_active,
+    show_in_comparison: product.show_in_comparison,
+  });
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     name: { en: product.name?.en ?? "", "bn-BD": product.name?.["bn-BD"] ?? "", sv: product.name?.sv ?? "" },
@@ -61,9 +67,9 @@ export function ProductEditForm({
     category_id: product.category_id,
     brand: product.brand ?? "",
     availability: product.availability,
-    is_featured: product.is_featured,
-    is_active: product.is_active,
-    show_in_comparison: product.show_in_comparison ?? false,
+    is_featured: Boolean(product.is_featured),
+    is_active: Boolean(product.is_active),
+    show_in_comparison: Boolean(product.show_in_comparison ?? false),
     attributes: Object.fromEntries(
       Object.entries(product.attributes ?? {}).map(([k, v]) => [k, String(v ?? "")])
     ) as Record<string, string>,
@@ -71,7 +77,7 @@ export function ProductEditForm({
       url: img.url,
       width: img.width ?? undefined,
       height: img.height ?? undefined,
-      is_primary: img.is_primary,
+      is_primary: Boolean(img.is_primary),
       sort_order: img.sort_order,
     })),
   });
@@ -96,6 +102,7 @@ export function ProductEditForm({
     encoded: string;
     data: ComparisonData;
   } | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async (data: typeof form) => {
@@ -408,6 +415,13 @@ export function ProductEditForm({
                     >
                       Add Comparison Wizard
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="rounded-lg border border-purple-500 px-3 py-1 text-xs font-medium text-purple-500 hover:bg-purple-500 hover:text-white transition-colors"
+                    >
+                      AI Assistant
+                    </button>
                     <WizardHelp />
                   </div>
                 </div>
@@ -556,6 +570,27 @@ export function ProductEditForm({
                 setEditingComparisonWizard(null);
               }}
               onClose={() => setEditingComparisonWizard(null)}
+            />
+          )}
+
+          {showAIAssistant && (
+            <AIAssistantModal
+              isOpen={showAIAssistant}
+              onClose={() => setShowAIAssistant(false)}
+              onGenerate={(description) => {
+                const locale = activeLocaleTab;
+                const editor = editorRefs.current[locale];
+                const current = (form.description as Record<string, string>)[locale] ?? "";
+                if (editor) {
+                  editor.setData(current + description);
+                  updateLocaleField(locale, "description", current + description);
+                } else {
+                  updateLocaleField(locale, "description", current + description);
+                }
+              }}
+              productName={(form.name as Record<string, string>)[activeLocaleTab] ?? ""}
+              currentDescription={(form.description as Record<string, string>)[activeLocaleTab] ?? ""}
+              locale={activeLocaleTab as "en" | "bn-BD" | "sv"}
             />
           )}
         </TabsContent>

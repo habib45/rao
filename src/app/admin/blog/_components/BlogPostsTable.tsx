@@ -119,17 +119,18 @@ export function BlogPostsTable() {
 
   return (
     <>
-      <Table>
+      <div className="w-full overflow-x-auto -mx-6 px-6">
+        <Table className="min-w-[800px] w-auto">
         <TableHeader>
           <TableRow>
-            <TableHead>Image</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Author</TableHead>
-            <TableHead>Published</TableHead>
-            <TableHead>Featured</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="w-20">Image</TableHead>
+            <TableHead className="min-w-48">Title</TableHead>
+            <TableHead className="w-32">Category</TableHead>
+            <TableHead className="w-24">Status</TableHead>
+            <TableHead className="w-32">Author</TableHead>
+            <TableHead className="w-28">Published</TableHead>
+            <TableHead className="w-20">Featured</TableHead>
+            <TableHead className="w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -243,6 +244,7 @@ export function BlogPostsTable() {
           )}
         </TableBody>
       </Table>
+      </div>
 
       <Dialog
         open={deletingId !== null}

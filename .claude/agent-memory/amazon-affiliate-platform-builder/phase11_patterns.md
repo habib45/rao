@@ -4,7 +4,7 @@ description: Non-obvious patterns discovered while adding the product approval w
 type: project
 ---
 
-Phase 11 (April 2026) added the product_status workflow (draft/pending_review/approved/published), TipTap rich-text editor, product creation form (`/admin/products/new`), review queue page, three workflow API routes (approve/reject/publish), and migration `00009_product_workflow.sql`.
+Phase 11 (April 2026) added the product_status workflow (draft/pending_review/approved/published), TipTap rich-text editor, product creation form (`/admin/products/new`), review queue page, three workflow API routes (approve/reject/publish), and migration `009_product_workflow.sql`.
 
 **Why:** Editorial pipeline lets staff submit drafts for review before they go live; rejected items keep their reason for follow-up.
 

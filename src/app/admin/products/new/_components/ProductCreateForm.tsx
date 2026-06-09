@@ -21,6 +21,7 @@ import { AttributesEditor } from "@/app/admin/products/_components/AttributesEdi
 import { ComparisonWizardBuilder } from "@/app/admin/products/_components/ComparisonWizardBuilder";
 import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
+import { AIAssistantModal } from "@/app/admin/_components/AIAssistantModal";
 
 const ProductDescriptionEditor = dynamic(
   () => import("@/app/admin/_components/ui/RichTextEditor"),
@@ -135,6 +136,7 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
     encoded: string;
     data: ComparisonData;
   } | null>(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
 
   function setLocaleField(
     field: "name" | "slug" | "description" | "meta_title" | "meta_description",
@@ -694,6 +696,13 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
+                      onClick={() => setShowAIAssistant(true)}
+                      className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
+                    >
+                      AI Assistant
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setShowWizard(true)}
                       className="rounded-lg border border-brand px-3 py-1 text-xs font-medium text-brand hover:bg-brand hover:text-white transition-colors"
                     >
@@ -857,6 +866,28 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                 setEditingComparisonWizard(null);
               }}
               onClose={() => setEditingComparisonWizard(null)}
+            />
+          )}
+
+          {/* AI Assistant Modal */}
+          {showAIAssistant && (
+            <AIAssistantModal
+              isOpen={showAIAssistant}
+              onClose={() => setShowAIAssistant(false)}
+              onGenerate={(description) => {
+                const locale = activeLocaleTab;
+                const editor = editorRefs.current[locale];
+                if (editor) {
+                  const current = editor.getData();
+                  editor.setData(current + description);
+                  setLocaleField("description", locale, current + description);
+                } else {
+                  setLocaleField("description", locale, form.description[locale] + description);
+                }
+              }}
+              productName={form.name[activeLocaleTab]}
+              currentDescription={form.description[activeLocaleTab]}
+              locale={activeLocaleTab}
             />
           )}
         </TabsContent>

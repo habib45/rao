@@ -77,6 +77,9 @@ function adaptProductRow(row: Record<string, unknown>): Product {
           },
         ] as ProductImage[])
       : [],
+    is_featured: Boolean(rest.is_featured),
+    is_active: Boolean(rest.is_active),
+    show_in_comparison: Boolean(rest.show_in_comparison),
   };
 }
 
@@ -110,7 +113,23 @@ function adaptProductDetail(row: Record<string, unknown>): Product {
   const { images: _drop, features: _dropFeatures, ...rest } = row;
   void _drop;
   void _dropFeatures;
-  return { ...(rest as unknown as Product), product_images: filteredImages, features };
+  const result = {
+    ...(rest as unknown as Product),
+    product_images: filteredImages,
+    features,
+    is_featured: Boolean(rest.is_featured),
+    is_active: Boolean(rest.is_active),
+    show_in_comparison: Boolean(rest.show_in_comparison),
+  };
+  console.log('adaptProductDetail:', {
+    raw_is_featured: rest.is_featured,
+    raw_is_active: rest.is_active,
+    raw_show_in_comparison: rest.show_in_comparison,
+    converted_is_featured: result.is_featured,
+    converted_is_active: result.is_active,
+    converted_show_in_comparison: result.show_in_comparison,
+  });
+  return result;
 }
 
 // Blog post from gateway has tags:BlogTag[] instead of blog_post_tags

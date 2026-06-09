@@ -90,7 +90,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-surface transition-transform lg:static lg:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex h-14 items-center gap-2 border-b border-border px-4">
@@ -128,7 +128,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col min-w-0">
         {/* Top header */}
         <header className="flex h-14 items-center gap-4 border-b border-border bg-background px-4">
           <button

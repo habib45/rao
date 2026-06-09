@@ -26,7 +26,7 @@ export default function Header({ locale }: { locale: LocaleCode }) {
         data-key="Rj/OXwrCVvFKc3tAWJnNzg"
         async
       ></script>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center gap-4">
           {/* Logo */}
           <Link href="/" className="shrink-0 text-xl font-bold text-brand" aria-label={`${tCommon("site_name")} - Home`}>
