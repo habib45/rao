@@ -24,6 +24,8 @@ const loadCKEditorModules = async (): Promise<any> => {
     Subscript: ckeditor5.Subscript,
     Superscript: ckeditor5.Superscript,
     Font: ckeditor5.Font,
+    FontSize: ckeditor5.FontSize,
+    FontFamily: ckeditor5.FontFamily,
     FontColor: ckeditor5.FontColor,
     FontBackgroundColor: ckeditor5.FontBackgroundColor,
     Heading: ckeditor5.Heading,
@@ -117,6 +119,8 @@ export default function RichTextEditor({
       ckeditorModules.Subscript,
       ckeditorModules.Superscript,
       ckeditorModules.Font,
+      ckeditorModules.FontSize,
+      ckeditorModules.FontFamily,
       ckeditorModules.FontColor,
       ckeditorModules.FontBackgroundColor,
       ckeditorModules.Heading,
@@ -181,6 +185,9 @@ export default function RichTextEditor({
         "|",
         "heading",
         "|",
+        "fontSize",
+        "fontFamily",
+        "|",
         "bold",
         "italic",
         "strikethrough",
@@ -223,15 +230,46 @@ export default function RichTextEditor({
     },
     heading: {
       options: [
-        { model: "paragraph" as const, title: "Paragraph", class: "ck-heading_paragraph" },
-        { model: "heading1" as const, view: "h1", title: "Heading 1", class: "ck-heading_heading1" },
-        { model: "heading2" as const, view: "h2", title: "Heading 2", class: "ck-heading_heading2" },
-        { model: "heading3" as const, view: "h3", title: "Heading 3", class: "ck-heading_heading3" },
-        { model: "heading4" as const, view: "h4", title: "Heading 4", class: "ck-heading_heading4" },
-        { model: "heading5" as const, view: "h5", title: "Heading 5", class: "ck-heading_heading5" },
-        { model: "heading6" as const, view: "h6", title: "Heading 6", class: "ck-heading_heading6" },
-      ],
-    },
+        { model: 'paragraph', title: 'Paragraph' },
+        { model: 'heading1', view: 'h1', title: 'Heading 1' },
+        { model: 'heading2', view: 'h2', title: 'Heading 2' },
+        { model: 'heading3', view: 'h3', title: 'Heading 3' },
+        { model: 'heading4', view: 'h4', title: 'Heading 4' },
+        { model: 'heading5', view: 'h5', title: 'Heading 5' },
+        { model: 'heading6', view: 'h6', title: 'Heading 6' }
+      ]
+    } as any,
+    fontSize: {
+      options: [
+        8,
+        9,
+        10,
+        11,
+        12,
+        14,
+        16,
+        18,
+        20,
+        22,
+        24,
+        26,
+        28,
+        36,
+        48,
+        72
+      ]
+    } as any,
+    fontFamily: {
+      options: [
+        'default',
+        'Arial, Helvetica, sans-serif',
+        'Courier New, Courier, monospace',
+        'Georgia, serif',
+        'Tahoma, Geneva, sans-serif',
+        'Times New Roman, Times, serif',
+        'Verdana, Geneva, sans-serif'
+      ]
+    } as any,
     image: {
       toolbar: [
         "imageStyle:inline",
@@ -288,56 +326,7 @@ export default function RichTextEditor({
 
   return (
     <div className={className}>
-      <style>{`
-        .ck-editor__editable {
-          min-height: 480px;
-        }
-        .ck.ck-editor {
-          border-radius: 0.5rem;
-          overflow: hidden;
-          border: 1px solid var(--color-border);
-        }
-        .ck.ck-toolbar {
-          border: none;
-          border-bottom: 1px solid var(--color-border) !important;
-          background: var(--color-surface) !important;
-          padding: 4px 8px !important;
-        }
-        .ck.ck-button .ck-button__label {
-          display: none !important;
-        }
-        .ck.ck-editor__main > .ck-editor__editable {
-          border: none !important;
-          box-shadow: none !important;
-          background: var(--color-background, #fff) !important;
-          color: var(--color-foreground) !important;
-          padding: 12px 16px;
-        }
-        .ck.ck-editor__main > .ck-editor__editable:focus {
-          box-shadow: none !important;
-        }
-        .ck.ck-button {
-          color: var(--color-foreground) !important;
-        }
-        .ck.ck-button.ck-on {
-          color: var(--color-brand) !important;
-          background: color-mix(in srgb, var(--color-brand) 10%, transparent) !important;
-        }
-        .ck.ck-dropdown__panel,
-        .ck.ck-balloon-panel {
-          background: var(--color-surface) !important;
-          border-color: var(--color-border) !important;
-        }
-        .ck-word-count {
-          display: flex;
-          gap: 12px;
-          padding: 4px 12px;
-          font-size: 0.75rem;
-          color: var(--color-muted);
-          border-top: 1px solid var(--color-border);
-          background: var(--color-surface);
-        }
-      `}</style>
+      <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/48.2.0/ckeditor5.css" />
       {ckeditorModules && (
         <CKEditor
           editor={ckeditorModules.ClassicEditor}
