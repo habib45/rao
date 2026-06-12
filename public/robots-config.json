@@ -1,0 +1,45 @@
+{
+  "rules": [
+    {
+      "userAgent": "*",
+      "allow": [
+        "/"
+      ],
+      "disallow": [
+        "/api/",
+        "/_next/",
+        "/admin/",
+        "/cart",
+        "/static/"
+      ]
+    },
+    {
+      "userAgent": "Googlebot",
+      "allow": [
+        "/"
+      ],
+      "disallow": [
+        "/api/",
+        "/_next/",
+        "/admin/",
+        "/cart",
+        "/static/"
+      ],
+      "crawlDelay": 1
+    },
+    {
+      "userAgent": "Bingbot",
+      "allow": [
+        "/"
+      ],
+      "disallow": [
+        "/api/",
+        "/_next/",
+        "/admin/",
+        "/cart",
+        "/static/"
+      ],
+      "crawlDelay": 1
+    }
+  ]
+}

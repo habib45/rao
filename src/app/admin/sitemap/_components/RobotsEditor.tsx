@@ -52,6 +52,11 @@ export function RobotsEditor() {
     setRules((r) => r.map((rule, idx) => idx === i ? { ...rule, userAgent: value } : rule));
   }
 
+  function updateCrawlDelay(i: number, value: string) {
+    const num = value === "" ? undefined : parseFloat(value);
+    setRules((r) => r.map((rule, idx) => idx === i ? { ...rule, crawlDelay: num } : rule));
+  }
+
   function addPath(i: number, field: "allow" | "disallow") {
     setRules((r) =>
       r.map((rule, idx) =>
@@ -115,6 +120,18 @@ export function RobotsEditor() {
                   value={rule.userAgent}
                   onChange={(e) => updateAgent(i, e.target.value)}
                   className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 w-40"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted">Crawl-delay (sec)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={rule.crawlDelay ?? ""}
+                  onChange={(e) => updateCrawlDelay(i, e.target.value)}
+                  className="h-8 rounded-md border border-border bg-background px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 w-20"
+                  placeholder="Optional"
                 />
               </div>
               {rules.length > 1 && (

@@ -14,6 +14,15 @@ interface ExtractedContent {
   url: string;
   keywords: string[];
   headings: string[];
+  images: Array<{
+    src: string;
+    alt: string;
+    title: string;
+  }>;
+  author: string;
+  publishDate: string;
+  wordCount: number;
+  readTime: number;
 }
 
 interface URLContentExtractorProps {
@@ -28,48 +37,11 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState("");
 
-  // Validate URL for news articles and blog posts
+  // Simple URL validation - just check if it's a valid URL format
   function isValidUrl(urlString: string): boolean {
     try {
-      const url = new URL(urlString);
-      const validPatterns = [
-        // Path patterns
-        /\/blog\//i,
-        /\/news\//i,
-        /\/article\//i,
-        /\/post\//i,
-        /\/story\//i,
-        /\/topics\//i,
-        /\/reviews\//i,
-        /\/guides\//i,
-        /\/tutorials\//i,
-        /\/learn\//i,
-        /\/resources\//i,
-        /\/features\//i,
-        /\/explore\//i,
-        /\/discover\//i,
-        // Domain patterns
-        /blog\./i,
-        /news\./i,
-        /medium\.com/i,
-        /substack\.com/i,
-        /wordpress\.org/i,
-        /blogger\.com/i,
-        /outdoorgearlab\.com/i,
-        /gearlab\.com/i,
-        /wirecutter\.com/i,
-        /reviewed\.com/i,
-        /tomsguide\.com/i,
-        /techradar\.com/i,
-        /digitaltrends\.com/i,
-        /cnet\.com/i,
-        /pcmag\.com/i,
-        /engadget\.com/i,
-        /verge\.com/i,
-        /arstechnica\.com/i
-      ];
-      
-      return validPatterns.some(pattern => pattern.test(url.pathname) || pattern.test(url.hostname));
+      new URL(urlString);
+      return true;
     } catch {
       return false;
     }
@@ -82,7 +54,7 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
     }
 
     if (!isValidUrl(url)) {
-      toast.error("Please enter a valid news article or blog post URL");
+      toast.error("Please enter a valid URL");
       return;
     }
 
@@ -132,7 +104,12 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
         content: data.content || "",
         url: url,
         keywords: data.keywords || [],
-        headings: data.headings || []
+        headings: data.headings || [],
+        images: data.images || [],
+        author: data.author || "",
+        publishDate: data.publishDate || "",
+        wordCount: data.wordCount || 0,
+        readTime: data.readTime || 0
       };
 
       setExtractedContent(extracted);
@@ -174,7 +151,7 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
       <CardContent className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Enter news article or blog post URL..."
+            placeholder="Enter any URL to extract content..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="flex-1"
@@ -237,16 +214,65 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
             </div>
 
             {showPreview && (
-              <div className="border rounded-lg p-4 bg-muted/50 space-y-3">
+              <div className="border rounded-lg p-4 bg-muted/50 space-y-4 max-h-96 overflow-y-auto">
                 <div>
                   <h4 className="font-semibold text-sm mb-1">Title:</h4>
                   <p className="text-sm">{extractedContent.title}</p>
                 </div>
                 
+                {(extractedContent.author || extractedContent.publishDate) && (
+                  <div className="flex flex-wrap gap-4 text-sm text-muted">
+                    {extractedContent.author && (
+                      <div>
+                        <span className="font-medium">Author:</span> {extractedContent.author}
+                      </div>
+                    )}
+                    {extractedContent.publishDate && (
+                      <div>
+                        <span className="font-medium">Published:</span> {new Date(extractedContent.publishDate).toLocaleDateString()}
+                      </div>
+                    )}
+                    {extractedContent.wordCount > 0 && (
+                      <div>
+                        <span className="font-medium">Words:</span> {extractedContent.wordCount.toLocaleString()}
+                      </div>
+                    )}
+                    {extractedContent.readTime > 0 && (
+                      <div>
+                        <span className="font-medium">Read time:</span> {extractedContent.readTime} min
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {extractedContent.description && (
                   <div>
                     <h4 className="font-semibold text-sm mb-1">Description:</h4>
                     <p className="text-sm">{extractedContent.description}</p>
+                  </div>
+                )}
+
+                {extractedContent.images.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Images ({extractedContent.images.length}):</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {extractedContent.images.map((image, index) => (
+                        <div key={index} className="border rounded overflow-hidden">
+                          <img 
+                            src={image.src} 
+                            alt={image.alt}
+                            title={image.title}
+                            className="w-full h-24 object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                          {image.alt && (
+                            <p className="text-xs p-1 truncate">{image.alt}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
@@ -268,9 +294,9 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
 
                 {extractedContent.headings.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-sm mb-1">Headings:</h4>
-                    <ul className="text-sm space-y-1">
-                      {extractedContent.headings.slice(0, 5).map((heading, index) => (
+                    <h4 className="font-semibold text-sm mb-1">Headings ({extractedContent.headings.length}):</h4>
+                    <ul className="text-sm space-y-1 max-h-32 overflow-y-auto">
+                      {extractedContent.headings.map((heading, index) => (
                         <li key={index} className="flex items-center gap-2">
                           <span className="w-2 h-2 bg-primary/50 rounded-full"></span>
                           {heading}
@@ -281,8 +307,13 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
                 )}
 
                 <div>
-                  <h4 className="font-semibold text-sm mb-1">Content Preview:</h4>
-                  <p className="text-sm line-clamp-3">{extractedContent.content}</p>
+                  <h4 className="font-semibold text-sm mb-1">Content ({extractedContent.content.length} chars):</h4>
+                  <div className="text-sm max-h-48 overflow-y-auto bg-background p-2 rounded border">
+                    <p className="whitespace-pre-wrap">{extractedContent.content.substring(0, 1000)}</p>
+                    {extractedContent.content.length > 1000 && (
+                      <p className="text-muted text-xs mt-2">... and {extractedContent.content.length - 1000} more characters</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

@@ -21,8 +21,9 @@ import { WizardBuilder } from "./WizardBuilder";
 import { WizardHelp } from "./WizardHelp";
 import { AIContentAssistant } from "./AIContentAssistant";
 import { AIContentOptimizer } from "./AIContentOptimizer";
-import { SEOOptimizer } from "./SEOOptimizer";
+import { ImprovedSEOOptimizer } from "./ImprovedSEOOptimizer";
 import { URLContentExtractor } from "./URLContentExtractor";
+import { GrammarlyEditor } from "./GrammarlyEditor";
 import { decodeWizard } from "@/lib/wizard";
 import type { WizardStep } from "@/lib/wizard";
 import { parseAIJSON } from "@/lib/json-parser";
@@ -131,7 +132,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     content: post?.content ?? "",
     cover_image_url: post?.cover_image_url ?? "",
     author_name: post?.author_name ?? "RaoFinds",
-    author_avatar_url: post?.author_avatar_url ?? "",
+    author_avatar_url: post?.author_avatar_url ?? "/uploads/Profile/profile-male.png",
     meta_title: readTranslation(post?.meta_title),
     meta_description: readTranslation(post?.meta_description),
     status: post?.status ?? "draft",
@@ -140,6 +141,17 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     published_at: toDatetimeLocal(post?.published_at),
     tag_names: initialTags,
   });
+
+  // Set domain-based default avatar URL after component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !post?.author_avatar_url) {
+      const domainBasedAvatar = `${window.location.origin}/uploads/Profile/profile-male.png`;
+      setForm(prev => ({ 
+        ...prev, 
+        author_avatar_url: domainBasedAvatar 
+      }));
+    }
+  }, [post?.author_avatar_url]);
 
   const isEditing = post !== null;
   const editorRef = useRef<ClassicEditor | null>(null);
@@ -225,6 +237,14 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
           .filter(Boolean),
       };
 
+      // Log payload for debugging
+      console.log("Submitting blog post:", {
+        isEditing,
+        title: payload.title,
+        slug: payload.slug,
+        contentLength: payload.content.length
+      });
+
       const res = await fetch(
         isEditing ? `/admin/api/blog/${post!.id}` : "/admin/api/blog",
         {
@@ -248,7 +268,15 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
-      toast.success(isEditing ? "Post updated" : "Post created");
+      
+      // Show detailed success message
+      const successMessage = isEditing 
+        ? `Post updated successfully! Title: "${form.title.en}", Slug: "${form.slug.en}"`
+        : `Post created successfully! Title: "${form.title.en}"`;
+      
+      toast.success(successMessage);
+      console.log("Blog post saved successfully:", data);
+      
       if (!isEditing) {
         router.push(`/admin/blog/${data.id}`);
       }
@@ -310,9 +338,24 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     // Get current content from CKEditor
     let content = editor.getData();
     
-    // Convert to plain text for better processing
+    // Extract and preserve images
+    const images: string[] = [];
+    const imagePlaceholders: string[] = [];
+    let imageIndex = 0;
+    
+    // Replace images with placeholders and store them
+    content = content.replace(/<img[^>]*>/gi, (match) => {
+      const placeholder = `__IMAGE_PLACEHOLDER_${imageIndex}__`;
+      images.push(match);
+      imagePlaceholders.push(placeholder);
+      imageIndex++;
+      return placeholder;
+    });
+    
+    // Convert to plain text for better processing (excluding image placeholders)
     let plainText = content
       .replace(/<[^>]*>/g, ' ') // Remove HTML tags, replace with spaces
+      .replace(/__IMAGE_PLACEHOLDER_\d+__/g, ' ') // Replace image placeholders with spaces
       .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
       .replace(/&amp;/g, '&') // Replace HTML entities
       .replace(/&lt;/g, '<')
@@ -438,9 +481,28 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       .replace(/<\/p>\s*<h[2-6]>/g, '</p>\n\n<h2>') // Add spacing before headings
       .trim();
 
-    // Update editor with formatted content
-    editor.setData(formattedContent);
-    setForm((prev) => ({ ...prev, content: formattedContent }));
+    // Restore images back into the formatted content
+    let finalContent = formattedContent;
+    images.forEach((image, index) => {
+      // Insert images after paragraphs or at strategic locations
+      const paragraphIndex = Math.floor(index / 2); // Distribute images evenly
+      const paragraphs = finalContent.match(/<p>.*?<\/p>/g) || [];
+      
+      if (paragraphs.length > paragraphIndex) {
+        const targetParagraph = paragraphs[paragraphIndex];
+        const insertionPoint = finalContent.indexOf(targetParagraph) + targetParagraph.length;
+        finalContent = finalContent.slice(0, insertionPoint) + 
+                        '\n\n' + image + '\n\n' + 
+                        finalContent.slice(insertionPoint);
+      } else {
+        // If not enough paragraphs, append at the end
+        finalContent += '\n\n' + image;
+      }
+    });
+
+    // Update editor with formatted content (with images preserved)
+    editor.setData(finalContent);
+    setForm((prev) => ({ ...prev, content: finalContent }));
     
     toast.success("Content formatted successfully!");
   }
@@ -511,8 +573,26 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     url: string;
     keywords: string[];
     headings: string[];
+    images: Array<{
+      src: string;
+      alt: string;
+      title: string;
+    }>;
+    author: string;
+    publishDate: string;
+    wordCount: number;
+    readTime: number;
   }) {
     try {
+      // Log the data being sent for debugging
+      console.log("Sending to AI API:", {
+        title: extractedContent.title?.substring(0, 50) + "...",
+        contentLength: extractedContent.content?.length,
+        imagesCount: extractedContent.images?.length,
+        keywordsCount: extractedContent.keywords?.length,
+        headingsCount: extractedContent.headings?.length
+      });
+
       // Generate AI content based on extracted data
       const response = await fetch("/admin/api/blog/ai/from-url", {
         method: "POST",
@@ -524,7 +604,10 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate AI content");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        console.error("AI API Error:", errorMessage, errorData);
+        throw new Error(`Failed to generate AI content: ${errorMessage}`);
       }
 
       const aiContent = await response.json();
@@ -538,7 +621,45 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       const generatedTitle = aiContent.title || extractedContent.title;
       const generatedSlug = aiContent.slug || slugify(generatedTitle);
       const generatedExcerpt = aiContent.excerpt || extractedContent.description;
-      const generatedContent = aiContent.content || extractedContent.content;
+      
+      // Ensure images are included in the generated content
+      let generatedContent = aiContent.content || extractedContent.content;
+      if (extractedContent.images && extractedContent.images.length > 0) {
+        // Check if content already has images
+        const hasImages = generatedContent.includes('<img');
+        
+        if (!hasImages) {
+          // Add images to the content
+          const paragraphs = generatedContent.split('</p>');
+          const imageInsertions: string[] = [];
+          
+          extractedContent.images.forEach((img, index) => {
+            const imageHtml = `<figure><img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" style="max-width: 100%; height: auto;" /></figure>`;
+            imageInsertions.push(imageHtml);
+          });
+          
+          // Insert images at strategic points
+          if (paragraphs.length > 3) {
+            // Insert first image after first paragraph
+            if (imageInsertions[0]) {
+              paragraphs.splice(1, 0, imageInsertions[0]);
+            }
+            // Insert second image in the middle
+            if (imageInsertions[1] && paragraphs.length > 5) {
+              paragraphs.splice(Math.floor(paragraphs.length / 2), 0, imageInsertions[1]);
+            }
+            // Add remaining images at the end
+            if (imageInsertions.length > 2) {
+              paragraphs.push(...imageInsertions.slice(2));
+            }
+            generatedContent = paragraphs.join('</p>');
+          } else {
+            // Just append all images at the end
+            generatedContent = generatedContent + '\n\n' + imageInsertions.join('\n\n');
+          }
+        }
+      }
+      
       const generatedMetaTitle = aiContent.metaTitle || generatedTitle;
       const generatedMetaDesc = aiContent.metaDescription || extractedContent.description;
       const generatedTags = Array.isArray(aiContent.tags) 
@@ -582,11 +703,38 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     } catch (error) {
       console.error("Error filling form:", error);
       
-      // Fallback: fill with basic extracted content
+      // Fallback: fill with basic extracted content including images
       const fallbackTitle = extractedContent.title || "Untitled";
       const fallbackSlug = slugify(fallbackTitle);
       const fallbackExcerpt = extractedContent.description || "";
-      const fallbackContent = extractedContent.content || "";
+      
+      // Include images in the fallback content
+      let fallbackContent = extractedContent.content || "";
+      if (extractedContent.images && extractedContent.images.length > 0) {
+        const imageHtml = extractedContent.images.map(img => 
+          `<figure><img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" /><figcaption>${img.alt}</figcaption></figure>`
+        ).join('\n\n');
+        
+        // Insert images at the beginning or distribute them
+        const paragraphs = fallbackContent.split('\n\n');
+        if (paragraphs.length > 2) {
+          // Insert first image after first paragraph
+          paragraphs.splice(1, 0, extractedContent.images[0] ? 
+            `<figure><img src="${extractedContent.images[0].src}" alt="${extractedContent.images[0].alt}" title="${extractedContent.images[0].title || extractedContent.images[0].alt}" /></figure>` : '');
+          
+          // Add remaining images at the end
+          if (extractedContent.images.length > 1) {
+            paragraphs.push(...extractedContent.images.slice(1).map(img =>
+              `<figure><img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" /></figure>`
+            ));
+          }
+          fallbackContent = paragraphs.join('\n\n');
+        } else {
+          // Just append all images at the end
+          fallbackContent = fallbackContent + '\n\n' + imageHtml;
+        }
+      }
+      
       const fallbackTags = extractedContent.keywords.join(", ");
 
       setForm(prev => ({
@@ -656,7 +804,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         {LOCALES.map((l) => (
           <TabsContent key={l.code} value={l.code} className="space-y-4">
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm font-medium text-foreground">
                   Title ({l.label})
                 </label>
@@ -676,16 +824,19 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                   }}
                 />
               </div>
-              <Input
-                value={form.title[l.code]}
+              <input
+                type="text"
+                value={form.title[l.code] || ''}
                 onChange={(e) => onTitleChange(l.code, e.target.value)}
                 onBlur={(e) => onTitleBlur(l.code, e.target.value)}
                 required={l.code === "en"}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
+                placeholder="Enter blog post title..."
               />
             </div>
             <Input
               label={`Slug (${l.label})`}
-              value={form.slug[l.code]}
+              value={form.slug[l.code] || ''}
               onChange={(e) => onSlugChange(l.code, e.target.value)}
               required={l.code === "en"}
               placeholder="auto-generated-from-title"
@@ -1100,6 +1251,17 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
             <WizardHelp />
           </div>
         </div>
+        
+        {/* Grammarly Editor - positioned at top */}
+        <div className="mb-4">
+          <GrammarlyEditor
+            content={form.content}
+            onContentChange={(content) => setForm((prev) => ({ ...prev, content }))}
+            placeholder="Write the body of your blog post with grammar checking..."
+            isRichText={true}
+          />
+        </div>
+        
         <RichTextEditor
           value={form.content}
           onChange={(html) => setForm((prev) => ({ ...prev, content: html }))}
@@ -1248,6 +1410,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
           label="Author avatar URL"
           type="url"
           value={form.author_avatar_url}
+          placeholder="/uploads/Profile/profile-male.png"
           onChange={(e) =>
             setForm((prev) => ({
               ...prev,
@@ -1346,14 +1509,14 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         </TabsContent>
         
         <TabsContent value="seo" className="space-y-6">
-          <SEOOptimizer
+          <ImprovedSEOOptimizer
             title={form.title.en || ""}
             content={form.content}
             metaTitle={form.meta_title.en || ""}
             metaDescription={form.meta_description.en || ""}
             tags={form.tag_names.split(",").map(tag => tag.trim()).filter(Boolean)}
             category={(categories.find(cat => cat.id === form.blog_category_id)?.name.en || "")}
-            onOptimizationApplied={(optimizations) => {
+            onOptimizationApplied={(optimizations: any) => {
               // Apply optimizations to form
               if (optimizations.title) {
                 setForm(prev => ({
@@ -1361,17 +1524,24 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                   title: { ...prev.title, en: optimizations.title }
                 }));
               }
-              if (optimizations.metaTitle) {
+              if (optimizations.meta_title) {
                 setForm(prev => ({
                   ...prev,
-                  meta_title: { ...prev.meta_title, en: optimizations.metaTitle }
+                  meta_title: { ...prev.meta_title, en: optimizations.meta_title }
                 }));
               }
-              if (optimizations.metaDescription) {
+              if (optimizations.meta_description) {
                 setForm(prev => ({
                   ...prev,
-                  meta_description: { ...prev.meta_description, en: optimizations.metaDescription }
+                  meta_description: { ...prev.meta_description, en: optimizations.meta_description }
                 }));
+              }
+              if (optimizations.content) {
+                setForm(prev => ({ ...prev, content: optimizations.content }));
+              }
+              if (optimizations.tags) {
+                const tagArray = optimizations.tags.split(',').map((tag: string) => tag.trim());
+                setForm(prev => ({ ...prev, tag_names: tagArray.join(', ') }));
               }
             }}
           />

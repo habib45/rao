@@ -42,6 +42,7 @@ export const robotsRuleSchema = z.object({
   userAgent: z.string().min(1, "userAgent is required"),
   allow: z.array(z.string()),
   disallow: z.array(z.string()),
+  crawlDelay: z.number().optional(),
 });
 
 export const robotsConfigSchema = z.object({

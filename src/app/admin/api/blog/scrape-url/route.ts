@@ -4,53 +4,7 @@ import { z } from "zod";
 import * as cheerio from "cheerio";
 
 const scrapeUrlSchema = z.object({
-  url: z.string().url().refine((url) => {
-    try {
-      const parsed = new URL(url);
-      const validPatterns = [
-        // Path patterns
-        /\/blog\//i,
-        /\/news\//i,
-        /\/article\//i,
-        /\/post\//i,
-        /\/story\//i,
-        /\/topics\//i,
-        /\/reviews\//i,
-        /\/guides\//i,
-        /\/tutorials\//i,
-        /\/learn\//i,
-        /\/resources\//i,
-        /\/features\//i,
-        /\/explore\//i,
-        /\/discover\//i,
-        // Domain patterns
-        /blog\./i,
-        /news\./i,
-        /medium\.com/i,
-        /substack\.com/i,
-        /wordpress\.org/i,
-        /blogger\.com/i,
-        /outdoorgearlab\.com/i,
-        /gearlab\.com/i,
-        /wirecutter\.com/i,
-        /reviewed\.com/i,
-        /tomsguide\.com/i,
-        /techradar\.com/i,
-        /digitaltrends\.com/i,
-        /cnet\.com/i,
-        /pcmag\.com/i,
-        /engadget\.com/i,
-        /verge\.com/i,
-        /arstechnica\.com/i
-      ];
-      
-      return validPatterns.some(pattern => 
-        pattern.test(parsed.pathname) || pattern.test(parsed.hostname)
-      );
-    } catch {
-      return false;
-    }
-  }, "Must be a valid news article or blog post URL"),
+  url: z.string().url("Must be a valid URL"),
 });
 
 async function scrapeWithFetch(url: string): Promise<{
@@ -59,6 +13,15 @@ async function scrapeWithFetch(url: string): Promise<{
   content: string;
   keywords: string[];
   headings: string[];
+  images: Array<{
+    src: string;
+    alt: string;
+    title: string;
+  }>;
+  author: string;
+  publishDate: string;
+  wordCount: number;
+  readTime: number;
 }> {
   try {
     const controller = new AbortController();
@@ -106,10 +69,56 @@ async function scrapeWithFetch(url: string): Promise<{
     const headings: string[] = [];
     $('h1, h2, h3, h4, h5, h6').each((i: number, el: cheerio.Element) => {
       const text = $(el).text().trim();
-      if (text && text.length > 0 && headings.length < 10) {
+      if (text && text.length > 0 && headings.length < 20) {
         headings.push(text);
       }
     });
+
+    // Extract images
+    const images: Array<{src: string, alt: string, title: string}> = [];
+    $('img').each((i: number, el: cheerio.Element) => {
+      const $img = $(el);
+      const src = $img.attr('src');
+      const alt = $img.attr('alt') || '';
+      const title = $img.attr('title') || '';
+      
+      if (src && src.length > 0 && images.length < 10) {
+        // Convert relative URLs to absolute
+        let absoluteSrc = src;
+        if (src.startsWith('/')) {
+          const baseUrl = new URL(url);
+          absoluteSrc = `${baseUrl.protocol}//${baseUrl.host}${src}`;
+        } else if (src.startsWith('//')) {
+          absoluteSrc = `https:${src}`;
+        } else if (!src.startsWith('http')) {
+          const baseUrl = new URL(url);
+          absoluteSrc = `${baseUrl.protocol}//${baseUrl.host}/${src}`;
+        }
+        
+        images.push({
+          src: absoluteSrc,
+          alt: alt.trim(),
+          title: title.trim()
+        });
+      }
+    });
+
+    // Extract author
+    const author = $('meta[name="author"]').attr('content') ||
+                   $('[property="article:author"]').attr('content') ||
+                   $('[rel="author"]').text().trim() ||
+                   $('.author').text().trim() ||
+                   $('.by-author').text().trim() ||
+                   '';
+
+    // Extract publish date
+    const publishDate = $('meta[property="article:published_time"]').attr('content') ||
+                        $('meta[name="date"]').attr('content') ||
+                        $('meta[name="publish-date"]').attr('content') ||
+                        $('.publish-date').text().trim() ||
+                        $('.date').text().trim() ||
+                        $('[datetime]').attr('datetime') ||
+                        '';
 
     // Extract main content
     let content = '';
@@ -157,14 +166,23 @@ async function scrapeWithFetch(url: string): Promise<{
     content = content
       .replace(/\s+/g, ' ')
       .replace(/\n\s*\n/g, '\n')
-      .substring(0, 5000); // Limit to 5000 characters
+      .substring(0, 20000); // Increased to 20000 characters
+
+    // Calculate word count and read time
+    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+    const readTime = Math.max(1, Math.ceil(wordCount / 200)); // Average reading speed: 200 words/minute
 
     return {
       title,
       description,
       content,
       keywords,
-      headings
+      headings,
+      images,
+      author,
+      publishDate,
+      wordCount,
+      readTime
     };
 
   } catch (error) {

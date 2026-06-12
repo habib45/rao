@@ -10,6 +10,15 @@ const fromUrlSchema = z.object({
     url: z.string(),
     keywords: z.array(z.string()),
     headings: z.array(z.string()),
+    images: z.array(z.object({
+      src: z.string(),
+      alt: z.string(),
+      title: z.string(),
+    })),
+    author: z.string(),
+    publishDate: z.string(),
+    wordCount: z.number(),
+    readTime: z.number(),
   }),
   locale: z.enum(["en", "bn-BD", "sv"]).default("en"),
 });
@@ -25,35 +34,69 @@ function getBlogContentPrompt(extractedContent: {
   url: string;
   keywords: string[];
   headings: string[];
+  images: Array<{
+    src: string;
+    alt: string;
+    title: string;
+  }>;
+  author: string;
+  publishDate: string;
+  wordCount: number;
+  readTime: number;
 }, locale: string): string {
-  const { title, description, content, keywords, headings } = extractedContent;
+  const { title, description, content, keywords, headings, images, author, publishDate } = extractedContent;
   
+  // Create image HTML for inclusion in content (limit to avoid prompt overflow)
+  const imageHtml = images.length > 0 
+    ? `\n\n**Available Images to Include:**
+${images.slice(0, 3).map((img, index) => `${index + 1}. <img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" />`).join('\n')}
+${images.length > 3 ? `... and ${images.length - 3} more images available` : ''}`
+    : '';
+
+  // Limit content to prevent prompt overflow
+  const maxContentLength = 3000;
+  const contentSummary = content.length > maxContentLength 
+    ? content.substring(0, maxContentLength) + "..."
+    : content;
+
   const basePrompt = `You are a professional blog content writer. Based on the following extracted content from a URL, create a comprehensive blog post.
 
 **Source Content:**
 Title: ${title}
 Description: ${description}
+Author: ${author || 'Unknown'}
+Publish Date: ${publishDate || 'Unknown'}
 Keywords: ${keywords.join(", ")}
 Main Headings: ${headings.slice(0, 5).join(", ")}
+Word Count: ${content.length} characters
+Read Time: ${Math.ceil(content.length / 5)} minutes
 
-Content Summary: ${content.substring(0, 2000)}...
+Content Summary: ${contentSummary}${imageHtml}
 
 **Instructions:**
 1. Create an engaging, SEO-optimized blog post title
 2. Write a compelling excerpt (150-200 characters)
-3. Generate comprehensive blog content (800-1200 words)
+3. Generate comprehensive blog content (800-1200 words) in HTML format
 4. Create SEO meta title (60 characters max)
 5. Write SEO meta description (160 characters max)
 6. Suggest relevant tags (5-10 tags)
 7. Generate URL-friendly slug
 
+**CRITICAL REQUIREMENT - IMAGES:**
+- You MUST include relevant images from the provided image list in your HTML content
+- Place images strategically within the content where they make sense
+- Use proper HTML img tags: <img src="URL" alt="description" title="title" />
+- Include at least 2-3 images throughout the article if available
+- Images should enhance the content and reading experience
+
 **Requirements:**
 - Content should be original and unique
-- Include relevant headings and subheadings
+- Include relevant headings and subheadings (h1, h2, h3 tags)
 - Maintain professional but engaging tone
 - Incorporate the keywords naturally
 - Structure content with introduction, body, and conclusion
 - Add value beyond the original content with insights and analysis
+- Use proper HTML formatting for better readability
 
 **Output Format:**
 Return a JSON object with the following structure:
@@ -61,7 +104,7 @@ Return a JSON object with the following structure:
   "title": "Generated blog title",
   "slug": "url-friendly-slug",
   "excerpt": "Compelling excerpt",
-  "content": "Full blog content in HTML format",
+  "content": "Full blog content in HTML format with images included",
   "metaTitle": "SEO meta title",
   "metaDescription": "SEO meta description",
   "tags": ["tag1", "tag2", "tag3"]
@@ -81,7 +124,7 @@ async function callGemini(prompt: string): Promise<string> {
     throw new Error("Gemini API key not configured");
   }
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -100,13 +143,18 @@ async function callGemini(prompt: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API error: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Gemini API error:", response.status, response.statusText, errorData);
+    throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log("Gemini API response:", JSON.stringify(data).substring(0, 200));
+  
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
   
   if (!text) {
+    console.error("No text in Gemini response:", data);
     throw new Error("No response from Gemini");
   }
 
@@ -136,13 +184,18 @@ async function callOpenAI(prompt: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    console.error("OpenAI API error:", response.status, response.statusText, errorData);
+    throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log("OpenAI API response:", JSON.stringify(data).substring(0, 200));
+  
   const text = data.choices?.[0]?.message?.content;
   
   if (!text) {
+    console.error("No text in OpenAI response:", data);
     throw new Error("No response from OpenAI");
   }
 
@@ -172,13 +225,18 @@ async function callGroq(prompt: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new Error(`Groq API error: ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Groq API error:", response.status, response.statusText, errorData);
+    throw new Error(`Groq API error: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log("Groq API response:", JSON.stringify(data).substring(0, 200));
+  
   const text = data.choices?.[0]?.message?.content;
   
   if (!text) {
+    console.error("No text in Groq response:", data);
     throw new Error("No response from Groq");
   }
 
@@ -251,9 +309,16 @@ export async function POST(request: NextRequest) {
     await requireAdmin();
 
     const body = await request.json();
+    
+    // Log incoming data for debugging
+    console.log("Received request body keys:", Object.keys(body));
+    console.log("Extracted content keys:", Object.keys(body.extractedContent || {}));
+    
     const { extractedContent, locale } = fromUrlSchema.parse(body);
 
     console.log(`Generating blog content from URL: ${extractedContent.url}`);
+    console.log("Content length:", extractedContent.content?.length);
+    console.log("Images count:", extractedContent.images?.length);
 
     const prompt = getBlogContentPrompt(extractedContent, locale);
     

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart3, TrendingUp, AlertCircle, CheckCircle, Eye, MousePointer } from "lucide-react";
+import { BarChart3, TrendingUp, AlertCircle, CheckCircle, Eye, MousePointer, Brain } from "lucide-react";
 import { Badge } from "@/app/admin/_components/ui/badge";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
@@ -23,10 +23,18 @@ interface SEOMetrics {
   hasSchema: boolean;
 }
 
+const AI_MODELS = [
+  { id: "gpt-4", name: "GPT-4", description: "Most capable model for SEO analysis", provider: "OpenAI" },
+  { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", description: "Fast and cost-effective", provider: "OpenAI" },
+  { id: "claude-3", name: "Claude 3", description: "Great for content analysis", provider: "Anthropic" },
+  { id: "gemini-pro", name: "Gemini Pro", description: "Google's model for SEO insights", provider: "Google" }
+];
+
 export function SEOAnalysis({ post }: SEOAnalysisProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [metrics, setMetrics] = useState<SEOMetrics | null>(null);
+  const [selectedAIModel, setSelectedAIModel] = useState("gpt-4");
 
   const titleEn = post.title?.en ?? "";
   const description = post.meta_description?.en ?? "";
@@ -129,7 +137,26 @@ export function SEOAnalysis({ post }: SEOAnalysisProps) {
       {isExpanded && (
         <div className="mt-3 space-y-3">
           {!metrics ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* AI Model Selection */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-foreground flex items-center gap-1">
+                  <Brain className="h-3 w-3" />
+                  AI Model for Analysis
+                </label>
+                <select
+                  value={selectedAIModel}
+                  onChange={(e) => setSelectedAIModel(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                >
+                  {AI_MODELS.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.name} ({model.provider}) - {model.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               <Button
                 onClick={analyzeSEO}
                 disabled={isLoading}
@@ -139,7 +166,7 @@ export function SEOAnalysis({ post }: SEOAnalysisProps) {
                 {isLoading ? (
                   <>
                     <Skeleton className="h-4 w-4 mr-2" />
-                    Analyzing...
+                    Analyzing with {AI_MODELS.find(m => m.id === selectedAIModel)?.name}...
                   </>
                 ) : (
                   <>

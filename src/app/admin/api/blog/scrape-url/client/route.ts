@@ -12,6 +12,15 @@ async function scrapeWithClientSide(url: string): Promise<{
   content: string;
   keywords: string[];
   headings: string[];
+  images: Array<{
+    src: string;
+    alt: string;
+    title: string;
+  }>;
+  author: string;
+  publishDate: string;
+  wordCount: number;
+  readTime: number;
 }> {
   try {
     // Use CORS proxy for client-side scraping
@@ -115,17 +124,67 @@ async function scrapeWithClientSide(url: string): Promise<{
       }
     }
 
+    // Extract images (basic approach)
+    const imageMatches = html.match(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi);
+    const images = imageMatches ? 
+      imageMatches.slice(0, 10).map((imgTag: string) => {
+        const srcMatch = imgTag.match(/src=["']([^"']+)["']/);
+        const altMatch = imgTag.match(/alt=["']([^"']*)["']/);
+        const titleMatch = imgTag.match(/title=["']([^"']*)["']/);
+        
+        if (srcMatch) {
+          let src = srcMatch[1];
+          // Convert relative URLs to absolute
+          if (src.startsWith('/')) {
+            const baseUrl = new URL(url);
+            src = `${baseUrl.protocol}//${baseUrl.host}${src}`;
+          } else if (src.startsWith('//')) {
+            src = `https:${src}`;
+          } else if (!src.startsWith('http')) {
+            const baseUrl = new URL(url);
+            src = `${baseUrl.protocol}//${baseUrl.host}/${src}`;
+          }
+          
+          return {
+            src,
+            alt: altMatch ? altMatch[1].trim() : '',
+            title: titleMatch ? titleMatch[1].trim() : ''
+          };
+        }
+        return null;
+      }).filter((item): item is {src: string, alt: string, title: string} => item !== null) : [];
+
+    // Extract author (basic approach)
+    const authorMatch = html.match(/<meta[^>]*name=["']author["'][^>]*content=["']([^"']+)["']/i) ||
+                         html.match(/<meta[^>]*property=["']article:author["'][^>]*content=["']([^"']+)["']/i);
+    const author = authorMatch ? authorMatch[1].trim() : '';
+
+    // Extract publish date (basic approach)
+    const dateMatch = html.match(/<meta[^>]*property=["']article:published_time["'][^>]*content=["']([^"']+)["']/i) ||
+                      html.match(/<meta[^>]*name=["']date["'][^>]*content=["']([^"']+)["']/i) ||
+                      html.match(/<time[^>]*datetime=["']([^"']+)["']/i);
+    const publishDate = dateMatch ? dateMatch[1].trim() : '';
+
     // Clean up content
     content = content
       .replace(/\s+/g, ' ')
-      .substring(0, 5000); // Limit to 5000 characters
+      .substring(0, 20000); // Increased to 20000 characters
+
+    // Calculate word count and read time
+    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
+    const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
     return {
       title,
       description,
       content,
       keywords,
-      headings
+      headings,
+      images,
+      author,
+      publishDate,
+      wordCount,
+      readTime
     };
 
   } catch (error) {

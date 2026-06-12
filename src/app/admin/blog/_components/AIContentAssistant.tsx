@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Select } from "@/app/admin/_components/ui/select";
-import { Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { Loader2, Sparkles, Copy, Check, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { OptimizationRecommendations } from "./OptimizationRecommendations";
 import { parseAIJSON } from "@/lib/json-parser";
@@ -23,6 +23,13 @@ interface AIContentAssistantProps {
   };
 }
 
+const AI_MODELS = [
+  { id: "gpt-4", name: "GPT-4", description: "Most capable model for complex content", provider: "OpenAI" },
+  { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", description: "Fast and cost-effective", provider: "OpenAI" },
+  { id: "claude-3", name: "Claude 3", description: "Great for structured content", provider: "Anthropic" },
+  { id: "gemini-pro", name: "Gemini Pro", description: "Google's model for SEO content", provider: "Google" }
+];
+
 export function AIContentAssistant({ 
   onContentGenerated, 
   type, 
@@ -36,6 +43,7 @@ export function AIContentAssistant({
   const [keywords, setKeywords] = useState("");
   const [tone, setTone] = useState("professional");
   const [length, setLength] = useState("medium");
+  const [selectedAIModel, setSelectedAIModel] = useState("gpt-4");
   const [generatedContent, setGeneratedContent] = useState("");
   const [copied, setCopied] = useState(false);
   const [structuredRecommendations, setStructuredRecommendations] = useState<Record<string, any> | null>(null);
@@ -138,6 +146,7 @@ export function AIContentAssistant({
           length,
           locale,
           existingContent: existingContent.trim() || undefined,
+          aiModel: selectedAIModel,
         }),
       });
 
@@ -373,7 +382,7 @@ export function AIContentAssistant({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Select
             label="Tone"
             value={tone}
@@ -386,6 +395,28 @@ export function AIContentAssistant({
             <option value="creative">Creative</option>
           </Select>
 
+          {/* AI Model Selection */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-foreground flex items-center gap-1">
+              <Brain className="h-3 w-3" />
+              AI Model
+            </label>
+            <select
+              value={selectedAIModel}
+              onChange={(e) => setSelectedAIModel(e.target.value)}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+            >
+              {AI_MODELS.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {AI_MODELS.find(m => m.id === selectedAIModel)?.provider}
+            </p>
+          </div>
+
           {lengthOptions[type].show && (
             <Select
               label="Length"
@@ -397,6 +428,11 @@ export function AIContentAssistant({
               <option value="long">Long</option>
             </Select>
           )}
+        </div>
+
+        {/* AI Model Description */}
+        <div className="text-xs text-gray-500">
+          <strong>AI Model:</strong> {AI_MODELS.find(m => m.id === selectedAIModel)?.description}
         </div>
 
         {existingContent && type !== "title" && (

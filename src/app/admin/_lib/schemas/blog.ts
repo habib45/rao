@@ -33,7 +33,7 @@ export const blogPostInputSchema = z.object({
   cover_image_url: nullableUrl.optional(),
   cover_image_alt: optionalTranslation.optional(),
   author_name: z.string().min(1).default("RaoFinds"),
-  author_avatar_url: nullableUrl.optional(),
+  author_avatar_url: z.string().url().nullable().optional().default("/uploads/Profile/profile-male.png"),
   meta_title: optionalTranslation.optional(),
   meta_description: optionalTranslation.optional(),
   status: z.enum(["draft", "published", "archived"]).default("draft"),
