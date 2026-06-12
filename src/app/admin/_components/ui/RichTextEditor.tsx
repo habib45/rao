@@ -290,7 +290,7 @@ export default function RichTextEditor({
     <div className={className}>
       <style>{`
         .ck-editor__editable {
-          min-height: 320px;
+          min-height: 480px;
         }
         .ck.ck-editor {
           border-radius: 0.5rem;

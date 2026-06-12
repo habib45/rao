@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import dynamic from "next/dynamic";
 import type { ClassicEditor } from "ckeditor5";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/app/admin/_components/ui/button";
+import { Sparkles } from "lucide-react";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Select } from "@/app/admin/_components/ui/select";
 import {
@@ -24,6 +25,7 @@ import { SEOOptimizer } from "./SEOOptimizer";
 import { URLContentExtractor } from "./URLContentExtractor";
 import { decodeWizard } from "@/lib/wizard";
 import type { WizardStep } from "@/lib/wizard";
+import { parseAIJSON } from "@/lib/json-parser";
 
 const RichTextEditor = dynamic(
   () => import("@/app/admin/_components/ui/RichTextEditor"),
@@ -93,7 +95,9 @@ function fromDatetimeLocal(value: string): string | null {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toISOString();
+  // Return MySQL-compatible datetime format (YYYY-MM-DD HH:MM:SS)
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 interface BlogPostFormProps {
@@ -139,6 +143,17 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
 
   const isEditing = post !== null;
   const editorRef = useRef<ClassicEditor | null>(null);
+
+  // Ensure content is properly set when editor is ready (for edit mode)
+  useEffect(() => {
+    if (editorRef.current && isEditing && post?.content) {
+      // Only set if the editor is empty to avoid overwriting user changes
+      const currentData = editorRef.current.getData();
+      if (!currentData || currentData.trim() === '') {
+        editorRef.current.setData(post.content);
+      }
+    }
+  }, [isEditing, post?.content]);
   const [showWizard, setShowWizard] = useState(false);
   const [editingWizard, setEditingWizard] = useState<{
     encoded: string;
@@ -154,6 +169,17 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      // Validate required fields
+      if (!form.title.en || form.title.en.trim() === '') {
+        throw new Error("English title is required");
+      }
+      if (!form.slug.en || form.slug.en.trim() === '') {
+        throw new Error("English slug is required");
+      }
+      if (!form.content || form.content.trim() === '') {
+        throw new Error("Content is required");
+      }
+
       // Clean up locale fields - remove empty strings, keep only filled values
       const cleanLocaleField = (field: Record<LocaleCode, string>) => {
         const cleaned: Record<string, string> = {};
@@ -164,6 +190,15 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         });
         return cleaned;
       };
+
+      // Validate datetime format
+      let publishedAt = null;
+      if (form.published_at) {
+        publishedAt = fromDatetimeLocal(form.published_at);
+        if (!publishedAt) {
+          throw new Error("Invalid publish date format");
+        }
+      }
 
       const payload = {
         blog_category_id: form.blog_category_id,
@@ -183,7 +218,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         status: form.status,
         is_featured: Boolean(form.is_featured),
         read_time_minutes: form.read_time_minutes || 0,
-        published_at: fromDatetimeLocal(form.published_at),
+        published_at: publishedAt,
         tag_names: form.tag_names
           .split(",")
           .map((s) => s.trim())
@@ -200,7 +235,14 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed to save post");
+        // Provide more specific error messages
+        if (err.error && err.error.includes('datetime')) {
+          throw new Error("Invalid date format. Please check the publish date.");
+        } else if (err.error && err.error.includes('Duplicate')) {
+          throw new Error("A post with this slug already exists. Please use a different slug.");
+        } else {
+          throw new Error(err.error ?? "Failed to save post");
+        }
       }
       return res.json() as Promise<{ id: string }>;
     },
@@ -258,6 +300,149 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       ...prev,
       slug: { ...prev.slug, [locale]: value },
     }));
+  }
+
+  // Format content function to create proper human-like formatting
+  function formatContent() {
+    const editor = editorRef.current;
+    if (!editor || !form.content.trim()) return;
+
+    // Get current content from CKEditor
+    let content = editor.getData();
+    
+    // Convert to plain text for better processing
+    let plainText = content
+      .replace(/<[^>]*>/g, ' ') // Remove HTML tags, replace with spaces
+      .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
+      .replace(/&amp;/g, '&') // Replace HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s{2,}/g, ' ') // Clean up multiple spaces
+      .trim();
+
+    // Split content into sentences and process
+    let sentences = plainText.split(/([.!?]+)\s*/);
+    let formattedContent = '';
+    let currentParagraph = '';
+    let inList = false;
+    let listItems = [];
+    let inSpecs = false;
+    let inPros = false;
+    let inCons = false;
+
+    for (let i = 0; i < sentences.length; i++) {
+      let sentence = sentences[i].trim();
+      
+      if (!sentence) continue;
+      
+      // Handle section headers and special content
+      if (sentence.match(/^(Quick Picks|Best Overall|Best Bang for Your Buck|Best Lightweight|Best for Heavy Duty|SPECIFICATIONS|PROS|CONS|List Price|Weight|Material|Outsole|Upper Material|Midsole|Features|Dimensions|Size|Color|Credit:|By |Related:|READ MORE|Show|Deal Alert|Check price)/i)) {
+        
+        // End current content
+        if (currentParagraph.trim()) {
+          formattedContent += `<p>${currentParagraph.trim()}</p>\n\n`;
+          currentParagraph = '';
+        }
+        
+        // End list if active
+        if (inList && listItems.length > 0) {
+          formattedContent += '<ul>' + listItems.join('') + '</ul>\n\n';
+          listItems = [];
+          inList = false;
+        }
+        
+        // Handle special sections
+        if (sentence.match(/^(Quick Picks|Best Overall|Best Bang for Your Buck|Best Lightweight|Best for Heavy Duty)/i)) {
+          formattedContent += `<h2>${sentence}</h2>\n\n`;
+          inList = true;
+        } else if (sentence.match(/^SPECIFICATIONS/i)) {
+          formattedContent += `<h3>${sentence}</h3>\n\n`;
+          inSpecs = true;
+          inList = false;
+        } else if (sentence.match(/^PROS/i)) {
+          formattedContent += `<h3>${sentence}</h3>\n\n`;
+          inPros = true;
+          inList = true;
+        } else if (sentence.match(/^CONS/i)) {
+          formattedContent += `<h3>${sentence}</h3>\n\n`;
+          inCons = true;
+          inList = true;
+        } else if (sentence.match(/^(List Price|Weight|Material|Outsole|Upper Material|Midsole|Features|Dimensions|Size|Color)/i)) {
+          formattedContent += `<h4>${sentence}</h4>\n\n`;
+        } else if (sentence.match(/^Credit:/i)) {
+          formattedContent += `<p><em>${sentence}</em></p>\n\n`;
+        } else if (sentence.match(/^By /i)) {
+          formattedContent += `<p><strong>${sentence}</strong></p>\n\n`;
+        } else if (sentence.match(/^(Related:|READ MORE|Show|Deal Alert|Check price)/i)) {
+          formattedContent += `<p><strong>${sentence}</strong></p>\n\n`;
+        } else {
+          formattedContent += `<h3>${sentence}</h3>\n\n`;
+        }
+        continue;
+      }
+      
+      // Handle bullet points and list items
+      if (sentence.match(/^[\*\-\•]\s+/) || sentence.match(/^\d+\.\s+/)) {
+        let listItem = sentence.replace(/^[\*\-\•]\s+/, '').replace(/^\d+\.\s+/, '');
+        
+        // Apply highlighting to list items
+        listItem = listItem
+          .replace(/\b(IMPORTANT|NOTE|WARNING|TIP|KEY|BEST|TOP|PROS|CONS|GREAT|GOOD|EXCELLENT|LIGHTWEIGHT|DURABLE|SUPPORTIVE|COMFORTABLE|AFFORDABLE)\b/gi, '<strong>$1</strong>')
+          .replace(/\b(quickly|easily|effectively|efficiently|highly|significantly|dramatically)\b/gi, '<em>$1</em>')
+          .replace(/\$\d+(?:\.\d{2})?/g, '<strong>$&</strong>');
+        
+        listItems.push(`<li>${listItem}</li>`);
+        continue;
+      }
+      
+      // Handle scores and ratings
+      if (sentence.match(/\d+\.\d+\/\d+\.?\d*|\d+\/\d+|\d+%|\d+\.\d+\s+POINTS?|\d+\.\d+\s+SCORE/i)) {
+        sentence = sentence.replace(/(\d+\.\d+\/\d+\.?\d*|\d+\/\d+|\d+%|\d+\.\d+\s+POINTS?|\d+\.\d+\s+SCORE)/gi, '<strong>$1</strong>');
+      }
+      
+      // Apply highlighting to important terms
+      sentence = sentence
+        .replace(/\b(best|worst|top|premium|budget|cheap|expensive|affordable|quality|durable|lightweight|heavy|comfortable|supportive|breathable|waterproof|excellent|outstanding|amazing|perfect|good|decent|average|poor|terrible|awful)\b/gi, '<strong>$1</strong>')
+        .replace(/\b(recommended|suggested|preferred|ideal|perfect for|best for|suitable for|however|therefore|moreover|furthermore|additionally|in conclusion|in summary)\b/gi, '<em>$1</em>')
+        .replace(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\s+(?:Shoes|Boots|Gear|Equipment|Device|Tool))/g, '<strong>$1</strong>')
+        .replace(/\$\d+(?:\.\d{2})?/g, '<strong>$&</strong>')
+        .replace(/\b(FREE\s+SHIPPING|SALE|DEAL|DISCOUNT|OFF|SAVE)\b/gi, '<strong>$1</strong>');
+      
+      // Add to current paragraph
+      currentParagraph += sentence + ' ';
+      
+      // End paragraph if it's getting long or we hit a natural break
+      if (currentParagraph.length > 300 || sentence.match(/[.!?]$/)) {
+        if (currentParagraph.trim()) {
+          formattedContent += `<p>${currentParagraph.trim()}</p>\n\n`;
+          currentParagraph = '';
+        }
+      }
+    }
+    
+    // End any remaining content
+    if (currentParagraph.trim()) {
+      formattedContent += `<p>${currentParagraph.trim()}</p>\n\n`;
+    }
+    
+    if (inList && listItems.length > 0) {
+      formattedContent += '<ul>' + listItems.join('') + '</ul>\n\n';
+    }
+    
+    // Clean up formatting
+    formattedContent = formattedContent
+      .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks
+      .replace(/<\/p>\s*<p>/g, '</p>\n<p>') // Clean up paragraph spacing
+      .replace(/<\/h[2-6]>\s*<p>/g, '</h2>\n\n<p>') // Add spacing after headings
+      .replace(/<\/p>\s*<h[2-6]>/g, '</p>\n\n<h2>') // Add spacing before headings
+      .trim();
+
+    // Update editor with formatted content
+    editor.setData(formattedContent);
+    setForm((prev) => ({ ...prev, content: formattedContent }));
+    
+    toast.success("Content formatted successfully!");
   }
 
   function extractWizardBlocks(
@@ -523,7 +708,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
               <textarea
                 value={form.excerpt[l.code]}
                 onChange={(e) => setTrans("excerpt", l.code, e.target.value)}
-                rows={3}
+                rows={6}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
@@ -570,7 +755,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                 onChange={(e) =>
                   setTrans("meta_description", l.code, e.target.value)
                 }
-                rows={2}
+                rows={6}
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
               />
             </div>
@@ -583,6 +768,17 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         <div className="mb-1 flex items-center justify-between">
           <label className="text-sm font-medium text-foreground">Content</label>
           <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={formatContent}
+              disabled={!form.content.trim()}
+              className="flex items-center gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Format Content
+            </Button>
             <AIContentAssistant
               type="content"
               existingContent={form.content}
@@ -607,6 +803,293 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                 setForm((prev) => ({ ...prev, content: optimized }));
               }}
             />
+            <AIContentAssistant
+              type="seo_optimization"
+              existingContent={form.content}
+              locale="en"
+              extractedContent={extractedContent || undefined}
+              onContentGenerated={(content) => {
+                // Handle both bulk SEO suggestions and individual recommendation resolutions
+                try {
+                  const parsed = parseAIJSON(content);
+                  
+                  // Check if this is an individual recommendation resolution
+                  if (parsed.type && parsed.suggestion) {
+                    // Handle individual recommendation
+                    const { type: recommendationType, suggestion } = parsed;
+                    
+                    switch (recommendationType) {
+                      case "meta_description":
+                        setForm(prev => ({
+                          ...prev,
+                          meta_description: {
+                            ...prev.meta_description,
+                            en: typeof suggestion === 'string' ? suggestion : String(suggestion || '')
+                          }
+                        }));
+                        toast.success("Meta description updated");
+                        break;
+                      case "title":
+                        setForm(prev => ({
+                          ...prev,
+                          meta_title: {
+                            ...prev.meta_title,
+                            en: typeof suggestion === 'string' ? suggestion : String(suggestion || '')
+                          }
+                        }));
+                        toast.success("Meta title updated");
+                        break;
+                      case "headings":
+                        // Apply heading structure suggestions to content
+                        const editor = editorRef.current;
+                        if (editor && suggestion) {
+                          const currentContent = editor.getData();
+                          // For now, just show the suggestion in a toast
+                          toast.info("Heading structure suggestion: " + suggestion);
+                        }
+                        break;
+                      case "keywords":
+                        // Update tags based on keyword suggestions
+                        if (Array.isArray(suggestion)) {
+                          setForm(prev => ({
+                            ...prev,
+                            tag_names: suggestion.join(", ")
+                          }));
+                          toast.success("Keywords updated");
+                        }
+                        break;
+                      case "internal_links":
+                        // Show internal linking suggestions
+                        toast.info("Internal linking suggestion: " + suggestion);
+                        break;
+                      case "readability":
+                        // Show readability suggestions
+                        toast.info("Readability suggestion: " + suggestion);
+                        break;
+                      case "images":
+                        // Show image optimization suggestions
+                        toast.info("Image SEO suggestion: " + suggestion);
+                        break;
+                      case "url":
+                        // Update slug based on URL suggestions
+                        if (suggestion && typeof suggestion === 'string') {
+                          const slug = suggestion.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+                          setForm(prev => ({
+                            ...prev,
+                            slug: {
+                              ...prev.slug,
+                              en: slug
+                            }
+                          }));
+                          toast.success("URL slug updated");
+                        }
+                        break;
+                      default:
+                        toast.info(`${recommendationType} suggestion: ${suggestion}`);
+                    }
+                  } else {
+                    // Handle bulk SEO suggestions (legacy behavior)
+                    if (parsed.meta_description) {
+                      setForm(prev => ({
+                        ...prev,
+                        meta_description: {
+                          ...prev.meta_description,
+                          en: typeof parsed.meta_description === 'string' ? parsed.meta_description : String(parsed.meta_description || '')
+                        }
+                      }));
+                    }
+                    if (parsed.title) {
+                      setForm(prev => ({
+                        ...prev,
+                        meta_title: {
+                          ...prev.meta_title,
+                          en: typeof parsed.title === 'string' ? parsed.title : String(parsed.title || '')
+                        }
+                      }));
+                    }
+                    toast.success("SEO optimization applied to form fields");
+                  }
+                } catch (error) {
+                  console.error("Failed to parse SEO suggestions:", error);
+                  console.error("Content that failed to parse:", content);
+                  
+                  // Return a more helpful error message
+                  if (content.includes('```json')) {
+                    toast.error("AI Response Error: The AI returned JSON that couldn't be parsed. Please try again.");
+                  } else {
+                    toast.error("AI Response Error: The AI response couldn't be processed. Please try again.");
+                  }
+                }
+              }}
+            />
+            <AIContentAssistant
+              type="affiliate_content"
+              existingContent={form.content}
+              locale="en"
+              extractedContent={extractedContent || undefined}
+              onContentGenerated={(content) => {
+                // Handle both bulk affiliate suggestions and individual recommendation resolutions
+                try {
+                  const parsed = parseAIJSON(content);
+                  
+                  // Check if this is an individual recommendation resolution
+                  if (parsed.type && parsed.suggestion) {
+                    // Handle individual recommendation
+                    const { type: recommendationType, suggestion } = parsed;
+                    
+                    switch (recommendationType) {
+                      case "product_placements":
+                        // Add product placement suggestions to content
+                        const placementContent = `
+<!-- Product Placement -->
+<div class="product-placement">
+  <p>${suggestion}</p>
+</div>`;
+                        const editor1 = editorRef.current;
+                        if (editor1) {
+                          const currentContent1 = editor1.getData();
+                          editor1.setData(currentContent1 + placementContent);
+                          setForm(prev => ({ ...prev, content: currentContent1 + placementContent }));
+                        }
+                        toast.success("Product placement added");
+                        break;
+                      case "reviews":
+                        // Add product review section
+                        const reviewContent = `
+<!-- Product Review -->
+<div class="product-review">
+  <h3>Product Review</h3>
+  ${suggestion}
+</div>`;
+                        const editor2 = editorRef.current;
+                        if (editor2) {
+                          const currentContent2 = editor2.getData();
+                          editor2.setData(currentContent2 + reviewContent);
+                          setForm(prev => ({ ...prev, content: currentContent2 + reviewContent }));
+                        }
+                        toast.success("Product review section added");
+                        break;
+                      case "comparisons":
+                        // Add comparison table
+                        const comparisonContent = `
+<!-- Product Comparison -->
+<div class="product-comparison">
+  <h3>Product Comparison</h3>
+  ${suggestion}
+</div>`;
+                        const editor3 = editorRef.current;
+                        if (editor3) {
+                          const currentContent3 = editor3.getData();
+                          editor3.setData(currentContent3 + comparisonContent);
+                          setForm(prev => ({ ...prev, content: currentContent3 + comparisonContent }));
+                        }
+                        toast.success("Comparison table added");
+                        break;
+                      case "recommendations":
+                        // Add recommendation list
+                        const recommendationContent = `
+<!-- Recommendations -->
+<div class="recommendations">
+  <h3>Top Recommendations</h3>
+  ${suggestion}
+</div>`;
+                        const editor4 = editorRef.current;
+                        if (editor4) {
+                          const currentContent4 = editor4.getData();
+                          editor4.setData(currentContent4 + recommendationContent);
+                          setForm(prev => ({ ...prev, content: currentContent4 + recommendationContent }));
+                        }
+                        toast.success("Recommendations added");
+                        break;
+                      case "ctas":
+                        // Add call-to-action phrases
+                        const ctaContent = `
+<!-- Call to Action -->
+<div class="cta-section">
+  <p><strong>${suggestion}</strong></p>
+</div>`;
+                        const editor5 = editorRef.current;
+                        if (editor5) {
+                          const currentContent5 = editor5.getData();
+                          editor5.setData(currentContent5 + ctaContent);
+                          setForm(prev => ({ ...prev, content: currentContent5 + ctaContent }));
+                        }
+                        toast.success("Call-to-action added");
+                        break;
+                      case "disclosures":
+                        // Add disclosure statement
+                        const disclosureContent = `
+<!-- Affiliate Disclosure -->
+<div class="affiliate-disclosure">
+  <p><em>${suggestion}</em></p>
+</div>`;
+                        const editor6 = editorRef.current;
+                        if (editor6) {
+                          const currentContent6 = editor6.getData();
+                          editor6.setData(currentContent6 + disclosureContent);
+                          setForm(prev => ({ ...prev, content: currentContent6 + disclosureContent }));
+                        }
+                        toast.success("Disclosure statement added");
+                        break;
+                      case "benefits":
+                        // Add product benefits
+                        const benefitsContent = `
+<!-- Product Benefits -->
+<div class="product-benefits">
+  <h3>Key Benefits</h3>
+  ${suggestion}
+</div>`;
+                        const editor7 = editorRef.current;
+                        if (editor7) {
+                          const currentContent7 = editor7.getData();
+                          editor7.setData(currentContent7 + benefitsContent);
+                          setForm(prev => ({ ...prev, content: currentContent7 + benefitsContent }));
+                        }
+                        toast.success("Product benefits added");
+                        break;
+                      case "buying_guide":
+                        // Add buying guide section
+                        const guideContent = `
+<!-- Buying Guide -->
+<div class="buying-guide">
+  <h3>Buying Guide</h3>
+  ${suggestion}
+</div>`;
+                        const editor8 = editorRef.current;
+                        if (editor8) {
+                          const currentContent8 = editor8.getData();
+                          editor8.setData(currentContent8 + guideContent);
+                          setForm(prev => ({ ...prev, content: currentContent8 + guideContent }));
+                        }
+                        toast.success("Buying guide added");
+                        break;
+                      default:
+                        toast.info(`${recommendationType} suggestion: ${suggestion}`);
+                    }
+                  } else {
+                    // Handle bulk affiliate suggestions (legacy behavior)
+                    const affiliateContent = `
+<!-- Affiliate Content Suggestions -->
+<div class="affiliate-section">
+  <h3>Recommended Products</h3>
+  ${parsed.recommendations || ''}
+  <p><em>Disclosure: This post contains affiliate links. We may earn a commission if you purchase through our links.</em></p>
+</div>`;
+                    
+                    const editor = editorRef.current;
+                    if (editor) {
+                      const currentContent = editor.getData();
+                      editor.setData(currentContent + affiliateContent);
+                    }
+                    setForm((prev) => ({ ...prev, content: form.content + affiliateContent }));
+                    toast.success("Affiliate content suggestions added");
+                  }
+                } catch (error) {
+                  console.error("Failed to parse affiliate suggestions:", error);
+                  toast.error("Failed to add affiliate suggestions");
+                }
+              }}
+            />
             <button
               type="button"
               onClick={() => setShowWizard((v) => !v)}
@@ -620,7 +1103,13 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         <RichTextEditor
           value={form.content}
           onChange={(html) => setForm((prev) => ({ ...prev, content: html }))}
-          onReady={(editor) => { editorRef.current = editor; }}
+          onReady={(editor) => { 
+            editorRef.current = editor;
+            // Ensure initial content is set when editor is ready (for edit mode)
+            if (isEditing && post?.content && form.content) {
+              editor.setData(form.content);
+            }
+          }}
           placeholder="Write the body of your blog post..."
         />
         {/* Existing wizard blocks — edit buttons */}

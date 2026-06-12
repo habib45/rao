@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Star, Flame } from "lucide-react";
+import { Trash2, Star, Flame, ChevronDown } from "lucide-react";
 import { Badge } from "@/app/admin/_components/ui/badge";
 import { Button } from "@/app/admin/_components/ui/button";
 import {
@@ -18,6 +18,8 @@ import {
 } from "@/app/admin/_components/ui/table";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
 import { Dialog } from "@/app/admin/_components/ui/dialog";
+import { SEOAnalysis } from "./SEOAnalysis";
+import { SEOScoreDisplay } from "./SEOScoreDisplay";
 import type { BlogPost, BlogPostStatus } from "@/types/domain";
 
 interface BlogPostsResponse {
@@ -40,6 +42,7 @@ function statusVariant(
 export function BlogPostsTable() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error } = useQuery<BlogPostsResponse>({
     queryKey: ["admin-blog-posts"],
@@ -62,6 +65,7 @@ export function BlogPostsTable() {
       payload: Partial<{
         is_featured: boolean;
         status: BlogPostStatus;
+        overall_seo_score: number;
       }>;
     }) => {
       const res = await fetch(`/admin/api/blog/${id}`, {
@@ -77,6 +81,16 @@ export function BlogPostsTable() {
     },
     onError: () => toast.error("Failed to update post"),
   });
+
+  const toggleRowExpansion = (postId: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(postId)) {
+      newExpanded.delete(postId);
+    } else {
+      newExpanded.add(postId);
+    }
+    setExpandedRows(newExpanded);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -120,7 +134,7 @@ export function BlogPostsTable() {
   return (
     <>
       <div className="w-full overflow-x-auto -mx-6 px-6">
-        <Table className="min-w-[800px] w-auto">
+        <Table className="w-full">
         <TableHeader>
           <TableRow>
             <TableHead className="w-20">Image</TableHead>
@@ -130,6 +144,8 @@ export function BlogPostsTable() {
             <TableHead className="w-32">Author</TableHead>
             <TableHead className="w-28">Published</TableHead>
             <TableHead className="w-20">Featured</TableHead>
+            <TableHead className="w-24">Views</TableHead>
+            <TableHead className="w-28">SEO Score</TableHead>
             <TableHead className="w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -158,6 +174,11 @@ export function BlogPostsTable() {
                         fill
                         className="object-cover"
                         sizes="80px"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement!.innerHTML = '<div class="flex h-full w-full items-center justify-center text-xl text-muted">📝</div>';
+                        }}
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xl text-muted">
@@ -167,12 +188,25 @@ export function BlogPostsTable() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Link
-                    href={`/admin/blog/${post.id}`}
-                    className="font-medium hover:text-brand"
-                  >
-                    {titleEn}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleRowExpansion(post.id)}
+                      className="rounded p-1 hover:bg-surface transition-colors"
+                      aria-label="Toggle SEO analysis"
+                    >
+                      <ChevronDown 
+                        className={`h-4 w-4 transition-transform ${
+                          expandedRows.has(post.id) ? 'rotate-180' : ''
+                        }`} 
+                      />
+                    </button>
+                    <Link
+                      href={`/admin/blog/${post.id}`}
+                      className="font-medium hover:text-brand"
+                    >
+                      {titleEn}
+                    </Link>
+                  </div>
                 </TableCell>
                 <TableCell className="text-sm text-muted">
                   {categoryName}
@@ -187,33 +221,44 @@ export function BlogPostsTable() {
                   {publishedDate}
                 </TableCell>
                 <TableCell>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateMutation.mutate({
-                        id: post.id,
-                        payload: { is_featured: !post.is_featured },
-                      })
-                    }
-                    disabled={updateMutation.isPending}
-                    aria-label={
-                      post.is_featured ? "Unfeature post" : "Feature post"
-                    }
-                    title={post.is_featured ? "Featured" : "Not featured"}
-                    className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-brand"
-                  >
-                    {post.is_featured ? (
-                      <Star className="h-4 w-4 fill-current text-brand" />
-                    ) : (
-                      <Star className="h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        updateMutation.mutate({
+                          id: post.id,
+                          payload: { is_featured: !post.is_featured },
+                        })
+                      }
+                      disabled={updateMutation.isPending}
+                      aria-label={
+                        post.is_featured ? "Unfeature post" : "Feature post"
+                      }
+                      title={post.is_featured ? "Featured" : "Not featured"}
+                      className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-brand"
+                    >
+                      {post.is_featured ? (
+                        <Star className="h-4 w-4 fill-current text-brand" />
+                      ) : (
+                        <Star className="h-4 w-4" />
+                      )}
+                    </button>
+                    {post.view_count > 0 && (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted">
+                        <Flame className="h-3 w-3" />
+                        {post.view_count}
+                      </span>
                     )}
-                  </button>
-                  {post.view_count > 0 && (
-                    <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted">
-                      <Flame className="h-3 w-3" />
-                      {post.view_count}
-                    </span>
-                  )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-sm">
+                  <div className="flex items-center gap-1">
+                    <Flame className="h-3 w-3 text-muted" />
+                    {post.view_count || 0}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <SEOScoreDisplay post={post} onUpdate={updateMutation} />
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -235,9 +280,18 @@ export function BlogPostsTable() {
               </TableRow>
             );
           })}
+          {posts.map((post) => 
+            expandedRows.has(post.id) ? (
+              <TableRow key={`seo-${post.id}`}>
+                <TableCell colSpan={10} className="p-4 bg-surface/30">
+                  <SEOAnalysis post={post} />
+                </TableCell>
+              </TableRow>
+            ) : null
+          )}
           {posts.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="py-8 text-center text-muted">
+              <TableCell colSpan={10} className="py-8 text-center text-muted">
                 No blog posts yet.
               </TableCell>
             </TableRow>

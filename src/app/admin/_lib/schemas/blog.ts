@@ -39,6 +39,7 @@ export const blogPostInputSchema = z.object({
   status: z.enum(["draft", "published", "archived"]).default("draft"),
   is_featured: z.boolean().default(false),
   read_time_minutes: z.number().int().min(0).default(0),
+  overall_seo_score: z.number().int().min(0).max(100).nullable().optional(),
   published_at: z.string().nullable().optional(),
   tag_names: z.array(z.string()).optional(),
 });

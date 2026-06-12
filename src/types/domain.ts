@@ -117,6 +117,7 @@ export interface BlogPost {
   is_featured: boolean;
   view_count: number;
   read_time_minutes: number;
+  overall_seo_score: number | null;
   published_at: string | null;
   created_at: string;
   updated_at: string;

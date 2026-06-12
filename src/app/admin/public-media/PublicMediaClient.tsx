@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Folder, Trash2, Copy, Check, Plus, ChevronRight, RefreshCw, Upload, X } from "lucide-react";
+import { Folder, Trash2, Copy, Check, Plus, ChevronRight, RefreshCw, Upload, X, ChevronDown } from "lucide-react";
 
 type MediaItem = {
   name: string;
@@ -25,6 +25,7 @@ export function PublicMediaClient() {
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showUrlOptions, setShowUrlOptions] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
@@ -52,6 +53,25 @@ export function PublicMediaClient() {
   useEffect(() => {
     void loadItems();
   }, [loadItems, refreshKey]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUrlOptions) {
+        const target = event.target as Element;
+        if (!target.closest('.url-options-container')) {
+          setShowUrlOptions(null);
+        }
+      }
+    };
+
+    if (showUrlOptions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUrlOptions]);
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
@@ -84,13 +104,32 @@ export function PublicMediaClient() {
     }
   };
 
-  const handleCopyUrl = useCallback((item: MediaItem) => {
-    if (!item.publicUrl) return;
-    void navigator.clipboard.writeText(item.publicUrl).then(() => {
-      setCopiedPath(item.path);
-      setTimeout(() => setCopiedPath(null), 2000);
-    });
+  const getUrlFormats = useCallback((item: MediaItem) => {
+    if (!item.publicUrl) return [];
+    
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const cdnUrl = `https://cdn.yourdomain.com${item.publicUrl.replace('/uploads', '')}`;
+    
+    return [
+      { label: 'Relative URL', value: item.publicUrl },
+      { label: 'Absolute URL', value: `${baseUrl}${item.publicUrl}` },
+      { label: 'CDN URL', value: cdnUrl },
+      { label: 'HTML img tag', value: `<img src="${item.publicUrl}" alt="${item.name}" />` },
+      { label: 'Markdown', value: `![${item.name}](${item.publicUrl})` },
+    ];
   }, []);
+
+  const handleCopyUrl = useCallback((item: MediaItem, format: string) => {
+    const formats = getUrlFormats(item);
+    const selectedFormat = formats.find(f => f.label === format);
+    if (!selectedFormat) return;
+    
+    void navigator.clipboard.writeText(selectedFormat.value).then(() => {
+      setCopiedPath(`${item.path}-${format}`);
+      setTimeout(() => setCopiedPath(null), 2000);
+      setShowUrlOptions(null);
+    });
+  }, [getUrlFormats]);
 
   const handleDelete = async (item: MediaItem) => {
     if (item.isFolder) return;
@@ -303,26 +342,46 @@ export function PublicMediaClient() {
                   </div>
 
                   <div className="flex shrink-0 items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyUrl(item)}
-                      disabled={!item.publicUrl}
-                      aria-label={`Copy URL for ${item.name}`}
-                      title="Copy public URL"
-                      className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium transition hover:border-brand hover:bg-brand hover:text-white disabled:opacity-40"
-                    >
-                      {copiedPath === item.path ? (
-                        <>
-                          <Check className="h-3.5 w-3.5 text-green-500" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3.5 w-3.5" />
-                          <span>Copy URL</span>
-                        </>
+                    <div className="relative url-options-container">
+                      <button
+                        type="button"
+                        onClick={() => setShowUrlOptions(showUrlOptions === item.path ? null : item.path)}
+                        disabled={!item.publicUrl}
+                        aria-label={`Copy URL options for ${item.name}`}
+                        title="Copy URL options"
+                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2 py-1.5 text-xs font-medium transition hover:border-brand hover:bg-brand hover:text-white disabled:opacity-40"
+                      >
+                        {copiedPath?.startsWith(item.path) ? (
+                          <>
+                            <Check className="h-3.5 w-3.5 text-green-500" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Copy URL</span>
+                            <ChevronDown className="h-3 w-3" />
+                          </>
+                        )}
+                      </button>
+
+                      {showUrlOptions === item.path && (
+                        <div className="absolute right-0 top-full z-10 mt-1 w-48 rounded-xl border border-border bg-surface shadow-lg">
+                          <div className="p-1">
+                            {getUrlFormats(item).map((format) => (
+                              <button
+                                key={format.label}
+                                type="button"
+                                onClick={() => handleCopyUrl(item, format.label)}
+                                className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium text-foreground transition hover:bg-muted/20"
+                              >
+                                {format.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
-                    </button>
+                    </div>
 
                     <button
                       type="button"

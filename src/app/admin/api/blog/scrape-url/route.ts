@@ -8,17 +8,40 @@ const scrapeUrlSchema = z.object({
     try {
       const parsed = new URL(url);
       const validPatterns = [
+        // Path patterns
         /\/blog\//i,
         /\/news\//i,
         /\/article\//i,
         /\/post\//i,
         /\/story\//i,
+        /\/topics\//i,
+        /\/reviews\//i,
+        /\/guides\//i,
+        /\/tutorials\//i,
+        /\/learn\//i,
+        /\/resources\//i,
+        /\/features\//i,
+        /\/explore\//i,
+        /\/discover\//i,
+        // Domain patterns
         /blog\./i,
         /news\./i,
         /medium\.com/i,
         /substack\.com/i,
         /wordpress\.org/i,
-        /blogger\.com/i
+        /blogger\.com/i,
+        /outdoorgearlab\.com/i,
+        /gearlab\.com/i,
+        /wirecutter\.com/i,
+        /reviewed\.com/i,
+        /tomsguide\.com/i,
+        /techradar\.com/i,
+        /digitaltrends\.com/i,
+        /cnet\.com/i,
+        /pcmag\.com/i,
+        /engadget\.com/i,
+        /verge\.com/i,
+        /arstechnica\.com/i
       ];
       
       return validPatterns.some(pattern => 

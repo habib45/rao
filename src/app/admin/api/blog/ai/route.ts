@@ -3,7 +3,7 @@ import { requireAdmin } from "@/app/admin/_lib/auth";
 import { z } from "zod";
 
 const aiContentSchema = z.object({
-  type: z.enum(["title", "excerpt", "content", "meta_title", "meta_description", "tags"]),
+  type: z.enum(["title", "excerpt", "content", "meta_title", "meta_description", "tags", "seo_optimization", "affiliate_content"]),
   topic: z.string().min(1).max(200),
   keywords: z.array(z.string()).optional(),
   tone: z.enum(["professional", "casual", "friendly", "technical", "creative"]).default("professional"),
@@ -83,6 +83,40 @@ Keywords: ${keywords.join(", ")}.
 ${existingContent ? `Content context: ${existingContent.substring(0, 500)}` : ''}
 Return only the tags, one per line, without numbering or extra text. Tags should be lowercase and hyphenated if multi-word.`;
 
+    case "seo_optimization":
+      return `Analyze and provide SEO optimization suggestions for this blog content about: ${topic}. ${basePrompt}.
+${existingContent ? `Content to analyze: ${existingContent}` : 'No content provided - provide general SEO tips.'}
+
+Provide specific recommendations for:
+1. Title optimization (current and suggested improvements)
+2. Meta description (150-160 characters with keywords)
+3. Heading structure (H1, H2, H3 hierarchy)
+4. Keyword density and placement
+5. Internal linking opportunities
+6. Readability improvements
+7. Image alt text suggestions
+8. URL structure recommendations
+
+Keywords to focus on: ${keywords.join(", ")}.
+Return structured suggestions in JSON format with sections: title, meta_description, headings, keywords, internal_links, readability, images, url.`;
+
+    case "affiliate_content":
+      return `Generate affiliate marketing content suggestions for: ${topic}. ${basePrompt}.
+${existingContent ? `Existing content: ${existingContent}` : ''}
+
+Provide:
+1. Natural affiliate product placement opportunities
+2. Product review sections with affiliate links
+3. Comparison tables for products
+4. "Best of" recommendation lists
+5. Call-to-action phrases for conversions
+6. Disclosure statements for FTC compliance
+7. Product benefit descriptions
+8. Buying guide sections
+
+Keywords: ${keywords.join(", ")}.
+Return structured suggestions in JSON format with sections: product_placements, reviews, comparisons, recommendations, ctas, disclosures, benefits, buying_guide.`;
+
     default:
       return `Write content about: ${topic}. ${basePrompt}.`;
   }
@@ -94,7 +128,7 @@ async function callAI(prompt: string, model: string = "gemini") {
     
     if (model === "gemini" && GEMINI_API_KEY) {
       console.log("Trying Gemini API...");
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
