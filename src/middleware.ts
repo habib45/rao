@@ -20,6 +20,22 @@ async function handleAdminAuth(request: NextRequest): Promise<NextResponse> {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // HTTPS enforcement (only in production)
+  if (process.env.NODE_ENV === "production" && request.headers.get("x-forwarded-proto") !== "https") {
+    const url = request.nextUrl.clone();
+    url.protocol = "https";
+    return NextResponse.redirect(url);
+  }
+
+  // Canonical WWW/non-WWW redirect (optional - uncomment if needed)
+  // const hostname = request.headers.get("host");
+  // if (hostname?.startsWith("www.")) {
+  //   const url = request.nextUrl.clone();
+  //   url.hostname = hostname.replace(/^www\./, "");
+  //   return NextResponse.redirect(url);
+  // }
+
   if (pathname.startsWith("/admin")) return handleAdminAuth(request);
   return intlMiddleware(request);
 }

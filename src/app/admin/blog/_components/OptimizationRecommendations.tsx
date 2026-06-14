@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/admin/_components/ui/card";
-import { CheckCircle2, Circle, Loader2, ChevronDown, ChevronUp, X, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle2, Circle, Loader2, ChevronDown, ChevronUp, X, ThumbsUp, ThumbsDown, Code, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 interface RecommendationItem {
@@ -22,21 +22,70 @@ interface OptimizationRecommendationsProps {
   onResolveRecommendation: (type: string, suggestion: string) => Promise<void>;
 }
 
-export function OptimizationRecommendations({ 
-  recommendations, 
-  type, 
-  onResolveRecommendation 
+export function OptimizationRecommendations({
+  recommendations,
+  type,
+  onResolveRecommendation
 }: OptimizationRecommendationsProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [resolvingItems, setResolvingItems] = useState<Set<string>>(new Set());
   const [resolvedItems, setResolvedItems] = useState<Set<string>>(new Set());
   const [rejectedItems, setRejectedItems] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<Record<string, "html" | "json">>({});
+  const [showFullJson, setShowFullJson] = useState(false);
+  const [expandedContent, setExpandedContent] = useState<Record<string, boolean>>({});
+
+  // Initialize first section as expanded on mount (accordion style)
+  useEffect(() => {
+    const sections: Record<string, boolean> = {};
+    const keys = Object.keys(recommendations);
+    if (keys.length > 0) {
+      sections[keys[0]] = true; // Only expand first section
+      keys.slice(1).forEach(key => {
+        sections[key] = false;
+      });
+    }
+    setExpandedSections(sections);
+  }, [recommendations]);
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
+    setExpandedSections(prev => {
+      // Accordion behavior: close all other sections when one is opened
+      const newSections: Record<string, boolean> = {};
+      Object.keys(prev).forEach(key => {
+        newSections[key] = key === section ? !prev[key] : false;
+      });
+      return newSections;
+    });
+  };
+
+  const toggleViewMode = (itemId: string) => {
+    setViewMode(prev => ({
       ...prev,
-      [section]: !prev[section]
+      [itemId]: prev[itemId] === "html" ? "json" : "html"
     }));
+  };
+
+  const toggleContentExpansion = (itemId: string) => {
+    setExpandedContent(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const formatSuggestion = (suggestion: string, mode: "html" | "json") => {
+    if (mode === "json") {
+      try {
+        // Try to parse as JSON for pretty printing
+        const parsed = JSON.parse(suggestion);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        // If not valid JSON, show as-is
+        return suggestion;
+      }
+    }
+    // HTML mode - render as-is
+    return suggestion;
   };
 
   const handleResolve = async (itemType: string, suggestion: string, itemId: string) => {
@@ -159,6 +208,15 @@ export function OptimizationRecommendations({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">🚀 AI Optimization Recommendations</h3>
         <div className="flex items-center gap-4 text-sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFullJson(!showFullJson)}
+            className="h-8"
+          >
+            {showFullJson ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+            {showFullJson ? "Hide Full JSON" : "Show Full JSON"}
+          </Button>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-green-600">{resolvedItems.size} Applied</span>
@@ -174,9 +232,28 @@ export function OptimizationRecommendations({
         </div>
       </div>
 
+      {showFullJson && (
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              Full JSON Response
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs font-mono max-h-96 overflow-y-auto">
+              {JSON.stringify(recommendations, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
       {Object.entries(groupedRecommendations).map(([category, items]) => (
         <Card key={category} className="border-border">
-          <CardHeader className="pb-3">
+          <CardHeader 
+            className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors"
+            onClick={() => toggleSection(category)}
+          >
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
                 {getCategoryIcon(category)}
@@ -188,7 +265,6 @@ export function OptimizationRecommendations({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => toggleSection(category)}
                 className="h-8 w-8 p-0"
               >
                 {expandedSections[category] ? (
@@ -229,8 +305,54 @@ export function OptimizationRecommendations({
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground mb-3">{item.description}</p>
-                      <div className="bg-white/70 rounded-lg p-3 text-xs font-mono max-h-24 overflow-y-auto border">
-                        {item.suggestion}
+                      <div className="bg-white/70 rounded-lg border overflow-hidden">
+                        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b">
+                          <span className="text-xs font-medium text-gray-600">
+                            {viewMode[item.id] === "json" ? "JSON View" : "HTML View"}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleContentExpansion(item.id)}
+                              className="h-6 w-6 p-0"
+                              title={expandedContent[item.id] ? "Collapse" : "Expand"}
+                            >
+                              {expandedContent[item.id] ? (
+                                <ChevronUp className="h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleViewMode(item.id)}
+                              className="h-6 w-6 p-0"
+                              title={viewMode[item.id] === "json" ? "Switch to HTML" : "Switch to JSON"}
+                            >
+                              {viewMode[item.id] === "json" ? (
+                                <Eye className="h-3 w-3" />
+                              ) : (
+                                <Code className="h-3 w-3" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                        <div 
+                          className={`p-3 text-xs font-mono overflow-y-auto transition-all duration-300 ${
+                            expandedContent[item.id] ? 'max-h-none' : 'max-h-64'
+                          }`}
+                        >
+                          {viewMode[item.id] === "json" ? (
+                            <pre className="whitespace-pre-wrap break-words">{formatSuggestion(item.suggestion, "json")}</pre>
+                          ) : (
+                            <div 
+                              className="prose prose-xs max-w-none"
+                              dangerouslySetInnerHTML={{ __html: formatSuggestion(item.suggestion, "html") }}
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                     

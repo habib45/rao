@@ -7,7 +7,7 @@ const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 export async function GET() {
   await requireAdmin();
 
-  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts?limit=200`, { cache: "no-store" });
+  const res = await fetch(`${MYSQL_API_URL}/api/blog/posts?limit=200&sort=published_at`, { cache: "no-store" });
   const json = await res.json() as { data: unknown[] };
   return NextResponse.json({ posts: json.data ?? [] });
 }

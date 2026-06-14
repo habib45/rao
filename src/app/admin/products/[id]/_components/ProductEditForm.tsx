@@ -19,6 +19,7 @@ import { WizardBuilder } from "@/app/admin/blog/_components/WizardBuilder";
 import { WizardHelp } from "@/app/admin/blog/_components/WizardHelp";
 import { AttributesEditor } from "@/app/admin/products/_components/AttributesEditor";
 import { ComparisonWizardBuilder } from "@/app/admin/products/_components/ComparisonWizardBuilder";
+import { FAQEditor } from "@/app/admin/products/_components/FAQEditor";
 import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
 import type { Product, ProductStatus } from "@/types/domain";
@@ -251,6 +252,7 @@ export function ProductEditForm({
           <TabsTrigger value="features">Features</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="faqs">FAQs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-4 space-y-4">
@@ -744,6 +746,10 @@ export function ProductEditForm({
               Add URL
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="faqs" className="mt-4">
+          <FAQEditor productId={product.id} />
         </TabsContent>
       </Tabs>
     </div>

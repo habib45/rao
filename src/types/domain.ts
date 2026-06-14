@@ -121,6 +121,19 @@ export interface BlogPost {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  note: string | null;
   blog_categories?: BlogCategory | null;
   blog_post_tags?: { blog_tags: BlogTag }[];
+}
+
+export interface ProductFAQ {
+  id: string;
+  product_id: string;
+  question: string;
+  answer: string;
+  locale: LocaleCode;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }

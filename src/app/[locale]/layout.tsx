@@ -33,6 +33,17 @@ export async function generateMetadata({
       default: "RaoFinds — Best Products on Amazon",
     },
     description: descriptions[loc] ?? descriptions.en,
+    keywords: [
+      "Amazon products",
+      "product reviews",
+      "best deals",
+      "online shopping",
+      "product comparisons",
+      "affiliate",
+      "RaoFinds",
+    ],
+    authors: [{ name: "RaoFinds", url: process.env.NEXT_PUBLIC_SITE_URL }],
+    publisher: "RaoFinds",
     metadataBase: process.env.NEXT_PUBLIC_SITE_URL
       ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
       : undefined,
@@ -53,6 +64,23 @@ export async function generateMetadata({
     appleWebApp: {
       title: "RaoFinds",
       statusBarStyle: "default",
+    },
+    openGraph: {
+      type: "website",
+      siteName: "RaoFinds",
+      images: [
+        {
+          url: "/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: "RaoFinds - Best Products on Amazon",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      site: "@raofinds",
+      creator: "@raofinds",
     },
     alternates: {
       canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}`,
@@ -83,6 +111,25 @@ export default async function LocaleLayout({
 
   const bodyClassName = locale === "bn-BD" ? "leading-[1.75]" : "";
 
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "RaoFinds",
+    url: process.env.NEXT_PUBLIC_SITE_URL,
+    logo: `${process.env.NEXT_PUBLIC_SITE_URL}/icon.svg`,
+    description: "Shop the best Amazon products with expert reviews, comparisons & deals.",
+    sameAs: [
+      "https://twitter.com/raofinds",
+      "https://facebook.com/raofinds",
+      "https://linkedin.com/company/raofinds",
+    ],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "contact@raofinds.com",
+    },
+  };
+
   return (
     <html lang={locale} dir="ltr">
       <head>
@@ -94,6 +141,10 @@ export default async function LocaleLayout({
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="apple-mobile-web-app-title" content="RaoFinds" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </head>
       <body className={`${bodyClassName} min-h-screen flex flex-col font-sans antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>

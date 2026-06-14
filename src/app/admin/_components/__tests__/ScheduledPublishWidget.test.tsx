@@ -12,12 +12,14 @@ describe("ScheduledPublishWidget", () => {
         asin: "B0000001AA",
         name: { en: "Alpha Gadget" },
         publish_at: "2099-01-15T10:00:00.000Z",
+        scheduled_at: "2099-01-15T10:00:00.000Z",
       },
       {
         id: "id-2",
         asin: "B0000002BB",
         name: { en: "Beta Gadget" },
         publish_at: "2099-02-01T08:30:00.000Z",
+        scheduled_at: "2099-02-01T08:30:00.000Z",
       },
     ];
 
@@ -48,6 +50,7 @@ describe("ScheduledPublishWidget", () => {
         asin: "B000000XYZ",
         name: { en: "Gamma Gadget" },
         publish_at: iso,
+        scheduled_at: iso,
       },
     ];
 

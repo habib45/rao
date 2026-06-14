@@ -54,70 +54,376 @@ Keywords to include: ${keywords.join(", ")}.
 Make it 150-200 characters. ${existingContent ? `Context: ${existingContent}` : ''}
 Return only the excerpt text.`;
 
-    case "content":
-      return `Write a comprehensive blog post about: ${topic}. ${basePrompt}.
-Keywords to include: ${keywords.join(", ")}. 
-Structure with:
-- Compelling introduction
-- 3-5 main points with subheadings
-- Practical examples or insights
-- Conclusion with call-to-action
-${existingContent ? `Continue from this content: ${existingContent}` : ''}
-Return only the blog post content in HTML format with proper heading tags (h2, h3) and paragraphs.`;
+case "content":
+  return `You are an expert SEO content writer and Amazon Affiliate marketing specialist.
 
-    case "meta_title":
-      return `Generate 5 SEO-optimized meta titles about: ${topic}. ${basePrompt}.
-Keywords: ${keywords.join(", ")}. 
-Keep each under 60 characters. 
-Return only the titles, one per line.`;
+Write a comprehensive, high-quality, SEO-optimized affiliate article about: ${topic}.
 
-    case "meta_description":
-      return `Write an SEO-optimized meta description for a blog post about: ${topic}. ${basePrompt}.
-Keywords: ${keywords.join(", ")}. 
-Keep it 150-160 characters. 
-${existingContent ? `Context: ${existingContent}` : ''}
-Return only the meta description text.`;
+Primary Keywords: ${keywords.join(", ")}
 
-    case "tags":
-      return `Generate 5-10 relevant tags for a blog post about: ${topic}. ${basePrompt}.
-Keywords: ${keywords.join(", ")}.
-${existingContent ? `Content context: ${existingContent.substring(0, 500)}` : ''}
-Return only the tags, one per line, without numbering or extra text. Tags should be lowercase and hyphenated if multi-word.`;
+Goals:
+- Rank for target keywords in Google search.
+- Match search intent perfectly.
+- Increase Amazon affiliate conversions.
+- Follow Google's E-E-A-T guidelines (Experience, Expertise, Authoritativeness, Trustworthiness).
+- Provide genuinely helpful and accurate information.
 
-    case "seo_optimization":
-      return `Analyze and provide SEO optimization suggestions for this blog content about: ${topic}. ${basePrompt}.
-${existingContent ? `Content to analyze: ${existingContent}` : 'No content provided - provide general SEO tips.'}
+Article Structure:
+- SEO-optimized title (H2 - not H1)
+- Engaging introduction that addresses the reader's problem
+- Quick summary section
+- 5-10 detailed sections with H2 and H3 headings
+- Product recommendations (if applicable)
+- Pros and Cons for each recommendation
+- Comparison table (HTML table)
+- Buying guide section
+- Key features to consider
+- Common mistakes to avoid
+- Frequently Asked Questions (FAQ)
+- Final verdict and conclusion
+- Strong call-to-action
 
-Provide specific recommendations for:
-1. Title optimization (current and suggested improvements)
-2. Meta description (150-160 characters with keywords)
-3. Heading structure (H1, H2, H3 hierarchy)
-4. Keyword density and placement
-5. Internal linking opportunities
-6. Readability improvements
-7. Image alt text suggestions
-8. URL structure recommendations
+Content Requirements:
+- Minimum 2500-4000 words.
+- Use primary keywords naturally throughout the article.
+- Include related semantic keywords and long-tail keywords.
+- Write in a conversational, human-like tone.
+- Use short paragraphs for readability.
+- Include bullet points and numbered lists where appropriate.
+- Provide practical examples and real-world insights.
+- Explain benefits, not just features.
+- Be honest about advantages and disadvantages.
+- Avoid keyword stuffing.
+- Avoid AI-sounding phrases and generic filler content.
+- Optimize content for featured snippets and People Also Ask sections.
 
-Keywords to focus on: ${keywords.join(", ")}.
-Return structured suggestions in JSON format with sections: title, meta_description, headings, keywords, internal_links, readability, images, url.`;
+SEO Requirements:
+- Include keyword in the introduction, headings, and conclusion.
+- Create descriptive H2 and H3 headings.
+- Answer common search queries related to the topic.
+- Include comparison and buyer-intent content.
+- Focus on helping users make informed purchasing decisions.
 
-    case "affiliate_content":
-      return `Generate affiliate marketing content suggestions for: ${topic}. ${basePrompt}.
-${existingContent ? `Existing content: ${existingContent}` : ''}
+${existingContent ? `Continue and expand from this content while maintaining style and structure: ${existingContent}` : ''}
 
-Provide:
-1. Natural affiliate product placement opportunities
-2. Product review sections with affiliate links
-3. Comparison tables for products
-4. "Best of" recommendation lists
-5. Call-to-action phrases for conversions
-6. Disclosure statements for FTC compliance
-7. Product benefit descriptions
-8. Buying guide sections
+CRITICAL FORMATTING RULES FOR CKEDITOR:
+- Return ONLY clean HTML content without any markdown code blocks, backticks, or explanations.
+- Use <h2> for main section headings (NOT <h1>).
+- Use <h3> for subsection headings.
+- Use <p> tags for all paragraphs.
+- Use <ul> and <li> for unordered lists.
+- Use <ol> and <li> for numbered lists.
+- Use <table>, <thead>, <tbody>, <tr>, <th>, <td> for tables.
+- Use <strong> for bold text.
+- Use <em> for italic text.
+- DO NOT wrap the HTML in markdown code blocks like \`\`\`html or \`\`\`.
+- DO NOT include any text before or after the HTML content.
+- Start directly with the HTML tags.
 
-Keywords: ${keywords.join(", ")}.
-Return structured suggestions in JSON format with sections: product_placements, reviews, comparisons, recommendations, ctas, disclosures, benefits, buying_guide.`;
+Example of correct format:
+<h2>Your Main Title Here</h2>
+<p>Introduction paragraph with relevant information...</p>
+<h3>Subsection Title</h3>
+<p>More content here...</p>
+<ul>
+<li>First point</li>
+<li>Second point</li>
+</ul>`;
+   case "meta_title":
+  return `You are an expert SEO strategist and affiliate marketing copywriter.
 
+Generate 5 highly clickable SEO meta titles for: ${topic}.
+
+Primary Keywords: ${keywords.join(", ")}
+
+Requirements:
+- Keep each title under 60 characters.
+- Include the primary keyword naturally.
+- Optimize for high CTR (Click-Through Rate).
+- Match search intent.
+- Use power words where appropriate.
+- Make titles compelling but not clickbait.
+- Prioritize commercial and buyer-intent searches.
+- Include the current year when relevant.
+- Create title variations such as:
+  - Best
+  - Review
+  - Comparison
+  - Buying Guide
+  - Top Picks
+
+Return only the 5 titles, one per line.
+Do not number the titles.
+Do not include explanations or additional text.`;
+
+case "meta_description":
+  return `You are an expert SEO strategist and Amazon Affiliate content writer.
+
+Write 5 SEO-optimized meta descriptions for an article about: ${topic}.
+
+Primary Keywords: ${keywords.join(", ")}
+
+Requirements:
+- Each meta description must be 150-160 characters.
+- Include the primary keyword naturally.
+- Encourage clicks with a strong value proposition.
+- Match search intent and buyer intent.
+- Highlight benefits, comparisons, reviews, or buying advice.
+- Use action-oriented language.
+- Avoid keyword stuffing.
+- Make each variation unique.
+- Optimize for high CTR from Google search results.
+
+${existingContent ? `Article Context: ${existingContent}` : ''}
+
+Return only the 5 meta descriptions.
+One description per line.
+Do not number them.
+Do not include explanations or additional text.`;
+
+
+case "tags":
+  return `You are an SEO content strategist and Amazon Affiliate marketing expert.
+
+Generate 10-15 highly relevant SEO tags for an article about: ${topic}.
+
+Primary Keywords: ${keywords.join(", ")}
+
+Requirements:
+- Tags must be highly relevant to the topic.
+- Include primary keyword variations.
+- Include related semantic keywords.
+- Include buyer-intent and product-related terms when appropriate.
+- Avoid duplicate or overly broad tags.
+- Use lowercase only.
+- Use hyphens for multi-word tags.
+- Focus on topical authority and content categorization.
+- Prioritize tags that support internal linking and SEO clustering.
+
+${existingContent ? `Article Context: ${existingContent.substring(0, 1000)}` : ''}
+
+Return only the tags.
+One tag per line.
+No numbering.
+No explanations.
+No extra text.`;
+
+case "seo_optimization":
+  return `You are a senior SEO strategist specializing in Amazon Affiliate websites and Google search ranking optimization.
+
+Analyze the following blog content and provide advanced SEO optimization recommendations for: ${topic}.
+
+Primary Keywords: ${keywords.join(", ")}
+
+${existingContent ? `Content to analyze:\n${existingContent}` : 'No content provided. Provide general SEO optimization strategy for this topic.'}
+
+Your goal is to improve:
+- Google first-page ranking potential
+- E-E-A-T (Experience, Expertise, Authority, Trust)
+- Affiliate conversion rate
+- Search intent match (informational + commercial intent)
+
+Provide detailed, actionable SEO improvements for the following categories:
+
+1. TITLE OPTIMIZATION
+- Evaluate current title (if present)
+- Suggest 3 improved SEO titles
+- Focus on CTR, keyword placement, and search intent
+
+2. META DESCRIPTION
+- Write 1 optimized meta description (150–160 characters)
+- Include primary keyword naturally
+- Focus on clicks and user intent
+
+3. HEADING STRUCTURE (H1–H3)
+- Evaluate current structure
+- Suggest improved hierarchy
+- Ensure logical flow and keyword-rich headings
+
+4. KEYWORD OPTIMIZATION
+- Primary keyword placement analysis
+- Secondary/semantic keyword suggestions
+- Keyword density recommendations (natural, not spammy)
+
+5. INTERNAL LINKING STRATEGY
+- Suggest 3–8 internal linking opportunities
+- Recommend anchor text ideas
+- Suggest related topic clusters
+
+6. READABILITY IMPROVEMENTS
+- Paragraph length optimization
+- Sentence clarity improvements
+- Scannability enhancements (bullets, tables, lists)
+
+7. IMAGE SEO
+- Suggest relevant image ideas
+- Provide alt text examples optimized for SEO
+- Recommend where images should be placed
+
+8. URL STRUCTURE
+- Suggest clean SEO-friendly slug
+- Keep short, readable, keyword-focused
+
+9. FEATURED SNIPPET OPTIMIZATION
+- Suggest content sections that can win snippets
+- Provide short answer formats if applicable
+
+OUTPUT FORMAT:
+Return ONLY valid JSON in the following structure:
+
+{
+  "title": {
+    "current_analysis": "",
+    "suggestions": [],
+    "improved_titles": []
+  },
+  "meta_description": "",
+  "headings": {
+    "analysis": "",
+    "suggested_structure": []
+  },
+  "keywords": {
+    "primary": [],
+    "secondary": [],
+    "placement_notes": ""
+  },
+  "internal_links": {
+    "opportunities": [],
+    "anchor_texts": []
+  },
+  "readability": {
+    "issues": [],
+    "improvements": []
+  },
+  "images": {
+    "ideas": [],
+    "alt_text_examples": []
+  },
+  "url": {
+    "suggested_slug": "",
+    "notes": ""
+  },
+  "featured_snippets": {
+    "opportunities": [],
+    "suggestions": []
+  }
+}
+
+Rules:
+- Do NOT return markdown.
+- Do NOT include explanations outside JSON.
+- Be highly specific and actionable.
+- Focus on ranking potential for Google first page.
+- Optimize for Amazon affiliate conversions.
+- Avoid generic SEO advice.`;
+case "affiliate_content":
+  return `You are a senior Amazon Affiliate marketing strategist and conversion-focused SEO copywriter.
+
+Generate high-conversion affiliate content suggestions for: ${topic}.
+
+Primary Keywords: ${keywords.join(", ")}
+
+${existingContent ? `Existing content to analyze:\n${existingContent}` : ''}
+
+Your goal is to maximize:
+- Amazon affiliate click-through rate (CTR)
+- Conversion rate
+- Google organic rankings
+- User trust (E-E-A-T compliance)
+- Buyer intent satisfaction
+
+Provide highly practical, implementation-ready suggestions for affiliate content structure.
+
+Include:
+
+1. PRODUCT PLACEMENT OPPORTUNITIES
+- Where to naturally insert affiliate products in content
+- Context-based placement (intro, comparison, mid-content, conclusion)
+- Non-intrusive placement strategy
+
+2. PRODUCT REVIEW SECTIONS
+- Suggested review section structures
+- What to include in each review (features, pros, cons, use cases)
+- How to write trust-building reviews (non-salesy tone)
+
+3. COMPARISON TABLES
+- Suggested product comparison formats
+- Key comparison attributes (price, features, durability, use case)
+- Table structure optimized for conversions
+
+4. RECOMMENDATION LISTS ("BEST OF")
+- "Best X for Y" content ideas
+- Tiered recommendations (Best overall, budget, premium)
+- Use-case based product grouping
+
+5. CALL-TO-ACTION (CTA) PHRASES
+- Natural, high-converting CTA examples
+- Non-pushy affiliate link text
+- Contextual CTAs for Amazon clicks
+
+6. FTC DISCLOSURE STRATEGY
+- Proper affiliate disclosure placement
+- Compliant disclosure text examples
+- Where to place disclosure in article
+
+7. PRODUCT BENEFIT ANGLES
+- Emotional + practical benefits
+- Problem-solution framing
+- Feature-to-benefit transformation
+
+8. BUYING GUIDE STRUCTURE
+- What sections to include in a buying guide
+- Decision-making factors
+- Common mistakes buyers make
+- Budget vs premium considerations
+
+OUTPUT FORMAT:
+Return ONLY valid JSON in this structure:
+
+{
+  "product_placements": {
+    "intro": [],
+    "mid_content": [],
+    "comparison_sections": [],
+    "conclusion": []
+  },
+  "reviews": {
+    "structure": [],
+    "key_points": []
+  },
+  "comparisons": {
+    "table_structure": [],
+    "attributes": []
+  },
+  "recommendations": {
+    "best_of_ideas": [],
+    "tiered_suggestions": []
+  },
+  "ctas": {
+    "phrases": [],
+    "placement_strategy": ""
+  },
+  "disclosures": {
+    "text_examples": [],
+    "placement": ""
+  },
+  "benefits": {
+    "emotional": [],
+    "practical": []
+  },
+  "buying_guide": {
+    "sections": [],
+    "decision_factors": [],
+    "common_mistakes": []
+  }
+}
+
+Rules:
+- Do NOT return markdown.
+- Do NOT include explanations outside JSON.
+- Focus on real-world Amazon affiliate monetization strategies.
+- Avoid spammy or deceptive patterns.
+- Prioritize trust + SEO + conversion balance.`;
     default:
       return `Write content about: ${topic}. ${basePrompt}.`;
   }

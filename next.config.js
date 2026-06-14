@@ -60,6 +60,8 @@ const nextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=()",
           },
+          // Enable Brotli compression for better performance
+          { key: "Accept-Encoding", value: "br, gzip" },
         ],
       },
       {
@@ -80,8 +82,18 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: "/images/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
     ];
   },
+  compress: true,
 };
 
 module.exports = withNextIntl(nextConfig);

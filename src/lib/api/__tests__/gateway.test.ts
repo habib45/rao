@@ -360,7 +360,8 @@ describe("gateway.ts", () => {
       const result = await gwGetPublishedBlogPosts(20, 0);
       expect(result).toHaveLength(1);
       expect(result[0]?.blog_post_tags).toHaveLength(2);
-      expect(result[0]?.blog_post_tags[0]?.blog_tags.name).toBe("Technology");
+      const tagName = result[0]?.blog_post_tags[0]?.blog_tags?.name;
+      expect(tagName).toBe("Technology");
     });
 
     it("gwGetFeaturedBlogPosts calls /api/blog with featured flag", async () => {

@@ -386,7 +386,7 @@ export async function gwGetPublishedBlogPosts(
   try {
     const { data } = await gw<{ data: Record<string, unknown>[] }>(
       "/api/blog/posts",
-      { status: "published", category_id: categoryId, search, limit, offset },
+      { status: "published", category_id: categoryId, search, limit, offset, sort: "published_at" },
     );
     return data.map(adaptBlogPost);
   } catch (e) {

@@ -10,28 +10,30 @@ import { Button } from "@/app/admin/_components/ui/button";
 import { Sparkles } from "lucide-react";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Select } from "@/app/admin/_components/ui/select";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/app/admin/_components/ui/tabs";
 import type { BlogPost, BlogCategory } from "@/types/domain";
+import { decodeWizard } from "@/lib/wizard";
+import type { WizardStep } from "@/lib/wizard";
+import { parseAIJSON } from "@/lib/json-parser";
+
+// Dynamic imports only for components with browser dependencies
+const RichTextEditor = dynamic(
+  () => import("@/app/admin/_components/ui/RichTextEditor"),
+  { ssr: false },
+);
+
+const GrammarlyEditor = dynamic(
+  () => import("./GrammarlyEditor").then(mod => ({ default: mod.GrammarlyEditor })),
+  { ssr: false }
+);
+
+// Regular imports for components that don't have browser dependencies
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/admin/_components/ui/tabs";
 import { WizardBuilder } from "./WizardBuilder";
 import { WizardHelp } from "./WizardHelp";
 import { AIContentAssistant } from "./AIContentAssistant";
 import { AIContentOptimizer } from "./AIContentOptimizer";
 import { ImprovedSEOOptimizer } from "./ImprovedSEOOptimizer";
 import { URLContentExtractor } from "./URLContentExtractor";
-import { GrammarlyEditor } from "./GrammarlyEditor";
-import { decodeWizard } from "@/lib/wizard";
-import type { WizardStep } from "@/lib/wizard";
-import { parseAIJSON } from "@/lib/json-parser";
-
-const RichTextEditor = dynamic(
-  () => import("@/app/admin/_components/ui/RichTextEditor"),
-  { ssr: false },
-);
 
 const LOCALES = [
   { code: "en", label: "English" },
@@ -57,6 +59,7 @@ interface FormState {
   read_time_minutes: number;
   published_at: string;
   tag_names: string;
+  note: string;
 }
 
 function readTranslation(
@@ -140,6 +143,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     read_time_minutes: post?.read_time_minutes ?? 0,
     published_at: toDatetimeLocal(post?.published_at),
     tag_names: initialTags,
+    note: post?.note ?? "",
   });
 
   // Set domain-based default avatar URL after component mounts
@@ -235,6 +239,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        note: form.note || null,
       };
 
       // Log payload for debugging
@@ -1469,6 +1474,23 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
             setForm((prev) => ({ ...prev, published_at: e.target.value }))
           }
         />
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground">
+            Admin Note (Private)
+          </label>
+          <textarea
+            value={form.note}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, note: e.target.value }))
+            }
+            placeholder="Add personal notes for admin reference only (not shown in frontend)"
+            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand min-h-[100px] resize-y"
+          />
+          <p className="text-xs text-muted">
+            This note is only visible to admins and will not be displayed on the frontend.
+          </p>
+        </div>
       </div>
 
       <label className="inline-flex items-center gap-2 text-sm font-medium text-foreground">

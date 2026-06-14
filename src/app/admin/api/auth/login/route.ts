@@ -1,35 +1,50 @@
 import { NextResponse } from "next/server";
 
-// Simple admin authentication (in production, use proper auth with database)
-const ADMIN_CREDENTIALS = {
-  email: "admin@admin.com",
-  password: "Password@123",
-};
+const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, rememberMe } = body;
 
-    // Validate credentials
-    if (email !== ADMIN_CREDENTIALS.email || password !== ADMIN_CREDENTIALS.password) {
+    // Forward to API Gateway for authentication
+    const res = await fetch(`${MYSQL_API_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, rememberMe }),
+    });
+
+    if (!res.ok) {
+      const error = await res.json() as { error?: string };
       return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
+        { error: error.error || "Invalid credentials" },
+        { status: res.status }
       );
     }
 
-    // Set auth cookie with minimal configuration
+    const data = await res.json() as {
+      id: string;
+      email: string;
+      role: string;
+      name: string;
+      username?: string;
+    };
+
+    // Set auth cookie
     const response = NextResponse.json({
-      id: "1",
-      email: ADMIN_CREDENTIALS.email,
-      role: "admin",
-      name: "Admin User",
+      id: data.id,
+      email: data.email,
+      role: data.role,
+      name: data.name,
+      username: data.username,
     });
 
     response.cookies.set("admin_token", "authenticated", {
-      maxAge: 60 * 60 * 24, // 24 hours
+      maxAge: rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24, // 30 days if remember me, else 24 hours
       path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
     });
 
     return response;

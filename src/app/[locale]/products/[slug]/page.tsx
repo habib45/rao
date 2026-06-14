@@ -8,8 +8,11 @@ import { formatPrice } from "@/lib/i18n/format";
 import { getProductBySlug, getRelatedProducts } from "@/lib/queries/products";
 import { getSiteSettings, getComparisonKeys } from "@/lib/queries/settings";
 import { getComparisonCandidates } from "@/lib/queries/comparison";
+import { getProductFAQs } from "@/lib/queries/faqs";
+import { normalizeImage, buildProductMetadata } from "@/lib/seo";
 import AddToCartButton from "@/components/AddToCartButton";
 import ProductCard from "@/components/ProductCard";
+import { FAQSchema } from "@/components/schema/FAQSchema";
 import { parseContentSegments } from "@/lib/wizard";
 import { WizardBlock } from "@/app/[locale]/blog/[slug]/_components/WizardBlock";
 // import { ComparisonWizard } from "./_components/ComparisonWizard";
@@ -35,29 +38,24 @@ export async function generateMetadata({
     ? `${description.slice(0, 140)}... Buy on Amazon at best price.`
     : `Buy ${name} on Amazon at best price. Expert reviews and comparisons.`;
 
-  return {
+  const ogImage = primaryImage
+    ? normalizeImage({
+        url: primaryImage.url,
+        alt: name,
+      })
+    : undefined;
+
+  return buildProductMetadata({
     title: (t(product.meta_title, loc) as string) || name,
     description: (t(product.meta_description, loc) as string) || metaDescription,
-    openGraph: {
-      title: name,
-      description: (t(product.meta_description, loc) as string) || metaDescription,
-      images: primaryImage ? [{ url: primaryImage.url }] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: name,
-      description: (t(product.meta_description, loc) as string) || metaDescription,
-      images: primaryImage ? [primaryImage.url] : [],
-    },
-    alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}/products/${t(product.slug, loc)}`,
-      languages: {
-        en: `/en/products/${t(product.slug, "en")}`,
-        "bn-BD": `/bn-BD/products/${t(product.slug, "bn-BD")}`,
-        sv: `/sv/products/${t(product.slug, "sv")}`,
-      },
-    },
-  };
+    path: `/${loc}/products/${t(product.slug, loc)}`,
+    image: ogImage,
+    price: product.price_cents ? product.price_cents / 100 : undefined,
+    currency: product.currency,
+    availability: product.availability === "in_stock" ? "in_stock" : "out_of_stock",
+    rating: product.rating ?? undefined,
+    reviewCount: product.review_count ?? undefined,
+  });
 }
 
 function ProductJsonLd({
@@ -125,10 +123,11 @@ export default async function ProductPage({
   ]);
   if (!product) notFound();
 
-  const [related] = await Promise.all([
+  const [related, comparisonCandidates, comparisonKeys, faqs] = await Promise.all([
     getRelatedProducts(product.id, product.category_id, 4),
     getComparisonCandidates(product.id, product.category_id, 10),
     getComparisonKeys(),
+    getProductFAQs(product.id),
   ]);
 
   const tProduct = await getTranslations("product");
@@ -139,9 +138,29 @@ export default async function ProductPage({
   const otherImages =
     product.product_images?.filter((img) => !img.is_primary) ?? [];
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}` },
+      { "@type": "ListItem", position: 2, name: "Products", item: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}/products` },
+      { "@type": "ListItem", position: 3, name, item: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}/products/${t(product.slug, loc)}` },
+    ],
+  };
+
+  // Filter FAQs by current locale
+  const localeFAQs = faqs.filter((faq) => faq.locale === locale && faq.is_active);
+
   return (
     <>
       <ProductJsonLd product={product} locale={loc} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      {localeFAQs.length > 0 && (
+        <FAQSchema faqs={localeFAQs.map((faq) => ({ question: faq.question, answer: faq.answer }))} />
+      )}
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -323,6 +342,22 @@ export default async function ProductPage({
                     <li key={index}>{feature}</li>
                   ))}
                 </ul>
+              </div>
+            )}
+            {/* FAQs */}
+            {localeFAQs.length > 0 && (
+              <div className="mt-8">
+                <h2 className="text-lg font-semibold text-foreground mb-3">
+                  Frequently Asked Questions
+                </h2>
+                <div className="space-y-4">
+                  {localeFAQs.map((faq) => (
+                    <div key={faq.id} className="border-b border-border pb-4">
+                      <h3 className="font-medium text-foreground mb-2">{faq.question}</h3>
+                      <p className="text-sm text-muted">{faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

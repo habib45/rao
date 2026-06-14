@@ -42,6 +42,7 @@ export const blogPostInputSchema = z.object({
   overall_seo_score: z.number().int().min(0).max(100).nullable().optional(),
   published_at: z.string().nullable().optional(),
   tag_names: z.array(z.string()).optional(),
+  note: z.string().nullable().optional(),
 });
 
 export type BlogPostInput = z.infer<typeof blogPostInputSchema>;

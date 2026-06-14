@@ -128,21 +128,33 @@ export default async function CategoryPage({
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const canonicalUrl = `${siteUrl}/${locale}/categories/${slug}`;
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/${locale}` },
+      { "@type": "ListItem", position: 2, name: "Products", item: `${siteUrl}/${locale}/products` },
+      { "@type": "ListItem", position: 3, name, item: canonicalUrl },
+    ],
+  };
+
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name,
+    description: description || `Browse the best ${name} products on RaoFinds — curated Amazon deals and reviews.`,
+    url: canonicalUrl,
+  };
+
   return (
     <div className="bg-surface min-h-screen">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            itemListElement: [
-              { "@type": "ListItem", position: 1, name: "Home", item: `${siteUrl}/${locale}` },
-              { "@type": "ListItem", position: 2, name: "Products", item: `${siteUrl}/${locale}/products` },
-              { "@type": "ListItem", position: 3, name, item: canonicalUrl },
-            ],
-          }),
-        }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
       />
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
 

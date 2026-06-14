@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/admin/_components/ui/card";
 import { Badge } from "@/app/admin/_components/ui/badge";
+import { Dialog } from "@/app/admin/_components/ui/dialog";
+import { ChevronDown, ChevronUp, Code, Maximize2 } from "lucide-react";
 // Local Checkbox component to avoid import issues
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   checked?: boolean;
@@ -150,6 +152,11 @@ export function ImprovedSEOOptimizer({
   const [selectedRecommendations, setSelectedRecommendations] = useState<Set<string>>(new Set());
   const [selectedAIModel, setSelectedAIModel] = useState<string>("gpt-4");
   const [isApplyingOptimizations, setIsApplyingOptimizations] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [expandedContent, setExpandedContent] = useState<Record<string, boolean>>({});
+  const [viewMode, setViewMode] = useState<Record<string, "html" | "json">>({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<{ title: string; content: string; mode: "html" | "json" } | null>(null);
 
   const analyzeSEO = async () => {
     setIsAnalyzing(true);
@@ -507,6 +514,60 @@ export function ImprovedSEOOptimizer({
     setSelectedRecommendations(newSelected);
   };
 
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      // Accordion behavior: close all other sections when one is opened
+      const newSections: Record<string, boolean> = {};
+      Object.keys(prev).forEach(key => {
+        newSections[key] = key === section ? !prev[key] : false;
+      });
+      return newSections;
+    });
+  };
+
+  const toggleContentExpansion = (itemId: string) => {
+    setExpandedContent(prev => ({
+      ...prev,
+      [itemId]: !prev[itemId]
+    }));
+  };
+
+  const toggleViewMode = (itemId: string) => {
+    setViewMode(prev => ({
+      ...prev,
+      [itemId]: prev[itemId] === "html" ? "json" : "html"
+    }));
+  };
+
+  const formatSuggestion = (suggestion: string, mode: "html" | "json") => {
+    if (mode === "json") {
+      try {
+        const parsed = JSON.parse(suggestion);
+        return JSON.stringify(parsed, null, 2);
+      } catch {
+        return suggestion;
+      }
+    }
+    return suggestion;
+  };
+
+  const openModal = (title: string, content: string, mode: "html" | "json") => {
+    setModalContent({ title, content, mode });
+    setModalOpen(true);
+  };
+
+  // Initialize accordion state when recommendations change
+  React.useEffect(() => {
+    if (recommendations.length > 0) {
+      const categories = [...new Set(recommendations.map(rec => rec.category))];
+      const sections: Record<string, boolean> = {};
+      categories.forEach((cat, index) => {
+        sections[cat] = index === 0; // Only expand first section
+      });
+      setExpandedSections(sections);
+    }
+  }, [recommendations]);
+
   const applySelectedOptimizations = async () => {
     if (selectedRecommendations.size === 0) {
       toast.error("Please select at least one recommendation to apply");
@@ -679,7 +740,7 @@ export function ImprovedSEOOptimizer({
             </CardContent>
           </Card>
 
-          {/* Recommendations with Checkboxes */}
+          {/* Recommendations with Accordion */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -691,48 +752,146 @@ export function ImprovedSEOOptimizer({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recommendations.map((rec) => (
-                  <div key={rec.id} className="border rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <Checkbox
-                        checked={selectedRecommendations.has(rec.id)}
-                        onCheckedChange={() => toggleRecommendation(rec.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {getRecommendationIcon(rec.type)}
-                          <h4 className="font-semibold">{rec.title}</h4>
-                          <Badge className={getImpactColor(rec.impact)}>
-                            {rec.impact} impact
-                          </Badge>
-                          <Badge variant="default">
-                            {rec.effort} effort
-                          </Badge>
+              <div id="accordion" className="space-y-2">
+                {(() => {
+                  // Group recommendations by category
+                  const grouped = recommendations.reduce((acc, rec) => {
+                    if (!acc[rec.category]) acc[rec.category] = [];
+                    acc[rec.category].push(rec);
+                    return acc;
+                  }, {} as Record<string, SEORecommendation[]>);
+
+                  const categoryNames: Record<string, string> = {
+                    seo: "SEO Optimization",
+                    readability: "Content Readability",
+                    affiliate: "Affiliate Marketing",
+                    google_ranking: "Google Ranking"
+                  };
+
+                  return Object.entries(grouped).map(([category, recs]) => (
+                    <Card key={category} className="border">
+                      <CardHeader 
+                        className="pb-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => toggleSection(category)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            {categoryNames[category] || category}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              ({recs.length})
+                            </span>
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          >
+                            {expandedSections[category] ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
-                        {rec.action && (
-                          <div className="text-sm font-medium text-blue-600 mb-2">
-                            💡 {rec.action}
-                          </div>
-                        )}
-                        {rec.suggestedContent && (
-                          <div className="mt-2">
-                            <div className="text-xs font-medium text-gray-500 mb-1">Suggested Content:</div>
-                            <div className="bg-gray-50 p-2 rounded text-sm max-h-32 overflow-y-auto">
-                              {rec.fieldType === "content" ? (
-                                <div dangerouslySetInnerHTML={{ __html: rec.suggestedContent.replace(/\n/g, '<br>') }} />
-                              ) : (
-                                <div className="font-mono">{rec.suggestedContent}</div>
-                              )}
+                      </CardHeader>
+                      
+                      {expandedSections[category] && (
+                        <CardContent className="pt-0 space-y-3">
+                          {recs.map((rec) => (
+                            <div key={rec.id} className="border rounded-lg p-4">
+                              <div className="flex items-start gap-3">
+                                <Checkbox
+                                  checked={selectedRecommendations.has(rec.id)}
+                                  onCheckedChange={() => toggleRecommendation(rec.id)}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {getRecommendationIcon(rec.type)}
+                                    <h4 className="font-semibold">{rec.title}</h4>
+                                    <Badge className={getImpactColor(rec.impact)}>
+                                      {rec.impact} impact
+                                    </Badge>
+                                    <Badge variant="default">
+                                      {rec.effort} effort
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
+                                  {rec.action && (
+                                    <div className="text-sm font-medium text-blue-600 mb-2">
+                                      💡 {rec.action}
+                                    </div>
+                                  )}
+                                  {rec.suggestedContent && (
+                                    <div className="mt-2">
+                                      <div className="bg-gray-50 rounded border overflow-hidden">
+                                        <div className="flex items-center justify-between px-3 py-2 bg-gray-100 border-b">
+                                          <span className="text-xs font-medium text-gray-600">
+                                            {viewMode[rec.id] === "json" ? "JSON View" : "HTML View"}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => toggleContentExpansion(rec.id)}
+                                              className="h-6 w-6 p-0"
+                                              title={expandedContent[rec.id] ? "Collapse" : "Expand"}
+                                            >
+                                              {expandedContent[rec.id] ? (
+                                                <ChevronUp className="h-3 w-3" />
+                                              ) : (
+                                                <ChevronDown className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => toggleViewMode(rec.id)}
+                                              className="h-6 w-6 p-0"
+                                              title={viewMode[rec.id] === "json" ? "Switch to HTML" : "Switch to JSON"}
+                                            >
+                                              {viewMode[rec.id] === "json" ? (
+                                                <Eye className="h-3 w-3" />
+                                              ) : (
+                                                <Code className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => openModal(rec.title, rec.suggestedContent || "", viewMode[rec.id] || "html")}
+                                              className="h-6 w-6 p-0"
+                                              title="Open in Modal"
+                                            >
+                                              <Maximize2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                        <div 
+                                          className={`p-3 text-xs font-mono overflow-y-auto transition-all duration-300 ${
+                                            expandedContent[rec.id] ? 'max-h-none' : 'max-h-32'
+                                          }`}
+                                        >
+                                          {viewMode[rec.id] === "json" ? (
+                                            <pre className="whitespace-pre-wrap break-words">{formatSuggestion(rec.suggestedContent, "json")}</pre>
+                                          ) : (
+                                            <div 
+                                              className="prose prose-xs max-w-none"
+                                              dangerouslySetInnerHTML={{ __html: formatSuggestion(rec.suggestedContent, "html").replace(/\n/g, '<br>') }} />
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                          ))}
+                        </CardContent>
+                      )}
+                    </Card>
+                  ));
+                })()}
               </div>
               
               {recommendations.length > 0 && (
@@ -758,6 +917,49 @@ export function ImprovedSEOOptimizer({
               )}
             </CardContent>
           </Card>
+
+          {/* Modal for viewing content */}
+          <Dialog
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            title={modalContent?.title || "Content View"}
+            className="max-w-7xl"
+          >
+            {modalContent && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setModalContent(prev => prev ? { ...prev, mode: prev.mode === "html" ? "json" : "html" } : null)}
+                  >
+                    {modalContent.mode === "json" ? (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Switch to HTML
+                      </>
+                    ) : (
+                      <>
+                        <Code className="h-4 w-4 mr-2" />
+                        Switch to JSON
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 max-h-[70vh] overflow-y-auto">
+                  {modalContent.mode === "json" ? (
+                    <pre className="whitespace-pre-wrap break-words text-sm font-mono">
+                      {formatSuggestion(modalContent.content, "json")}
+                    </pre>
+                  ) : (
+                    <div 
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: formatSuggestion(modalContent.content, "html").replace(/\n/g, '<br>') }} />
+                  )}
+                </div>
+              </div>
+            )}
+          </Dialog>
 
           {/* Affiliate Opportunities */}
           {affiliateOpportunities.length > 0 && (

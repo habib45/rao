@@ -24,6 +24,7 @@ interface AIContentAssistantProps {
 }
 
 const AI_MODELS = [
+  { id: "groq", name: "Groq (Llama 3.1)", description: "Fast and free - recommended", provider: "Groq" },
   { id: "gpt-4", name: "GPT-4", description: "Most capable model for complex content", provider: "OpenAI" },
   { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", description: "Fast and cost-effective", provider: "OpenAI" },
   { id: "claude-3", name: "Claude 3", description: "Great for structured content", provider: "Anthropic" },
@@ -43,7 +44,7 @@ export function AIContentAssistant({
   const [keywords, setKeywords] = useState("");
   const [tone, setTone] = useState("professional");
   const [length, setLength] = useState("medium");
-  const [selectedAIModel, setSelectedAIModel] = useState("gpt-4");
+  const [selectedAIModel, setSelectedAIModel] = useState("groq");
   const [generatedContent, setGeneratedContent] = useState("");
   const [copied, setCopied] = useState(false);
   const [structuredRecommendations, setStructuredRecommendations] = useState<Record<string, any> | null>(null);
@@ -152,24 +153,42 @@ export function AIContentAssistant({
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
+        // Extract field-specific validation errors
+        if (error.issues?.fieldErrors) {
+          const fieldErrors = Object.entries(error.issues.fieldErrors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('; ');
+          throw new Error(fieldErrors || error.error || "Failed to generate content");
+        }
         throw new Error(error.error || "Failed to generate content");
       }
 
       const data = await response.json();
       
+      // Clean up content - remove markdown code blocks if AI returns them
+      let cleanedContent = data.content;
+      
+      // Remove markdown code blocks (```html ... ``` or ```...```)
+      cleanedContent = cleanedContent.replace(/^```(?:html)?\s*\n/gm, '');
+      cleanedContent = cleanedContent.replace(/\n```\s*$/gm, '');
+      cleanedContent = cleanedContent.replace(/^```\s*$/gm, '');
+      
+      // Trim any leading/trailing whitespace
+      cleanedContent = cleanedContent.trim();
+      
       // Handle structured recommendations for SEO and affiliate content
       if (type === "seo_optimization" || type === "affiliate_content") {
         try {
-          const parsed = JSON.parse(data.content);
+          const parsed = JSON.parse(cleanedContent);
           setStructuredRecommendations(parsed);
-          setGeneratedContent(data.content);
+          setGeneratedContent(cleanedContent);
         } catch (error) {
           // If parsing fails, treat as regular content
           setStructuredRecommendations(null);
-          setGeneratedContent(data.content);
+          setGeneratedContent(cleanedContent);
         }
       } else {
-        setGeneratedContent(data.content);
+        setGeneratedContent(cleanedContent);
         setStructuredRecommendations(null);
       }
       
@@ -556,10 +575,61 @@ export function AIContentAssistant({
               
               <div className="max-h-96 overflow-y-auto">
                 {type === "content" ? (
-                  <div 
-                    className="rounded-lg border border-border bg-surface p-3 text-sm prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: generatedContent }}
-                  />
+                  <>
+                    <style>{`
+                      .ai-content-preview h2 {
+                        font-size: 1.5rem;
+                        font-weight: 700;
+                        margin-top: 1.5rem;
+                        margin-bottom: 0.75rem;
+                        color: #1a202c;
+                      }
+                      .ai-content-preview h3 {
+                        font-size: 1.25rem;
+                        font-weight: 600;
+                        margin-top: 1.25rem;
+                        margin-bottom: 0.5rem;
+                        color: #2d3748;
+                      }
+                      .ai-content-preview p {
+                        margin-bottom: 1rem;
+                        color: #4a5568;
+                      }
+                      .ai-content-preview ul, .ai-content-preview ol {
+                        margin-left: 1.5rem;
+                        margin-bottom: 1rem;
+                      }
+                      .ai-content-preview li {
+                        margin-bottom: 0.5rem;
+                      }
+                      .ai-content-preview table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 1rem 0;
+                      }
+                      .ai-content-preview th, .ai-content-preview td {
+                        border: 1px solid #e2e8f0;
+                        padding: 0.5rem;
+                        text-align: left;
+                      }
+                      .ai-content-preview th {
+                        background-color: #f7fafc;
+                        font-weight: 600;
+                      }
+                      .ai-content-preview strong {
+                        font-weight: 600;
+                        color: #2d3748;
+                      }
+                    `}</style>
+                    <div 
+                      className="ai-content-preview rounded-lg border border-border bg-white p-6 text-base"
+                      style={{
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        lineHeight: '1.7'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: generatedContent }}
+                    />
+                  </>
                 ) : (
                   <textarea
                     value={generatedContent}
