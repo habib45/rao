@@ -19,7 +19,7 @@ export async function POST(
   const originalPost = await res.json() as Record<string, unknown>;
 
   // Create a clone by removing id and modifying necessary fields
-  const { id: _id, created_at, updated_at, view_count, ...cloneData } = originalPost;
+  const { id: _id, created_at: _created_at, updated_at: _updated_at, view_count: _view_count, ...cloneData } = originalPost;
 
   // Modify title to indicate it's a copy
   const titleEn = cloneData.title as { en?: string } | string;

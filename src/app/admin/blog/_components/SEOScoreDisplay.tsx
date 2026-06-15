@@ -9,7 +9,7 @@ import type { BlogPost } from "@/types/domain";
 
 interface SEOScoreDisplayProps {
   post: BlogPost;
-  onUpdate: any; // Mutation object from react-query
+  onUpdate: { mutateAsync: (data: { id: string; payload: { overall_seo_score: number } }) => Promise<void>; isPending: boolean };
 }
 
 export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
@@ -22,7 +22,6 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     const keywords = post.blog_post_tags?.map(tag => tag.blog_tags.name?.en).filter(Boolean).join(', ') ?? "";
 
     let score = 0;
-    let factors = 0;
 
     // Title length (30-60 chars optimal) - 20 points
     if (titleEn.length >= 30 && titleEn.length <= 60) {
@@ -30,7 +29,6 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     } else if (titleEn.length > 0) {
       score += 10; // Partial credit for having a title
     }
-    factors++;
 
     // Description length (120-160 chars optimal) - 20 points
     if (description.length >= 120 && description.length <= 160) {
@@ -38,7 +36,6 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     } else if (description.length >= 50) {
       score += 10; // Partial credit
     }
-    factors++;
 
     // Content length (minimum 300 words) - 15 points
     const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
@@ -49,7 +46,6 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     } else if (wordCount >= 50) {
       score += 4;
     }
-    factors++;
 
     // Keywords presence - 15 points
     const keywordCount = keywords.split(',').filter(k => k.trim().length > 0).length;
@@ -58,26 +54,22 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     } else if (keywordCount >= 1) {
       score += 8;
     }
-    factors++;
 
     // Has featured image - 10 points
     if (post.cover_image_url) {
       score += 10;
     }
-    factors++;
 
     // Has category - 10 points
     if (post.blog_category_id && post.blog_categories) {
       score += 10;
     }
-    factors++;
 
     // Meta title presence - 10 points
     const metaTitle = post.meta_title?.en ?? "";
     if (metaTitle.length > 0) {
       score += 10;
     }
-    factors++;
 
     return Math.round(score);
   };
@@ -95,7 +87,7 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
       });
       
       toast.success(`SEO Score updated to ${newScore}`);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to update SEO score");
     } finally {
       setIsCalculating(false);
@@ -112,11 +104,6 @@ export function SEOScoreDisplay({ post, onUpdate }: SEOScoreDisplayProps) {
     return "error";
   };
 
-  const getScoreColor = (score: number): string => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
-  };
 
   const getScoreIcon = (score: number) => {
     if (score >= 80) return <CheckCircle className="h-3 w-3" />;

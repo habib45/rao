@@ -99,7 +99,7 @@ interface ImprovedSEOOptimizerProps {
   metaDescription: string;
   tags: string[];
   category: string;
-  onOptimizationApplied: (optimizations: any) => void;
+  onOptimizationApplied: (optimizations: Record<string, string>) => void;
 }
 
 const AI_MODELS: AIModel[] = [
@@ -315,7 +315,7 @@ export function ImprovedSEOOptimizer({
     return Math.min(score, 100);
   };
 
-  const calculateAffiliateScore = (content: string, category: string): number => {
+  const calculateAffiliateScore = (content: string, _category: string): number => {
     let score = 0;
     
     // Product mentions
@@ -347,12 +347,19 @@ export function ImprovedSEOOptimizer({
     return Math.min(score, 100);
   };
 
-  const generateRecommendations = (data: any): SEORecommendation[] => {
+  const generateRecommendations = (data: Record<string, unknown>): SEORecommendation[] => {
     const recommendations: SEORecommendation[] = [];
+    const scores = data.scores as Record<string, number>;
+    const title = data.title as string;
+    const aiModel = data.aiModel as string;
+    const metaDescription = data.metaDescription as string;
+    const content = data.content as string;
+    const category = data.category as string;
+    const tags = data.tags as string[];
     
     // Title recommendations
-    if (data.scores.title < 70) {
-      const suggestedTitle = generateOptimizedTitle(data.title, data.aiModel);
+    if (scores.title < 70) {
+      const suggestedTitle = generateOptimizedTitle(title, aiModel);
       recommendations.push({
         id: "title-optimize",
         type: "warning",
@@ -368,8 +375,8 @@ export function ImprovedSEOOptimizer({
     }
     
     // Meta description recommendations
-    if (data.scores.meta < 70) {
-      const suggestedMetaDesc = generateOptimizedMetaDescription(data.metaDescription, data.title, data.aiModel);
+    if (scores.meta < 70) {
+      const suggestedMetaDesc = generateOptimizedMetaDescription(metaDescription, title, aiModel);
       recommendations.push({
         id: "meta-optimize",
         type: "warning",
@@ -385,8 +392,8 @@ export function ImprovedSEOOptimizer({
     }
     
     // Content recommendations
-    if (data.scores.content < 70) {
-      const suggestedContent = generateOptimizedContent(data.content, data.aiModel);
+    if (scores.content < 70) {
+      const suggestedContent = generateOptimizedContent(content, aiModel);
       recommendations.push({
         id: "content-optimize",
         type: "critical",
@@ -402,8 +409,8 @@ export function ImprovedSEOOptimizer({
     }
     
     // Tags recommendations
-    if (data.tags.length < 3) {
-      const suggestedTags = generateOptimizedTags(data.content, data.category, data.aiModel);
+    if (tags.length < 3) {
+      const suggestedTags = generateOptimizedTags(content, category, aiModel);
       recommendations.push({
         id: "tags-optimize",
         type: "info",
@@ -419,8 +426,8 @@ export function ImprovedSEOOptimizer({
     }
     
     // Affiliate recommendations
-    if (data.scores.affiliate < 60) {
-      const affiliateContent = generateAffiliateContent(data.content, data.category, data.aiModel);
+    if (scores.affiliate < 60) {
+      const affiliateContent = generateAffiliateContent(content, category, aiModel);
       recommendations.push({
         id: "affiliate-optimize",
         type: "info",
@@ -459,17 +466,17 @@ export function ImprovedSEOOptimizer({
     return `Looking for the best ${title.toLowerCase()}? ${cta}. Compare top products, read reviews, and make informed decisions. Updated for ${new Date().getFullYear()}.`;
   };
 
-  const generateOptimizedContent = (currentContent: string, aiModel: string): string => {
+  const generateOptimizedContent = (currentContent: string, _aiModel: string): string => {
     return `\n\n## Key Features to Consider\n\nWhen choosing the right product, several factors deserve your attention:\n\n### Quality and Durability\n\nLook for products that offer long-term value and reliability.\n\n### Price vs Performance\n\nFind the perfect balance between cost and functionality.\n\n### User Reviews\n\nConsider what other customers are saying about their experiences.\n\n## Expert Recommendations\n\nBased on our analysis, here are the top considerations for your decision.\n\n${currentContent}`;
   };
 
-  const generateOptimizedTags = (content: string, category: string, aiModel: string): string => {
+  const generateOptimizedTags = (content: string, category: string, _aiModel: string): string => {
     const baseTags = ["review", "guide", "best", "top", "comparison"];
     const categoryTags = category.toLowerCase().split(" ");
     return [...baseTags, ...categoryTags].join(", ");
   };
 
-  const generateAffiliateContent = (content: string, category: string, aiModel: string): string => {
+  const generateAffiliateContent = (_content: string, _category: string, _aiModel: string): string => {
     return `\n\n## 🛒 Best Deals Available\n\nCheck out these current offers:\n\n### Top Picks\n\n1. **Premium Option** - Best features, higher price\n2. **Budget Choice** - Great value, affordable\n3. **Mid-Range** - Balance of price and features\n\n### 🔥 Limited Time Offers\n\nDon't miss out on these special deals. Click to check current pricing and availability.\n\n### 💰 Money-Back Guarantee\n\nAll recommended products come with satisfaction guarantees.`;
   };
 
@@ -577,7 +584,7 @@ export function ImprovedSEOOptimizer({
     setIsApplyingOptimizations(true);
     
     try {
-      const optimizations: any = {};
+      const optimizations: Record<string, string> = {};
       const selectedRecs = recommendations.filter(rec => selectedRecommendations.has(rec.id));
       
       for (const rec of selectedRecs) {

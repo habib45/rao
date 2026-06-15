@@ -721,7 +721,7 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                 <ProductDescriptionEditor
                   value={form.description[code]}
                   onChange={(html: string) => setLocaleField("description", code, html)}
-                  onReady={(editor: any) => { editorRefs.current[code] = editor; }}
+                  onReady={(editor: unknown) => { editorRefs.current[code] = editor as ClassicEditor | null; }}
                   placeholder={`Description (${label})`}
                 />
                 {extractWizardBlocks(form.description[code]).map(({ encoded, label: wLabel }, i) => (

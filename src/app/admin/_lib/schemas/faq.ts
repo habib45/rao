@@ -1,5 +1,4 @@
 import { z } from "zod";
-import type { LocaleCode } from "@/types/domain";
 
 export const faqSchema = z.object({
   id: z.string().uuid().optional(),

@@ -57,7 +57,7 @@ interface SEOOptimizerProps {
   metaDescription: string;
   tags: string[];
   category: string;
-  onOptimizationApplied: (optimizations: any) => void;
+  onOptimizationApplied: (optimizations: Record<string, string>) => void;
 }
 
 export function SEOOptimizer({ 
@@ -67,7 +67,7 @@ export function SEOOptimizer({
   metaDescription, 
   tags, 
   category,
-  onOptimizationApplied 
+  onOptimizationApplied: _onOptimizationApplied 
 }: SEOOptimizerProps) {
   const [score, setScore] = useState<SEOScore>({
     overall: 0,
@@ -236,7 +236,7 @@ export function SEOOptimizer({
     return Math.min(score, 100);
   };
 
-  const calculateAffiliateScore = (content: string, category: string): number => {
+  const calculateAffiliateScore = (content: string, _category: string): number => {
     let score = 0;
     
     // Product mentions
@@ -268,11 +268,12 @@ export function SEOOptimizer({
     return Math.min(score, 100);
   };
 
-  const generateRecommendations = (data: any): SEORecommendation[] => {
+  const generateRecommendations = (data: Record<string, unknown>): SEORecommendation[] => {
     const recommendations: SEORecommendation[] = [];
+    const scores = data.scores as Record<string, number>;
     
     // Title recommendations
-    if (data.scores.title < 70) {
+    if (scores.title < 70) {
       recommendations.push({
         type: "warning",
         category: "seo",
@@ -285,7 +286,7 @@ export function SEOOptimizer({
     }
     
     // Meta description recommendations
-    if (data.scores.meta < 70) {
+    if (scores.meta < 70) {
       recommendations.push({
         type: "warning",
         category: "seo",
@@ -298,7 +299,7 @@ export function SEOOptimizer({
     }
     
     // Content recommendations
-    if (data.scores.content < 70) {
+    if (scores.content < 70) {
       recommendations.push({
         type: "critical",
         category: "seo",
@@ -311,7 +312,7 @@ export function SEOOptimizer({
     }
     
     // Affiliate recommendations
-    if (data.scores.affiliate < 60) {
+    if (scores.affiliate < 60) {
       recommendations.push({
         type: "info",
         category: "affiliate",

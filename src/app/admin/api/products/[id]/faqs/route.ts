@@ -5,9 +5,9 @@ const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: productId } = params;
+  const { id: productId } = await params;
   const res = await fetch(`${MYSQL_API_URL}/api/products/${productId}/faqs`, { cache: "no-store" });
   const data = await res.json() as unknown[];
   return NextResponse.json(data);
@@ -15,9 +15,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: productId } = params;
+  const { id: productId } = await params;
   const body = await request.json();
   const result = faqSchema.safeParse({ ...body, product_id: productId });
 

@@ -8,7 +8,7 @@ import {
 } from "@/lib/api/gateway";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
-const locales = ["en", "bn-BD", "sv"] as const;
+// const locales = ["en", "bn-BD", "sv"] as const;
 
 type PreviewEntry = {
   url: string;

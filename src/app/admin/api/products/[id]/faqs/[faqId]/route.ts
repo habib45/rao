@@ -5,9 +5,9 @@ const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; faqId: string } }
+  { params }: { params: Promise<{ id: string; faqId: string }> }
 ) {
-  const { id: productId, faqId } = params;
+  const { id: productId, faqId } = await params;
   const body = await request.json();
   const result = faqUpdateSchema.safeParse({ ...body, id: faqId });
 
@@ -30,9 +30,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; faqId: string } }
+  { params }: { params: Promise<{ id: string; faqId: string }> }
 ) {
-  const { id: productId, faqId } = params;
+  const { id: productId, faqId } = await params;
   const res = await fetch(`${MYSQL_API_URL}/api/products/${productId}/faqs/${faqId}`, {
     method: "DELETE",
   });

@@ -190,8 +190,8 @@ export const buildProductMetadata = ({
     noIndex,
   });
 
-  const canonicalPath = buildCanonical(path);
-  const absoluteCanonical = absoluteUrl(canonicalPath);
+  // const canonicalPath = buildCanonical(path);
+  // const absoluteCanonical = absoluteUrl(canonicalPath);
 
   return {
     ...baseMetadata,

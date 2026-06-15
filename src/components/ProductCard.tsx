@@ -8,7 +8,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 export default function ProductCard({
   product,
   locale,
-  categoryName,
+  categoryName: _categoryName,
   showPrice = true,
 }: {
   product: Product;

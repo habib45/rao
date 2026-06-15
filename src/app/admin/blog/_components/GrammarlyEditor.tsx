@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { CheckCircle, AlertCircle, Loader2, Type, Heading, Eye, EyeOff, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -28,8 +28,8 @@ interface GrammarlyEditorProps {
 declare global {
   interface Window {
     Grammarly?: {
-      init: (config: any) => void;
-      addPlugin: (plugin: any) => void;
+      init: (config: Record<string, unknown>) => void;
+      addPlugin: (plugin: Record<string, unknown>) => void;
     };
     grammarly?: {
       checkText: (text: string) => Promise<GrammarlySuggestion[]>;
@@ -45,9 +45,7 @@ export function GrammarlyEditor({
   className = "",
   isRichText = true
 }: GrammarlyEditorProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<GrammarlySuggestion[]>([]);
-  const [isGrammarlyEnabled, setIsGrammarlyEnabled] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [activeTab, setActiveTab] = useState<"content" | "headings">("content");
   const [isMounted, setIsMounted] = useState(false);
@@ -90,7 +88,7 @@ export function GrammarlyEditor({
     const processNode = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent || '';
-        let originalText = text;
+        const originalText = text;
         
         // Apply fixes to text content
         fixes.forEach(fix => {
@@ -272,7 +270,7 @@ export function GrammarlyEditor({
     const headings: Array<{text: string, level: number, offset: number}> = [];
     const headingElements = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6');
     
-    headingElements.forEach((heading, index) => {
+    headingElements.forEach((heading, _index) => {
       const text = heading.textContent?.trim() || '';
       const level = parseInt(heading.tagName.charAt(1));
       const offset = html.indexOf(heading.outerHTML);
@@ -334,7 +332,7 @@ export function GrammarlyEditor({
       try {
         // Check if Grammarly is already loaded
         if (window.Grammarly) {
-          setIsGrammarlyEnabled(true);
+          setGrammarlyEnabled(true);
           return;
         }
 
@@ -350,17 +348,17 @@ export function GrammarlyEditor({
               documentDomain: 'blog',
               input: ['[data-grammarly="true"]']
             });
-            setIsGrammarlyEnabled(true);
+            setGrammarlyEnabled(true);
           }
         };
         script.onerror = () => {
           console.warn('Grammarly SDK failed to load');
-          setIsGrammarlyEnabled(false);
+          setGrammarlyEnabled(false);
         };
         document.head.appendChild(script);
       } catch (error) {
         console.warn('Failed to load Grammarly:', error);
-        setIsGrammarlyEnabled(false);
+        setGrammarlyEnabled(false);
       }
     };
 
@@ -641,7 +639,7 @@ export function GrammarlyEditor({
                     </p>
                     {suggestion.context && (
                       <p className="text-xs opacity-60 italic mt-1">
-                        Context: "...{suggestion.context}..."
+                        Context: &ldquo;{suggestion.context}&rdquo;
                       </p>
                     )}
                     {suggestion.replacements && suggestion.replacements.length > 0 && (

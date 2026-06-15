@@ -247,7 +247,7 @@ export default function RichTextEditor({
         { model: 'heading5', view: 'h5', title: 'Heading 5' },
         { model: 'heading6', view: 'h6', title: 'Heading 6' }
       ]
-    } as any,
+    } as Record<string, unknown>,
     fontSize: {
       options: [
         8,
@@ -267,7 +267,7 @@ export default function RichTextEditor({
         48,
         72
       ]
-    } as any,
+    } as Record<string, unknown>,
     fontFamily: {
       options: [
         'default',
@@ -278,7 +278,7 @@ export default function RichTextEditor({
         'Times New Roman, Times, serif',
         'Verdana, Geneva, sans-serif'
       ]
-    } as any,
+    } as Record<string, unknown>,
     image: {
       toolbar: [
         "imageStyle:inline",
@@ -327,8 +327,7 @@ export default function RichTextEditor({
           attributes: true,
           classes: true,
           styles: true,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any,
+        } as Record<string, unknown>,
       ],
     },
   } : {};

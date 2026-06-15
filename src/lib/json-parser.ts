@@ -43,8 +43,8 @@ export function parseAIJSON(content: string): Record<string, unknown> {
   }
 }
 
-function extractKeyValuePairs(content: string): any {
-  const result: any = {};
+function extractKeyValuePairs(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
   
   // Extract key-value pairs using regex
   const pairs = content.match(/"?(\w+)"?\s*:\s*"?([^",\}]+)"?/g);

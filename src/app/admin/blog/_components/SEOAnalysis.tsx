@@ -83,31 +83,24 @@ export function SEOAnalysis({ post }: SEOAnalysisProps) {
     if (!metrics) return 0;
     
     let score = 0;
-    let factors = 0;
     
     // Title length (30-60 chars optimal)
     if (metrics.titleLength >= 30 && metrics.titleLength <= 60) score += 20;
-    factors++;
     
     // Description length (150-160 chars optimal)
     if (metrics.descriptionLength >= 120 && metrics.descriptionLength <= 160) score += 20;
-    factors++;
     
     // Readability score
     score += (metrics.readabilityScore / 100) * 20;
-    factors++;
     
     // Page speed
     score += (metrics.pageSpeed / 100) * 20;
-    factors++;
     
     // Mobile friendly
     if (metrics.mobileFriendly) score += 10;
-    factors++;
     
     // Schema markup
     if (metrics.hasSchema) score += 10;
-    factors++;
     
     return Math.round(score);
   };
