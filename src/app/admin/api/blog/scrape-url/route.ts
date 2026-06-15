@@ -146,8 +146,8 @@ async function scrapeWithFetch(url: string): Promise<{
         // Remove unwanted elements
         element.find('script, style, nav, header, footer, aside, .sidebar, .ads, .advertisement, .social-share').remove();
         
-        // Get text content
-        content = element.text().trim();
+        // Get HTML content for rich text display
+        content = element.html() || element.text().trim();
         
         // If content is substantial, break
         if (content.length > 200) {
@@ -159,10 +159,10 @@ async function scrapeWithFetch(url: string): Promise<{
     // Fallback to body content if no specific content found
     if (content.length < 200) {
       $('script, style, nav, header, footer, aside, .sidebar, .ads, .advertisement, .social-share').remove();
-      content = $('body').text().trim();
+      content = $('body').html() || $('body').text().trim();
     }
 
-    // Clean up content
+    // Clean up HTML content
     content = content
       .replace(/\s+/g, ' ')
       .replace(/\n\s*\n/g, '\n')

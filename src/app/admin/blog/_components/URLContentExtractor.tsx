@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/admin/_components/ui/card";
-import { Loader2, Globe, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, Globe, AlertCircle, CheckCircle, Eye, EyeOff, Download, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface ExtractedContent {
@@ -36,6 +36,9 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
   const [extractedContent, setExtractedContent] = useState<ExtractedContent | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState("");
+  const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
+  const [imageMetadata, setImageMetadata] = useState<Map<number, { alt: string; title: string }>>(new Map());
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Simple URL validation - just check if it's a valid URL format
   function isValidUrl(urlString: string): boolean {
@@ -115,6 +118,15 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
       setExtractedContent(extracted);
       onContentExtracted(extracted);
       setShowPreview(true);
+      
+      // Initialize image metadata
+      const metadata = new Map<number, { alt: string; title: string }>();
+      extracted.images.forEach((img, idx) => {
+        metadata.set(idx, { alt: img.alt || '', title: img.title || '' });
+      });
+      setImageMetadata(metadata);
+      setSelectedImages(new Set());
+      
       toast.success("Content extracted successfully!");
       
     } catch (err) {
@@ -138,6 +150,87 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
     setExtractedContent(null);
     setShowPreview(false);
     setError("");
+    setSelectedImages(new Set());
+    setImageMetadata(new Map());
+  }
+
+  function toggleImageSelection(index: number) {
+    const newSelected = new Set(selectedImages);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedImages(newSelected);
+  }
+
+  function selectAllImages() {
+    if (!extractedContent) return;
+    const allIndices = new Set(extractedContent.images.map((_, idx) => idx));
+    setSelectedImages(allIndices);
+  }
+
+  function deselectAllImages() {
+    setSelectedImages(new Set());
+  }
+
+  function updateImageMetadata(index: number, field: 'alt' | 'title', value: string) {
+    const newMetadata = new Map(imageMetadata);
+    const current = newMetadata.get(index) || { alt: '', title: '' };
+    newMetadata.set(index, { ...current, [field]: value });
+    setImageMetadata(newMetadata);
+  }
+
+  async function downloadSelectedImages() {
+    if (!extractedContent || selectedImages.size === 0) {
+      toast.error("Please select at least one image");
+      return;
+    }
+
+    setIsDownloading(true);
+    setError("");
+
+    try {
+      const imagesToDownload = Array.from(selectedImages).map(idx => {
+        const image = extractedContent.images[idx];
+        const metadata = imageMetadata.get(idx) || { alt: image.alt, title: image.title };
+        return {
+          src: image.src,
+          alt: metadata.alt,
+          title: metadata.title
+        };
+      });
+
+      const response = await fetch("/admin/api/blog/download-images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          images: imagesToDownload,
+          blogTitle: extractedContent.title
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to download images");
+      }
+
+      const result = await response.json();
+      toast.success(`Successfully downloaded ${result.downloaded.length} image(s)`);
+      
+      // Show uploaded paths
+      if (result.downloaded.length > 0) {
+        console.log("Uploaded images:", result.downloaded);
+      }
+      
+      setSelectedImages(new Set());
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to download images";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   return (
@@ -254,24 +347,106 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
 
                 {extractedContent.images.length > 0 && (
                   <div>
-                    <h4 className="font-semibold text-sm mb-2">Images ({extractedContent.images.length}):</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {extractedContent.images.map((image, index) => (
-                        <div key={index} className="border rounded overflow-hidden">
-                          <img 
-                            src={image.src} 
-                            alt={image.alt}
-                            title={image.title}
-                            className="w-full h-24 object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          {image.alt && (
-                            <p className="text-xs p-1 truncate">{image.alt}</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-semibold text-sm flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        Images ({extractedContent.images.length})
+                      </h4>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllImages}
+                          disabled={selectedImages.size === extractedContent.images.length}
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllImages}
+                          disabled={selectedImages.size === 0}
+                        >
+                          Deselect All
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={downloadSelectedImages}
+                          disabled={selectedImages.size === 0 || isDownloading}
+                          className="gap-2"
+                        >
+                          {isDownloading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Downloading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4" />
+                              Download Selected ({selectedImages.size})
+                            </>
                           )}
-                        </div>
-                      ))}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {extractedContent.images.map((image, index) => {
+                        const metadata = imageMetadata.get(index) || { alt: image.alt, title: image.title };
+                        const isSelected = selectedImages.has(index);
+                        
+                        return (
+                          <div
+                            key={index}
+                            className={`border rounded-lg p-3 transition-colors ${
+                              isSelected ? 'border-primary bg-primary/5' : 'border-border'
+                            }`}
+                          >
+                            <div className="flex gap-3">
+                              <div className="flex items-start pt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleImageSelection(index)}
+                                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                                />
+                              </div>
+                              <div className="flex-shrink-0">
+                                <img
+                                  src={image.src}
+                                  alt={metadata.alt}
+                                  className="w-24 h-24 object-cover rounded border"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/placeholder-image.png';
+                                  }}
+                                />
+                              </div>
+                              <div className="flex-1 space-y-2">
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground">Alt Text</label>
+                                  <Input
+                                    value={metadata.alt}
+                                    onChange={(e) => updateImageMetadata(index, 'alt', e.target.value)}
+                                    placeholder="Enter alt text for SEO"
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs font-medium text-muted-foreground">Title (Optional)</label>
+                                  <Input
+                                    value={metadata.title}
+                                    onChange={(e) => updateImageMetadata(index, 'title', e.target.value)}
+                                    placeholder="Enter title attribute"
+                                    className="text-sm h-8"
+                                  />
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {image.src}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -308,11 +483,8 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
 
                 <div>
                   <h4 className="font-semibold text-sm mb-1">Content ({extractedContent.content.length} chars):</h4>
-                  <div className="text-sm max-h-48 overflow-y-auto bg-background p-2 rounded border">
-                    <p className="whitespace-pre-wrap">{extractedContent.content.substring(0, 1000)}</p>
-                    {extractedContent.content.length > 1000 && (
-                      <p className="text-muted text-xs mt-2">... and {extractedContent.content.length - 1000} more characters</p>
-                    )}
+                  <div className="text-sm max-h-96 overflow-y-auto bg-white p-4 rounded border prose prose-sm max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: extractedContent.content }} />
                   </div>
                 </div>
               </div>

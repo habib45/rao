@@ -349,7 +349,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     let imageIndex = 0;
     
     // Replace images with placeholders and store them
-    content = content.replace(/<img[^>]*>/gi, (match) => {
+    content = content.replace(/<img[^>]*>/gi, (match: string) => {
       const placeholder = `__IMAGE_PLACEHOLDER_${imageIndex}__`;
       images.push(match);
       imagePlaceholders.push(placeholder);

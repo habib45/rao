@@ -539,7 +539,7 @@ export function AIContentAssistant({
                     </Button>
                   </div>
                   
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-[800px] overflow-y-auto">
                     {type === "affiliate_content" ? (
                       <div 
                         className="rounded-lg border border-border bg-surface p-3 text-sm prose prose-sm max-w-none"
@@ -573,7 +573,7 @@ export function AIContentAssistant({
                 </Button>
               </div>
               
-              <div className="max-h-96 overflow-y-auto">
+              <div className="max-h-[800px] overflow-y-auto">
                 {type === "content" ? (
                   <>
                     <style>{`
@@ -620,6 +620,34 @@ export function AIContentAssistant({
                         font-weight: 600;
                         color: #2d3748;
                       }
+                      .section-badge {
+                        display: inline-block;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 0.375rem;
+                        font-size: 0.75rem;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.05em;
+                        margin-bottom: 0.75rem;
+                      }
+                      .section-introduction {
+                        background-color: #dbeafe;
+                        color: #1e40af;
+                        border-left: 4px solid #3b82f6;
+                        padding-left: 1rem;
+                      }
+                      .section-body {
+                        background-color: #dcfce7;
+                        color: #166534;
+                        border-left: 4px solid #22c55e;
+                        padding-left: 1rem;
+                      }
+                      .section-conclusion {
+                        background-color: #fef3c7;
+                        color: #92400e;
+                        border-left: 4px solid #f59e0b;
+                        padding-left: 1rem;
+                      }
                     `}</style>
                     <div 
                       className="ai-content-preview rounded-lg border border-border bg-white p-6 text-base"
@@ -627,7 +655,15 @@ export function AIContentAssistant({
                         fontFamily: 'system-ui, -apple-system, sans-serif',
                         lineHeight: '1.7'
                       }}
-                      dangerouslySetInnerHTML={{ __html: generatedContent }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: generatedContent.replace(
+                          /<!-- SECTION:(\w+) -->/g,
+                          (match, section) => {
+                            const sectionName = section.toLowerCase();
+                            return `<div class="section-badge section-${sectionName}">${section}</div>`;
+                          }
+                        )
+                      }}
                     />
                   </>
                 ) : (

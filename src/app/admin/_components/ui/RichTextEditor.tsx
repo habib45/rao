@@ -89,6 +89,8 @@ interface RichTextEditorProps {
   onReady?: (editor: any) => void;
   placeholder?: string;
   className?: string;
+  showWordCount?: boolean;
+  showPreview?: boolean;
 }
 
 export default function RichTextEditor({
@@ -97,13 +99,25 @@ export default function RichTextEditor({
   onReady,
   placeholder,
   className,
+  showWordCount = true,
+  showPreview = false,
 }: RichTextEditorProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ckeditorModules, setCkeditorModules] = useState<any>(null);
+  const [wordCount, setWordCount] = useState({ words: 0, characters: 0 });
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   useEffect(() => {
     loadCKEditorModules().then(setCkeditorModules);
   }, []);
+
+  // Calculate word and character count
+  useEffect(() => {
+    const text = value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const characters = text.length;
+    setWordCount({ words, characters });
+  }, [value]);
 
   const config = ckeditorModules ? {
     licenseKey: "GPL",
@@ -176,55 +190,50 @@ export default function RichTextEditor({
     ],
     toolbar: {
       items: [
-        "insertImage",
-        "insertTable",
-        "mediaEmbed",
-        "|",
-        "findAndReplace",
-        "showBlocks",
+        // Basic formatting
+        "undo",
+        "redo",
         "|",
         "heading",
         "|",
-        "fontSize",
-        "fontFamily",
-        "|",
         "bold",
         "italic",
-        "strikethrough",
         "underline",
-        "code",
-        "subscript",
-        "superscript",
-        "removeFormat",
+        "strikethrough",
         "|",
         "bulletedList",
         "numberedList",
-        "todoList",
-        "outdent",
-        "indent",
         "|",
-        "undo",
-        "redo",
-        "-",
+        "link",
+        "blockQuote",
+        "|",
+        // Advanced formatting
+        "fontSize",
+        "fontFamily",
+        "|",
         "fontColor",
         "fontBackgroundColor",
         "highlight",
         "|",
         "alignment",
         "|",
-        "link",
-        "blockQuote",
+        // Media
+        "insertImage",
+        "insertTable",
+        "mediaEmbed",
+        "|",
+        // Advanced tools
         "codeBlock",
         "htmlEmbed",
         "horizontalLine",
         "pageBreak",
         "|",
+        "findAndReplace",
+        "showBlocks",
+        "sourceEditing",
+        "|",
         "specialCharacters",
         "selectAll",
-        "|",
-        "textPartLanguage",
-        "|",
-        "sourceEditing",
       ],
       shouldNotGroupWhenFull: true,
     },
@@ -327,18 +336,189 @@ export default function RichTextEditor({
   return (
     <div className={className}>
       <link rel="stylesheet" href="https://cdn.ckeditor.com/ckeditor5/48.2.0/ckeditor5.css" />
+      <style>{`
+        .ck-editor__editable { font-size: 1rem; line-height: 1.7; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .ck-editor__editable { font-size: 1.0625rem; line-height: 1.8; }
+        }
+        .ck-editor__editable > * + * { margin-top: 1rem; }
+        @media (min-width: 640px) {
+          .ck-editor__editable > * + * { margin-top: 1.25rem; }
+        }
+        .ck-editor__editable h1 { font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin-top: 2rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .ck-editor__editable h1 { font-size: 2rem; margin-top: 2.5rem; }
+        }
+        .ck-editor__editable h2 { font-size: 1.25rem; font-weight: 700; line-height: 1.3; margin-top: 1.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-border); color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .ck-editor__editable h2 { font-size: 1.5rem; margin-top: 2rem; }
+        }
+        .ck-editor__editable h3 { font-size: 1.125rem; font-weight: 700; line-height: 1.4; margin-top: 1.5rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .ck-editor__editable h3 { font-size: 1.25rem; margin-top: 1.75rem; }
+        }
+        .ck-editor__editable h4, .ck-editor__editable h5, .ck-editor__editable h6 { font-weight: 700; line-height: 1.4; margin-top: 1.25rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .ck-editor__editable h4, .ck-editor__editable h5, .ck-editor__editable h6 { margin-top: 1.5rem; }
+        }
+        .ck-editor__editable p { color: var(--color-foreground); }
+        .ck-editor__editable a { color: var(--color-brand); text-decoration: underline; text-underline-offset: 3px; }
+        .ck-editor__editable a:hover { opacity: 0.8; }
+        .ck-editor__editable ul { list-style-type: disc; padding-left: 1.5rem; }
+        @media (min-width: 640px) {
+          .ck-editor__editable ul { padding-left: 1.75rem; }
+        }
+        .ck-editor__editable ol { list-style-type: decimal; padding-left: 1.5rem; }
+        @media (min-width: 640px) {
+          .ck-editor__editable ol { padding-left: 1.75rem; }
+        }
+        .ck-editor__editable li { margin-top: 0.5rem; }
+        .ck-editor__editable blockquote { border-left: 4px solid var(--color-brand); padding: 0.75rem 1rem; font-style: italic; color: var(--color-muted); background: var(--color-surface); border-radius: 0 0.5rem 0.5rem 0; margin: 1.25rem 0; }
+        @media (min-width: 640px) {
+          .ck-editor__editable blockquote { padding: 1rem 1.25rem; margin: 1.5rem 0; }
+        }
+        .ck-editor__editable img { border-radius: 0.75rem; margin: 1rem 0; max-width: 100% !important; height: auto !important; display: block !important; width: 100% !important; object-fit: contain; }
+        @media (min-width: 640px) {
+          .ck-editor__editable img { margin: 1.5rem 0; }
+        }
+        .ck-editor__editable pre { background: var(--color-surface); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.8125rem; border: 1px solid var(--color-border); }
+        @media (min-width: 640px) {
+          .ck-editor__editable pre { padding: 1.25rem; font-size: 0.875rem; }
+        }
+        .ck-editor__editable code { background: var(--color-surface); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125em; border: 1px solid var(--color-border); }
+        .ck-editor__editable pre code { background: transparent; padding: 0; border: none; }
+        .ck-editor__editable table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.875rem; }
+        @media (min-width: 640px) {
+          .ck-editor__editable table { margin: 1.5rem 0; font-size: 0.9375rem; }
+        }
+        .ck-editor__editable th, .ck-editor__editable td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; }
+        @media (min-width: 640px) {
+          .ck-editor__editable th, .ck-editor__editable td { padding: 0.625rem 0.875rem; }
+        }
+        .ck-editor__editable th { background: var(--color-surface); font-weight: 700; text-align: left; }
+        .ck-editor__editable tr:nth-child(even) td { background: color-mix(in srgb, var(--color-surface) 60%, transparent); }
+        .ck-editor__editable hr { border: none; border-top: 2px solid var(--color-border); margin: 1.75rem 0; }
+        @media (min-width: 640px) {
+          .ck-editor__editable hr { margin: 2rem 0; }
+        }
+        /* Dark mode support */
+        .ck.ck-editor__main .ck-editor__editable { background: var(--color-background); }
+        .ck.ck-toolbar { background: var(--color-background); border-color: var(--color-border); }
+        .ck.ck-toolbar .ck-button { color: var(--color-foreground); }
+        .ck.ck-toolbar .ck-button:hover { background: var(--color-surface); }
+        .ck.ck-toolbar .ck-button.ck-on { background: var(--color-brand); color: white; }
+        .ck.ck-dropdown__panel { background: var(--color-background); border-color: var(--color-border); }
+        .ck.ck-dropdown__panel .ck-list__item { color: var(--color-foreground); }
+        .ck.ck-dropdown__panel .ck-list__item:hover { background: var(--color-surface); }
+        .ck.ck-dropdown__panel .ck-list__item.ck-item_selected { background: var(--color-brand); color: white; }
+        /* Preview mode styles */
+        .editor-preview { font-size: 1rem; line-height: 1.7; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .editor-preview { font-size: 1.0625rem; line-height: 1.8; }
+        }
+        .editor-preview > * + * { margin-top: 1rem; }
+        @media (min-width: 640px) {
+          .editor-preview > * + * { margin-top: 1.25rem; }
+        }
+        .editor-preview h1 { font-size: 1.5rem; font-weight: 800; line-height: 1.2; margin-top: 2rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .editor-preview h1 { font-size: 2rem; margin-top: 2.5rem; }
+        }
+        .editor-preview h2 { font-size: 1.25rem; font-weight: 700; line-height: 1.3; margin-top: 1.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--color-border); color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .editor-preview h2 { font-size: 1.5rem; margin-top: 2rem; }
+        }
+        .editor-preview h3 { font-size: 1.125rem; font-weight: 700; line-height: 1.4; margin-top: 1.5rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .editor-preview h3 { font-size: 1.25rem; margin-top: 1.75rem; }
+        }
+        .editor-preview h4, .editor-preview h5, .editor-preview h6 { font-weight: 700; line-height: 1.4; margin-top: 1.25rem; color: var(--color-foreground); }
+        @media (min-width: 640px) {
+          .editor-preview h4, .editor-preview h5, .editor-preview h6 { margin-top: 1.5rem; }
+        }
+        .editor-preview p { color: var(--color-foreground); }
+        .editor-preview a { color: var(--color-brand); text-decoration: underline; text-underline-offset: 3px; }
+        .editor-preview a:hover { opacity: 0.8; }
+        .editor-preview ul { list-style-type: disc; padding-left: 1.5rem; }
+        @media (min-width: 640px) {
+          .editor-preview ul { padding-left: 1.75rem; }
+        }
+        .editor-preview ol { list-style-type: decimal; padding-left: 1.5rem; }
+        @media (min-width: 640px) {
+          .editor-preview ol { padding-left: 1.75rem; }
+        }
+        .editor-preview li { margin-top: 0.5rem; }
+        .editor-preview blockquote { border-left: 4px solid var(--color-brand); padding: 0.75rem 1rem; font-style: italic; color: var(--color-muted); background: var(--color-surface); border-radius: 0 0.5rem 0.5rem 0; margin: 1.25rem 0; }
+        @media (min-width: 640px) {
+          .editor-preview blockquote { padding: 1rem 1.25rem; margin: 1.5rem 0; }
+        }
+        .editor-preview img { border-radius: 0.75rem; margin: 1rem 0; max-width: 100% !important; height: auto !important; display: block !important; width: 100% !important; object-fit: contain; }
+        @media (min-width: 640px) {
+          .editor-preview img { margin: 1.5rem 0; }
+        }
+        .editor-preview pre { background: var(--color-surface); padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.8125rem; border: 1px solid var(--color-border); }
+        @media (min-width: 640px) {
+          .editor-preview pre { padding: 1.25rem; font-size: 0.875rem; }
+        }
+        .editor-preview code { background: var(--color-surface); padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.8125em; border: 1px solid var(--color-border); }
+        .editor-preview pre code { background: transparent; padding: 0; border: none; }
+        .editor-preview table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-size: 0.875rem; }
+        @media (min-width: 640px) {
+          .editor-preview table { margin: 1.5rem 0; font-size: 0.9375rem; }
+        }
+        .editor-preview th, .editor-preview td { border: 1px solid var(--color-border); padding: 0.5rem 0.75rem; }
+        @media (min-width: 640px) {
+          .editor-preview th, .editor-preview td { padding: 0.625rem 0.875rem; }
+        }
+        .editor-preview th { background: var(--color-surface); font-weight: 700; text-align: left; }
+        .editor-preview tr:nth-child(even) td { background: color-mix(in srgb, var(--color-surface) 60%, transparent); }
+        .editor-preview hr { border: none; border-top: 2px solid var(--color-border); margin: 1.75rem 0; }
+        @media (min-width: 640px) {
+          .editor-preview hr { margin: 2rem 0; }
+        }
+      `}</style>
       {ckeditorModules && (
-        <CKEditor
-          editor={ckeditorModules.ClassicEditor}
-          data={value}
-          config={config}
-          onReady={(editor) => {
-            onReady?.(editor);
-          }}
-          onChange={(_event, editor) => {
-            onChange(editor.getData());
-          }}
-        />
+        <div className="relative">
+          {showPreview && (
+            <div className="mb-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPreviewMode(!isPreviewMode)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  isPreviewMode
+                    ? 'bg-brand text-white'
+                    : 'bg-surface text-foreground hover:bg-surface/80'
+                }`}
+              >
+                {isPreviewMode ? 'Edit' : 'Preview'}
+              </button>
+            </div>
+          )}
+          {isPreviewMode ? (
+            <div
+              className="editor-preview rounded-lg border border-border bg-background p-4 min-h-[300px]"
+              dangerouslySetInnerHTML={{ __html: value }}
+            />
+          ) : (
+            <CKEditor
+              editor={ckeditorModules.ClassicEditor}
+              data={value}
+              config={config}
+              onReady={(editor) => {
+                onReady?.(editor);
+              }}
+              onChange={(_event, editor) => {
+                onChange(editor.getData());
+              }}
+            />
+          )}
+          {showWordCount && (
+            <div className="mt-2 flex items-center justify-between text-xs text-muted">
+              <span>{wordCount.words} words</span>
+              <span>{wordCount.characters} characters</span>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

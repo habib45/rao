@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2, Star, Flame, ChevronDown } from "lucide-react";
+import { Trash2, Star, Flame, ChevronDown, Copy } from "lucide-react";
 import { Badge } from "@/app/admin/_components/ui/badge";
 import { Button } from "@/app/admin/_components/ui/button";
 import {
@@ -42,6 +42,7 @@ function statusVariant(
 export function BlogPostsTable() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [cloningId, setCloningId] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const { data, isLoading, error } = useQuery<BlogPostsResponse>({
@@ -103,6 +104,20 @@ export function BlogPostsTable() {
       setDeletingId(null);
     },
     onError: () => toast.error("Failed to delete post"),
+  });
+
+  const cloneMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/admin/api/blog/${id}/clone`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to clone post");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-blog-posts"] });
+      toast.success("Post cloned successfully as draft");
+      setCloningId(null);
+    },
+    onError: () => toast.error("Failed to clone post"),
   });
 
   if (error) {
@@ -269,6 +284,14 @@ export function BlogPostsTable() {
                     </Link>
                     <button
                       type="button"
+                      onClick={() => setCloningId(post.id)}
+                      className="rounded-lg p-2 text-muted hover:bg-surface hover:text-brand"
+                      aria-label="Clone post"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setDeletingId(post.id)}
                       className="rounded-lg p-2 text-muted hover:bg-red-50 hover:text-red-600"
                       aria-label="Delete post"
@@ -319,6 +342,28 @@ export function BlogPostsTable() {
             disabled={deleteMutation.isPending}
           >
             Delete
+          </Button>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={cloningId !== null}
+        onClose={() => setCloningId(null)}
+        title="Clone blog post"
+      >
+        <p className="text-sm text-foreground">
+          Are you sure you want to create a copy of this post? The cloned post
+          will be created as a draft.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setCloningId(null)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => cloningId && cloneMutation.mutate(cloningId)}
+            disabled={cloneMutation.isPending}
+          >
+            Clone
           </Button>
         </div>
       </Dialog>

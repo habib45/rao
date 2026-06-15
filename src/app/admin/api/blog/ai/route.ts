@@ -120,15 +120,32 @@ CRITICAL FORMATTING RULES FOR CKEDITOR:
 - DO NOT include any text before or after the HTML content.
 - Start directly with the HTML tags.
 
-Example of correct format:
+SECTION MARKERS (REQUIRED):
+- Add HTML comment markers to divide content into sections:
+  <!-- SECTION:INTRODUCTION -->
+  <!-- SECTION:BODY -->
+  <!-- SECTION:CONCLUSION -->
+- Place these comments BEFORE the corresponding section content.
+- These markers help editors identify and manage different parts of the article.
+
+Example of correct format with section markers:
+<!-- SECTION:INTRODUCTION -->
 <h2>Your Main Title Here</h2>
 <p>Introduction paragraph with relevant information...</p>
+
+<!-- SECTION:BODY -->
+<h2>Main Content Section</h2>
 <h3>Subsection Title</h3>
 <p>More content here...</p>
 <ul>
 <li>First point</li>
 <li>Second point</li>
-</ul>`;
+</ul>
+
+<!-- SECTION:CONCLUSION -->
+<h2>Conclusion</h2>
+<p>Final thoughts and call-to-action...</p>`;
+
    case "meta_title":
   return `You are an expert SEO strategist and affiliate marketing copywriter.
 
