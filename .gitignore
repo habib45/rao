@@ -46,3 +46,6 @@ deploy-artifacts.zip
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.puku
+package-lock.json

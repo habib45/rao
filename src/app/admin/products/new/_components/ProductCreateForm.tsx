@@ -632,19 +632,6 @@ export function ProductCreateForm({ categories }: ProductCreateFormProps) {
                 onChange={(e) => setLocaleField("slug", code, e.target.value)}
               />
 
-              <div className="space-y-1">
-                <label htmlFor={`desc-${code}`} className="block text-sm font-medium">
-                  Description
-                </label>
-                <textarea
-                  id={`desc-${code}`}
-                  value={form.description[code]}
-                  onChange={(e) => setLocaleField("description", code, e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
-                />
-              </div>
-
               <Input
                 id={`meta-title-${code}`}
                 label="Meta Title"

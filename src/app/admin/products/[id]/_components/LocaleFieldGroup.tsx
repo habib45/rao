@@ -40,20 +40,6 @@ export function LocaleFieldGroup({
         value={slug}
         onChange={(e) => onChange("slug", e.target.value)}
       />
-
-      <div className="space-y-1">
-        <label htmlFor={`desc-${locale}`} className="block text-sm font-medium">
-          Description
-        </label>
-        <textarea
-          id={`desc-${locale}`}
-          value={description}
-          onChange={(e) => onChange("description", e.target.value)}
-          rows={3}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted focus:border-brand focus:ring-1 focus:ring-brand"
-        />
-      </div>
-
       <Input
         id={`meta-title-${locale}`}
         label="Meta Title"

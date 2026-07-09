@@ -22,6 +22,22 @@ import type { SiteSettings } from "@/lib/queries/settings";
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 
+/**
+ * Gateway HTTP error class — preserves the upstream status code and body
+ * so callers can distinguish 404 (resource missing) from 401/5xx (real
+ * failures that should bubble up to the UI).
+ */
+export class GatewayError extends Error {
+  readonly status: number;
+  readonly body: string;
+  constructor(path: string, status: number, body: string) {
+    super(`Gateway ${path} failed: ${status} ${body}`);
+    this.name = "GatewayError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function gw<T>(
   path: string,
   params?: Params,
@@ -34,12 +50,12 @@ async function gw<T>(
     }
   }
   const headers: Record<string, string> = {};
-  
+
   // Use JWT token for authentication (identity for authorized domains)
   if (MYSQL_API_JWT_TOKEN) {
     headers["Authorization"] = `Bearer ${MYSQL_API_JWT_TOKEN}`;
   }
-  
+
   // Use API key for admin routes
   if (adminAuth) headers["x-api-key"] = MYSQL_API_SECRET;
 
@@ -48,11 +64,27 @@ async function gw<T>(
     next: { revalidate: 60 },
   });
   if (!res.ok) {
-    throw new Error(
-      `Gateway ${path} failed: ${res.status} ${await res.text()}`,
-    );
+    throw new GatewayError(path, res.status, await res.text());
   }
   return res.json() as Promise<T>;
+}
+
+/**
+ * Like `gw()` but returns `null` on 404 instead of throwing — use this for
+ * endpoints where a missing resource is a normal outcome (e.g. fetching a
+ * product by id that may have been deleted).
+ */
+async function gwOptional<T>(
+  path: string,
+  params?: Params,
+  adminAuth = false,
+): Promise<T | null> {
+  try {
+    return await gw<T>(path, params, adminAuth);
+  } catch (e) {
+    if (e instanceof GatewayError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 // ── Shape adapters ────────────────────────────────────────────
@@ -245,13 +277,17 @@ export async function gwGetProductById(
   id: string,
 ): Promise<Product | null> {
   try {
-    const detail = await gw<Record<string, unknown>>(
+    const detail = await gwOptional<Record<string, unknown>>(
       `/api/products/${id}`,
     );
+    if (!detail) return null;
     return adaptProductDetail(detail);
   } catch (e) {
+    // Re-throw hard failures (401/5xx) so callers can surface a real error
+    // instead of a misleading 404. Only swallow on real missing resources.
+    if (e instanceof GatewayError && e.status === 404) return null;
     console.error("gwGetProductById:", e);
-    return null;
+    throw e;
   }
 }
 
