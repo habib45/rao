@@ -49,3 +49,4 @@ next-env.d.ts
 
 .puku
 package-lock.json
+public/uploads/*
