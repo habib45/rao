@@ -42,8 +42,7 @@ export default async function AdminProductEditPage({
             {loadError}
           </pre>
           <p className="mt-4 text-xs text-red-700">
-            Fix: regenerate <code>MYSQL_API_JWT_TOKEN</code> (or
-            {" "}<code>NEXT_PUBLIC_MYSQL_API_JWT_TOKEN</code>) in
+            Fix: regenerate <code>MYSQL_API_JWT_TOKEN</code> in
             <code> .env</code>, then restart <code>npm run dev</code>.
           </p>
         </div>

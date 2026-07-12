@@ -282,10 +282,10 @@ npx vitest run             # All tests passing
 **Public (client-safe):**
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_MYSQL_API_URL`
-- `NEXT_PUBLIC_MYSQL_API_JWT_TOKEN`
 
-**Server-only (secret):**
+**Server-only (secret — never prefix with `NEXT_PUBLIC_`):**
 - `MYSQL_API_SECRET`
+- `MYSQL_API_JWT_TOKEN`
 - `MYSQL_JWT_SECRET`
 - `AMAZON_ACCESS_KEY`
 - `AMAZON_SECRET_KEY`

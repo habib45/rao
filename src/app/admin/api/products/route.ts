@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productCreateSchema } from "@/app/admin/_lib/schemas/product";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
-export async function GET(request: NextRequest) {
+export const GET = withAdmin(async (request: NextRequest) => {
   const { searchParams } = request.nextUrl;
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("pageSize") ?? 20)));
@@ -23,9 +24,9 @@ export async function GET(request: NextRequest) {
   const res = await fetch(`${MYSQL_API_URL}/api/products?${params}`, { cache: "no-store" });
   const json = await res.json() as { data: unknown[]; total: number };
   return NextResponse.json({ products: json.data ?? [], total: json.total ?? 0, page, pageSize });
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withAdmin(async (request: NextRequest) => {
   const body = await request.json().catch(() => null);
   const parsed = productCreateSchema.safeParse(body);
 
@@ -58,4 +59,4 @@ export async function POST(request: NextRequest) {
     }
   }
   return NextResponse.json(product, { status: 201 });
-}
+});

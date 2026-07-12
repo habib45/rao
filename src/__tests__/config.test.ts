@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import path from "path";
 
@@ -30,6 +30,40 @@ describe("Project Configuration", () => {
     expect(envExample).toContain("NEXT_PUBLIC_SITE_URL");
     expect(envExample).toContain("MYSQL_API_URL");
     expect(envExample).toContain("MYSQL_API_SECRET");
+    expect(envExample).toContain("MYSQL_API_JWT_TOKEN");
+    // NEXT_PUBLIC_ prefix MUST NOT be used for the gateway JWT — server only.
+    expect(envExample).not.toContain("NEXT_PUBLIC_MYSQL_API_JWT_TOKEN");
+  });
+
+  it(".env.example omits any real secret values", () => {
+    const envExample = fs.readFileSync(
+      path.join(root, ".env.example"),
+      "utf-8"
+    );
+    // Keys that must NEVER carry a real value in .env.example (secrets).
+    const secretKeys = [
+      "MYSQL_API_SECRET",
+      "MYSQL_API_JWT_TOKEN",
+      "MYSQL_JWT_SECRET",
+      "API_TOKEN",
+      "AMAZON_ACCESS_KEY",
+      "AMAZON_SECRET_KEY",
+      "AMAZON_PARTNER_TAG",
+      "GEMINI_API_KEY",
+      "OPENAI_API_KEY",
+      "GROQ_API_KEY",
+    ];
+    const lines = envExample.split(/\r?\n/);
+    const violations: string[] = [];
+    for (const key of secretKeys) {
+      const re = new RegExp(`^${key}=.+$`);
+      for (const line of lines) {
+        if (re.test(line) && !line.endsWith("=")) {
+          violations.push(line);
+        }
+      }
+    }
+    expect(violations).toEqual([]);
   });
 
   // TC-1.1.4: Vitest configuration loads
@@ -87,3 +121,56 @@ function getAllFiles(dir: string, extensions: string[]): string[] {
   }
   return files;
 }
+
+// ── Datasource secret handling ───────────────────────────────────────────────
+
+const REAL_ENV = { ...process.env };
+
+beforeEach(() => {
+  vi.resetModules();
+  process.env = { ...REAL_ENV };
+});
+
+afterEach(() => {
+  process.env = REAL_ENV;
+});
+
+describe("datasource secret handling", () => {
+  it("throws in production when MYSQL_API_SECRET is missing", async () => {
+    process.env = { ...process.env, NODE_ENV: "production" };
+    const { MYSQL_API_SECRET: _drop1, ...rest } = process.env as Record<string, string | undefined>;
+    process.env = rest as NodeJS.ProcessEnv;
+    await expect(import("@/lib/config/datasource")).rejects.toThrow(
+      /MYSQL_API_SECRET/,
+    );
+  });
+
+  it("throws in production when MYSQL_API_JWT_TOKEN is missing", async () => {
+    process.env = { ...process.env, NODE_ENV: "production", MYSQL_API_SECRET: "set" };
+    const { MYSQL_API_JWT_TOKEN: _drop2, ...rest } = process.env as Record<string, string | undefined>;
+    process.env = rest as NodeJS.ProcessEnv;
+    await expect(import("@/lib/config/datasource")).rejects.toThrow(
+      /MYSQL_API_JWT_TOKEN/,
+    );
+  });
+
+  it("uses the dev fallback outside production when secrets are missing", async () => {
+    process.env = { ...process.env, NODE_ENV: "development" };
+    const { MYSQL_API_SECRET: _s1, MYSQL_API_JWT_TOKEN: _j1, ...rest } = process.env as Record<string, string | undefined>;
+    process.env = rest as NodeJS.ProcessEnv;
+    const mod = await import("@/lib/config/datasource");
+    expect(mod.MYSQL_API_SECRET).toMatch(/dev-only/);
+    expect(mod.MYSQL_API_JWT_TOKEN).toMatch(/dev-only/);
+  });
+
+  it("does not expose NEXT_PUBLIC_-prefixed gateway JWT", async () => {
+    // The renamed token must NOT have a NEXT_PUBLIC_ counterpart in source.
+    const srcDir = path.join(root, "src");
+    const files = getAllFiles(srcDir, [".ts", ".tsx"]);
+    for (const file of files) {
+      if (file.includes("__tests__") || file.includes(".test.")) continue;
+      const content = fs.readFileSync(file, "utf-8");
+      expect(content).not.toContain("NEXT_PUBLIC_MYSQL_API_JWT_TOKEN");
+    }
+  });
+});

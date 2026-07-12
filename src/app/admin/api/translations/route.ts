@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { translationUpdateSchema } from "@/app/admin/_lib/schemas/translation";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -10,7 +11,7 @@ const TRANSLATABLE_FIELDS: Record<string, string[]> = {
 
 const LOCALES = ["en", "bn-BD", "sv"] as const;
 
-export async function GET(request: NextRequest) {
+export const GET = withAdmin(async (request: NextRequest) => {
   const table = request.nextUrl.searchParams.get("table") ?? "products";
 
   if (!TRANSLATABLE_FIELDS[table]) {
@@ -36,9 +37,9 @@ export async function GET(request: NextRequest) {
   });
 
   return NextResponse.json({ table, fields, locales: LOCALES, rows: annotated });
-}
+});
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withAdmin(async (request: NextRequest) => {
   const body = await request.json();
   const result = translationUpdateSchema.safeParse(body);
 
@@ -72,4 +73,4 @@ export async function PATCH(request: NextRequest) {
   }
   if (errors.length > 0) return NextResponse.json({ ok: false, errors }, { status: 207 });
   return NextResponse.json({ ok: true });
-}
+});

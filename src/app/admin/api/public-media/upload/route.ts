@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { badRequest } from "@/lib/api/errors";
 import fs from "fs";
 import path from "path";
 
@@ -28,20 +29,18 @@ function sanitiseFolder(folder: string): string | null {
   return clean;
 }
 
-export async function POST(request: NextRequest) {
-  await requireAdmin();
-
+export const POST = withAdmin(async (request: NextRequest) => {
   const formData = await request.formData();
   const files = formData.getAll("file").filter((f) => f instanceof File) as File[];
   const folder = formData.get("folder")?.toString().trim() ?? "";
 
   if (files.length === 0) {
-    return NextResponse.json({ error: "At least one file is required" }, { status: 400 });
+    return badRequest({ reason: "At least one file is required" });
   }
 
   const safeFolder = sanitiseFolder(folder);
   if (safeFolder === null) {
-    return NextResponse.json({ error: "Invalid folder path" }, { status: 400 });
+    return badRequest({ reason: "Invalid folder path" });
   }
 
   const targetDir = path.join(UPLOADS_ROOT, safeFolder);
@@ -53,10 +52,7 @@ export async function POST(request: NextRequest) {
 
   for (const file of files) {
     if (!IMAGE_MIME_TYPES.has(file.type)) {
-      return NextResponse.json(
-        { error: `File "${file.name}" is not an allowed image type` },
-        { status: 400 },
-      );
+      return badRequest({ reason: `File "${file.name}" is not an allowed image type` });
     }
 
     if (file.size > MAX_FILE_SIZE) {
@@ -68,12 +64,12 @@ export async function POST(request: NextRequest) {
 
     const safeName = sanitiseName(file.name);
     if (!safeName) {
-      return NextResponse.json({ error: `Invalid file name: ${file.name}` }, { status: 400 });
+      return badRequest({ reason: `Invalid file name: ${file.name}` });
     }
 
     const destPath = path.join(targetDir, safeName);
     if (!destPath.startsWith(UPLOADS_ROOT)) {
-      return NextResponse.json({ error: "Invalid file path" }, { status: 400 });
+      return badRequest({ reason: "Invalid file path" });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -84,4 +80,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true, paths: results });
-}
+});

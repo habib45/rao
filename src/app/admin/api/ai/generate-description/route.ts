@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import OpenAI from "openai";
-import Groq from "groq-sdk";
+import { z } from "zod";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { badRequest, internalError } from "@/lib/api/errors";
+import { withRateLimit } from "@/lib/api/rate-limit";
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const openaiApiKey = process.env.OPENAI_API_KEY;
@@ -17,19 +18,66 @@ if (!groqApiKey) {
   console.warn("GROQ_API_KEY not set in environment variables");
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
+const SUPPORTED_ACTIONS = ["generate", "improve", "seo", "persuasive"] as const;
+const SUPPORTED_TONES = ["professional", "casual", "playful", "authoritative"] as const;
+const SUPPORTED_LOCALES = ["en", "bn-BD", "sv"] as const;
+
+const aiSchema = z.object({
+  model: z.string().min(1).max(80).default("gpt-4o-mini"),
+  productName: z.string().min(1).max(200),
+  features: z.string().max(2000).optional(),
+  targetAudience: z.string().max(500).optional(),
+  tone: z.enum(SUPPORTED_TONES).default("professional"),
+  action: z.enum(SUPPORTED_ACTIONS).default("generate"),
+  existingDescription: z.string().max(20000).optional(),
+  locale: z.enum(SUPPORTED_LOCALES).default("en"),
+});
+
+export const POST = withAdmin(
+  withRateLimit(
+    { key: "ai-generate-description", capacity: 10, refillPerSec: 1 / 6 },
+    async (req: NextRequest) => {
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return badRequest({ reason: "Invalid JSON body" });
+    }
+
+    const parsed = aiSchema.safeParse(body);
+    if (!parsed.success) {
+      return badRequest({ issues: parsed.error.flatten() });
+    }
+
     const {
-      model = "gpt-4o-mini",
+      model,
       productName,
       features,
       targetAudience,
-      tone = "professional",
-      action = "generate",
+      tone,
+      action,
       existingDescription,
-      locale = "en",
-    } = body;
+      locale,
+    } = parsed.data;
+
+    // Determine which AI service to use
+    const isOpenAI = model.startsWith("gpt-");
+    const isGroq =
+      model.startsWith("llama") ||
+      model.startsWith("mixtral") ||
+      model.startsWith("gemma");
+
+    if (isOpenAI) {
+      if (!openaiApiKey) {
+        return internalError({ reason: "OpenAI API key not configured" });
+      }
+    } else if (isGroq) {
+      if (!groqApiKey) {
+        return internalError({ reason: "Groq API key not configured" });
+      }
+    } else if (!geminiApiKey) {
+      return internalError({ reason: "Gemini API key not configured" });
+    }
 
     // Validate required fields
     if (!productName) {
@@ -39,147 +87,77 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine which AI service to use
-    const isOpenAI = model.startsWith("gpt-");
-    const isGroq = model.startsWith("llama") || model.startsWith("mixtral") || model.startsWith("gemma");
-    
-    if (isOpenAI) {
-      if (!openaiApiKey) {
-        return NextResponse.json(
-          { error: "OpenAI API key not configured" },
-          { status: 500 }
-        );
-      }
-    } else if (isGroq) {
-      if (!groqApiKey) {
-        return NextResponse.json(
-          { error: "Groq API key not configured" },
-          { status: 500 }
-        );
-      }
-    } else {
-      if (!geminiApiKey) {
-        return NextResponse.json(
-          { error: "Gemini API key not configured" },
-          { status: 500 }
-        );
-      }
-    }
-
     // Build prompt based on action
-    let prompt = "";
+    const languageLabel =
+      locale === "en" ? "English" : locale === "bn-BD" ? "Bangla" : "Swedish";
 
-    if (action === "generate") {
-      prompt = `Generate a compelling product description in HTML format for the following product:
+    const actionInstructions: Record<(typeof SUPPORTED_ACTIONS)[number], string> = {
+      generate: [
+        "Generate a compelling product description in HTML format.",
+        "Include a brief introduction, highlight key benefits, use bullet points for features.",
+      ].join(" "),
+      improve: [
+        "Improve the existing product description in HTML format.",
+        "Enhance engagement, improve structure and flow, keep the core message.",
+      ].join(" "),
+      seo: [
+        "Add relevant SEO keywords naturally to the product description in HTML format.",
+        "Do not keyword stuff. Maintain readability and engagement.",
+      ].join(" "),
+      persuasive: [
+        "Make the product description more persuasive and conversion-focused in HTML format.",
+        "Include strong calls-to-action, highlight benefits, create urgency and desire.",
+      ].join(" "),
+    };
 
-Product Name: ${productName}
-${features ? `Key Features: ${features}` : ""}
-${targetAudience ? `Target Audience: ${targetAudience}` : ""}
-Tone: ${tone}
-Language: ${locale === "en" ? "English" : locale === "bn-BD" ? "Bangla" : "Swedish"}
+    const commonRequirements =
+      "Use proper HTML formatting (h2, h3, p, ul, li, strong, em tags). " +
+      "Do not include any markdown code blocks. Return only the HTML content without any additional text.";
 
-Requirements:
-- Use proper HTML formatting (h2, h3, p, ul, li, strong, em tags)
-- Make it engaging and persuasive
-- Include a brief introduction
-- Highlight key benefits
-- Use bullet points for features
-- Keep it concise but informative
-- Do not include any markdown code blocks
-- Return only the HTML content without any additional text`;
-    } else if (action === "improve") {
-      prompt = `Improve the following product description in HTML format:
-
-Product Name: ${productName}
-${features ? `Key Features: ${features}` : ""}
-${targetAudience ? `Target Audience: ${targetAudience}` : ""}
-Tone: ${tone}
-Language: ${locale === "en" ? "English" : locale === "bn-BD" ? "Bangla" : "Swedish"}
-
-Current Description:
-${existingDescription || "No existing description provided"}
-
-Requirements:
-- Enhance the existing description
-- Make it more engaging and persuasive
-- Improve structure and flow
-- Use proper HTML formatting (h2, h3, p, ul, li, strong, em tags)
-- Keep the core message but elevate the language
-- Do not include any markdown code blocks
-- Return only the HTML content without any additional text`;
-    } else if (action === "seo") {
-      prompt = `Add SEO keywords and optimize the following product description in HTML format:
-
-Product Name: ${productName}
-${features ? `Key Features: ${features}` : ""}
-${targetAudience ? `Target Audience: ${targetAudience}` : ""}
-Tone: ${tone}
-Language: ${locale === "en" ? "English" : locale === "bn-BD" ? "Bangla" : "Swedish"}
-
-Current Description:
-${existingDescription || "No existing description provided"}
-
-Requirements:
-- Add relevant SEO keywords naturally
-- Include product-related terms people search for
-- Maintain readability and engagement
-- Use proper HTML formatting (h2, h3, p, ul, li, strong, em tags)
-- Do not keyword stuff
-- Do not include any markdown code blocks
-- Return only the HTML content without any additional text`;
-    } else if (action === "persuasive") {
-      prompt = `Make the following product description more persuasive and conversion-focused in HTML format:
-
-Product Name: ${productName}
-${features ? `Key Features: ${features}` : ""}
-${targetAudience ? `Target Audience: ${targetAudience}` : ""}
-Tone: ${tone}
-Language: ${locale === "en" ? "English" : locale === "bn-BD" ? "Bangla" : "Swedish"}
-
-Current Description:
-${existingDescription || "No existing description provided"}
-
-Requirements:
-- Add persuasive language and psychological triggers
-- Include strong calls-to-action
-- Highlight benefits over features
-- Create urgency and desire
-- Use proper HTML formatting (h2, h3, p, ul, li, strong, em tags)
-- Maintain authenticity
-- Do not include any markdown code blocks
-- Return only the HTML content without any additional text`;
-    }
+    const prompt = [
+      actionInstructions[action],
+      "",
+      `Product Name: ${productName}`,
+      features ? `Key Features: ${features}` : "",
+      targetAudience ? `Target Audience: ${targetAudience}` : "",
+      `Tone: ${tone}`,
+      `Language: ${languageLabel}`,
+      "",
+      action !== "generate" && existingDescription
+        ? `Current Description:\n${existingDescription}`
+        : "",
+      "",
+      `Requirements:\n- ${actionInstructions[action]}\n- ${commonRequirements}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
     let text = "";
 
     if (isOpenAI) {
-      // Use OpenAI
+      const { default: OpenAI } = await import("openai");
       const openai = new OpenAI({ apiKey: openaiApiKey });
       const completion = await openai.chat.completions.create({
         model,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       });
-      text = completion.choices[0]?.message?.content || "";
+      text = completion.choices[0]?.message?.content ?? "";
     } else if (isGroq) {
-      // Use Groq
-      if (!groqApiKey) {
-        throw new Error("Groq API key not configured");
-      }
+      const { default: Groq } = await import("groq-sdk");
       const groq = new Groq({ apiKey: groqApiKey });
       const completion = await groq.chat.completions.create({
         model,
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
       });
-      text = completion.choices[0]?.message?.content || "";
+      text = completion.choices[0]?.message?.content ?? "";
     } else {
-      // Use Gemini
-      if (!geminiApiKey) {
-        throw new Error("Gemini API key not configured");
-      }
-      const genAI = new GoogleGenerativeAI(geminiApiKey);
-      const generativeModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+      const { GoogleGenerativeAI } = await import("@google/generative-ai");
+      const genAI = new GoogleGenerativeAI(geminiApiKey!);
+      const generativeModel = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash-latest",
+      });
       const result = await generativeModel.generateContent(prompt);
       const response = await result.response;
       text = response.text();
@@ -192,13 +170,6 @@ Requirements:
       .trim();
 
     return NextResponse.json({ description: cleanedText });
-  } catch (error) {
-    console.error("AI API error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to generate description",
-      },
-      { status: 500 }
-    );
-  }
-}
+  }),
+);
+

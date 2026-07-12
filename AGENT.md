@@ -229,10 +229,10 @@ plan/                      ← Phase plans (read before coding!)
 # Public (safe in client bundle)
 NEXT_PUBLIC_SITE_URL=
 NEXT_PUBLIC_MYSQL_API_URL=
-NEXT_PUBLIC_MYSQL_API_JWT_TOKEN=
 
 # Server-only (NEVER NEXT_PUBLIC_)
 MYSQL_API_SECRET=
+MYSQL_API_JWT_TOKEN=
 MYSQL_JWT_SECRET=
 
 # Amazon PA-API

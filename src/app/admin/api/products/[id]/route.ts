@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { productUpdateSchema } from "@/app/admin/_lib/schemas/product";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
-export async function GET(
+export const GET = withAdmin(async (
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   const { id } = await params;
 
   const res = await fetch(`${MYSQL_API_URL}/api/products/${id}`, { cache: "no-store" });
   if (!res.ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(await res.json());
-}
+});
 
-export async function PATCH(
+export const PATCH = withAdmin(async (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   const { id } = await params;
   const body = await request.json();
   const result = productUpdateSchema.partial().safeParse(body);
@@ -54,15 +55,15 @@ export async function PATCH(
     }
   }
   return NextResponse.json(json);
-}
+});
 
-export async function DELETE(
+export const DELETE = withAdmin(async (
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+) => {
   const { id } = await params;
 
   const res = await fetch(`${MYSQL_API_URL}/api/products/${id}`, { method: "DELETE" });
   if (!res.ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ ok: true });
-}
+});

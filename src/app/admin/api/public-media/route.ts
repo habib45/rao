@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { badRequest, notFound } from "@/lib/api/errors";
 import fs from "fs";
 import path from "path";
 
@@ -25,15 +26,13 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export async function GET(request: NextRequest) {
-  await requireAdmin();
-
+export const GET = withAdmin(async (request: NextRequest) => {
   const url = new URL(request.url);
   const folder = url.searchParams.get("folder")?.trim() ?? "";
 
   const dir = resolveUploadsPath(folder);
   if (!dir) {
-    return NextResponse.json({ error: "Invalid folder path" }, { status: 400 });
+    return badRequest({ reason: "Invalid folder path" });
   }
 
   if (!fs.existsSync(dir)) {
@@ -78,32 +77,29 @@ export async function GET(request: NextRequest) {
     });
 
   return NextResponse.json({ items });
-}
+});
 
-export async function POST(request: NextRequest) {
-  await requireAdmin();
-
+export const POST = withAdmin(async (request: NextRequest) => {
   const url = new URL(request.url);
   const folder = url.searchParams.get("folder")?.trim() ?? "";
 
-  const body = (await request.json()) as { folderName?: string };
-  const folderName = body.folderName?.trim() ?? "";
+  const body = (await request.json().catch(() => null)) as { folderName?: string } | null;
+  const folderName = body?.folderName?.trim() ?? "";
 
   if (!/^[a-zA-Z0-9_-]{1,64}$/.test(folderName)) {
-    return NextResponse.json(
-      { error: "Folder name must be 1–64 alphanumeric, dash, or underscore characters" },
-      { status: 400 },
-    );
+    return badRequest({
+      reason: "Folder name must be 1–64 alphanumeric, dash, or underscore characters",
+    });
   }
 
   const parentDir = resolveUploadsPath(folder);
   if (!parentDir) {
-    return NextResponse.json({ error: "Invalid folder path" }, { status: 400 });
+    return badRequest({ reason: "Invalid folder path" });
   }
 
   const newDir = path.join(parentDir, folderName);
   if (!newDir.startsWith(UPLOADS_ROOT)) {
-    return NextResponse.json({ error: "Invalid folder path" }, { status: 400 });
+    return badRequest({ reason: "Invalid folder path" });
   }
 
   fs.mkdirSync(newDir, { recursive: true });
@@ -111,37 +107,35 @@ export async function POST(request: NextRequest) {
 
   const relativePath = folder ? `${folder}/${folderName}` : folderName;
   return NextResponse.json({ path: relativePath });
-}
+});
 
-export async function DELETE(request: NextRequest) {
-  await requireAdmin();
-
+export const DELETE = withAdmin(async (request: NextRequest) => {
   const url = new URL(request.url);
   const filePath = url.searchParams.get("path")?.trim() ?? "";
 
   if (!filePath) {
-    return NextResponse.json({ error: "Path is required" }, { status: 400 });
+    return badRequest({ reason: "Path is required" });
   }
 
   const safe = sanitiseSegment(filePath);
   if (!safe) {
-    return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    return badRequest({ reason: "Invalid path" });
   }
 
   const ext = path.extname(safe).toLowerCase();
   if (!IMAGE_EXTENSIONS.has(ext)) {
-    return NextResponse.json({ error: "Only image files can be deleted" }, { status: 400 });
+    return badRequest({ reason: "Only image files can be deleted" });
   }
 
   const resolved = path.join(UPLOADS_ROOT, safe);
   if (!resolved.startsWith(UPLOADS_ROOT)) {
-    return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+    return badRequest({ reason: "Invalid path" });
   }
 
   if (!fs.existsSync(resolved)) {
-    return NextResponse.json({ error: "File not found" }, { status: 404 });
+    return notFound({ reason: "File not found" });
   }
 
   fs.unlinkSync(resolved);
   return NextResponse.json({ ok: true });
-}
+});
