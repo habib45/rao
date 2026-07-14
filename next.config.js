@@ -22,6 +22,8 @@ const nextConfig = {
       // Using port-based restrictions keeps the image proxy attack surface small.
       { protocol: "https", hostname: "cdn.jsdelivr.net" },
       { protocol: "https", hostname: "res.cloudinary.com" },
+      // Blog post cover images sourced from external review sites.
+      { protocol: "https", hostname: "amindfullmom.com" },
     ],
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

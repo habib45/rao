@@ -8,6 +8,13 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/cart/CartProvider";
 import { ComparisonProvider } from "@/lib/comparison/index";
+import { JsonLd, organizationJsonLd, websiteJsonLd, appleItunesAppMeta } from "@/components/JsonLd";
+import {
+  SITE_URL,
+  SITE_SHORT_TITLE,
+  VERIFICATION_CODES,
+  buildAlternatesFromConfig,
+} from "@/lib/seo-config";
 import "../globals.css";
 
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
@@ -18,6 +25,14 @@ const descriptions: Record<LocaleCode, string> = {
     "Amazon-এ সেরা পণ্য খুঁজুন — বিশেষজ্ঞ রিভিউ, তুলনা ও ডিল। বিশ্বস্ত পণ্য সেরা দামে পান। আজই সাশ্রয় শুরু করুন!",
   sv: "Hitta de bästa Amazon-produkterna med expertrecensioner, jämförelser & erbjudanden. Hitta pålitliga produkter till oslagbara priser. Spara nu!",
 };
+
+/**
+ * Filter the verification codes object down to entries with non-empty values
+ * so the layout doesn't render `<meta name="..." content="">` for unset codes.
+ */
+const activeVerificationCodes = Object.fromEntries(
+  Object.entries(VERIFICATION_CODES).filter(([, value]) => Boolean(value)),
+) as Partial<Record<keyof typeof VERIFICATION_CODES, string>>;
 
 export async function generateMetadata({
   params,
@@ -42,11 +57,9 @@ export async function generateMetadata({
       "affiliate",
       "RaoFinds",
     ],
-    authors: [{ name: "RaoFinds", url: process.env.NEXT_PUBLIC_SITE_URL }],
-    publisher: "RaoFinds",
-    metadataBase: process.env.NEXT_PUBLIC_SITE_URL
-      ? new URL(process.env.NEXT_PUBLIC_SITE_URL)
-      : undefined,
+    authors: [{ name: SITE_SHORT_TITLE, url: SITE_URL }],
+    publisher: SITE_SHORT_TITLE,
+    metadataBase: new URL(SITE_URL),
     viewport: {
       width: "device-width",
       initialScale: 1,
@@ -62,18 +75,18 @@ export async function generateMetadata({
     },
     manifest: "/manifest.json",
     appleWebApp: {
-      title: "RaoFinds",
+      title: SITE_SHORT_TITLE,
       statusBarStyle: "default",
     },
     openGraph: {
       type: "website",
-      siteName: "RaoFinds",
+      siteName: SITE_SHORT_TITLE,
       images: [
         {
           url: "/og-image.png",
           width: 1200,
           height: 630,
-          alt: "RaoFinds - Best Products on Amazon",
+          alt: `${SITE_SHORT_TITLE} - Best Products on Amazon`,
         },
       ],
     },
@@ -83,12 +96,8 @@ export async function generateMetadata({
       creator: "@raofinds",
     },
     alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/${loc}`,
-      languages: {
-        en: "/en",
-        "bn-BD": "/bn-BD",
-        sv: "/sv",
-      },
+      canonical: `/${loc}`,
+      languages: buildAlternatesFromConfig("/"),
     },
   };
 }
@@ -111,24 +120,20 @@ export default async function LocaleLayout({
 
   const bodyClassName = locale === "bn-BD" ? "leading-[1.75]" : "";
 
-  const organizationJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: "RaoFinds",
-    url: process.env.NEXT_PUBLIC_SITE_URL,
-    logo: `${process.env.NEXT_PUBLIC_SITE_URL}/icon.svg`,
-    description: "Shop the best Amazon products with expert reviews, comparisons & deals.",
-    sameAs: [
-      "https://twitter.com/raofinds",
-      "https://facebook.com/raofinds",
-      "https://linkedin.com/company/raofinds",
-    ],
-    contactPoint: {
-      "@type": "ContactPoint",
-      contactType: "customer service",
-      email: "contact@raofinds.com",
-    },
+  // Map our config keys to the conventional meta-name attribute values each
+  // webmaster tool expects. Anything not set is filtered out above.
+  const verificationMetaNames: Record<keyof typeof activeVerificationCodes, string> = {
+    google: "google-site-verification",
+    bing: "msvalidate.01",
+    yandex: "yandex-verification",
+    apple: "apple-itunes-app",
+    microsoft: "msvalidate.01",
+    baidu: "baidu-site-verification",
+    pinterest: "p:domain_verify",
+    facebookDomain: "facebook-domain-verification",
+    norton: "norton-dc-token",
   };
+  const itunesAppMeta = appleItunesAppMeta();
 
   return (
     <html lang={locale} dir="ltr">
@@ -140,11 +145,17 @@ export default async function LocaleLayout({
         <link rel="icon" type="image/svg+xml" href="/icon.svg" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-title" content="RaoFinds" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
+        <meta name="apple-mobile-web-app-title" content={SITE_SHORT_TITLE} />
+        <JsonLd data={organizationJsonLd()} />
+        <JsonLd data={websiteJsonLd(locale as LocaleCode)} />
+        {Object.entries(activeVerificationCodes).map(([key, value]) => (
+          <meta
+            key={key}
+            name={verificationMetaNames[key as keyof typeof activeVerificationCodes]}
+            content={value}
+          />
+        ))}
+        {itunesAppMeta && <meta name="apple-itunes-app" content={itunesAppMeta} />}
       </head>
       <body className={`${bodyClassName} min-h-screen flex flex-col font-sans antialiased`} suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>

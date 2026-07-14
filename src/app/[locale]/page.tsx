@@ -12,16 +12,18 @@ import ProductCard from "@/components/ProductCard";
 import SearchBar from "@/components/SearchBar";
 import { Link } from "@/i18n/routing";
 import { t } from "@/lib/i18n/translate";
+import { buildPageMetadata } from "@/lib/seo";
+import type { SupportedLocale } from "@/lib/seo-config";
 
 export const revalidate = 3600;
 
-const homeTitles: Record<string, string> = {
+const homeTitles: Record<SupportedLocale, string> = {
   en: "RaoFinds — Best Products on Amazon",
   "bn-BD": "RaoFinds — Amazon-এ সেরা পণ্য",
   sv: "RaoFinds — Bästa produkterna på Amazon",
 };
 
-const homeDescriptions: Record<string, string> = {
+const homeDescriptions: Record<SupportedLocale, string> = {
   en: "Shop the best Amazon products with expert reviews, comparisons & deals. Find trusted products at unbeatable prices. Start saving today!",
   "bn-BD": "Amazon-এ সেরা পণ্য খুঁজুন — বিশেষজ্ঞ রিভিউ, তুলনা ও ডিল। বিশ্বস্ত পণ্য সেরা দামে পান। আজই সাশ্রয় শুরু করুন!",
   sv: "Hitta de bästa Amazon-produkterna med expertrecensioner, jämförelser & erbjudanden. Hitta pålitliga produkter till oslagbara priser. Spara nu!",
@@ -33,36 +35,13 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  const title = homeTitles[locale] ?? homeTitles.en;
-  const description = homeDescriptions[locale] ?? homeDescriptions.en;
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: `/${locale}`,
-      languages: {
-        en: "/en",
-        "bn-BD": "/bn-BD",
-        sv: "/sv",
-      },
-    },
-    openGraph: {
-      type: "website",
-      url: `${siteUrl}/${locale}`,
-      siteName: "RaoFinds",
-      title,
-      description,
-      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "RaoFinds" }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: ["/og-image.jpg"],
-    },
-  };
+  const loc = (locale as SupportedLocale) ?? "en";
+  return buildPageMetadata({
+    title: homeTitles[loc] ?? homeTitles.en,
+    description: homeDescriptions[loc] ?? homeDescriptions.en,
+    path: `/${locale}`,
+    locale: loc,
+  });
 }
 
 type HeroCopy = {
@@ -238,41 +217,8 @@ export default async function HomePage({
     categoryNameById.set(c.id, t(c.name, loc) as string);
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-
   return (
     <div>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@graph": [
-              {
-                "@type": "WebSite",
-                "@id": `${siteUrl}/#website`,
-                url: siteUrl,
-                name: "RaoFinds",
-                description: hero.description,
-                potentialAction: {
-                  "@type": "SearchAction",
-                  target: {
-                    "@type": "EntryPoint",
-                    urlTemplate: `${siteUrl}/${loc}/search?q={search_term_string}`,
-                  },
-                  "query-input": "required name=search_term_string",
-                },
-              },
-              {
-                "@type": "Organization",
-                "@id": `${siteUrl}/#organization`,
-                name: "RaoFinds",
-                url: siteUrl,
-              },
-            ],
-          }),
-        }}
-      />
       {/* Hero Banner */}
       <section className="relative overflow-hidden bg-gradient-to-r from-brand to-brand-dark" aria-labelledby="hero-heading">
         <div className="mx-auto flex max-w-7xl flex-col items-start gap-8 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8 lg:py-20">

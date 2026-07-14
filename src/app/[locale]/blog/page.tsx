@@ -17,6 +17,8 @@ import { BlogFilters } from "./_components/BlogFilters";
 import { PER_PAGE_OPTIONS, type BlogView } from "./_components/blog-constants";
 import { NewsletterSection } from "./_components/NewsletterSection";
 import { getNewsletterSettings } from "@/lib/queries/newsletter";
+import { buildPageMetadata } from "@/lib/seo";
+import type { SupportedLocale } from "@/lib/seo-config";
 
 export const revalidate = 3600;
 
@@ -36,31 +38,17 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const tBlog = await getTranslations("blog");
-  const title = tBlog("title");
-  const description = "Insights, reviews, and guides to help you shop smarter";
+  const rawTitle = tBlog("title");
+  const title = rawTitle.length < 30 ? `${rawTitle} — Expert Shopping Guides` : rawTitle;
+  const description =
+    "Insights, reviews, and expert buying guides to help you shop smarter on Amazon. Updated weekly with hand-picked deals, comparisons, and tips.";
 
-  return {
+  return buildPageMetadata({
     title,
     description,
-    alternates: {
-      languages: {
-        en: `/en/blog`,
-        "bn-BD": `/bn-BD/blog`,
-        sv: `/sv/blog`,
-      },
-    },
-    openGraph: {
-      type: "website",
-      title,
-      description,
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}/${locale}/blog`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    path: `/${locale}/blog`,
+    locale: locale as SupportedLocale,
+  });
 }
 
 function CategoryBadge({

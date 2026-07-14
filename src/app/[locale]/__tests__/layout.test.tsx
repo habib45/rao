@@ -244,14 +244,19 @@ describe("generateMetadata", () => {
     expect(enMeta.description).not.toBe(bnMeta.description);
   });
 
-  // TC-1.5.20: NEXT_PUBLIC_SITE_URL not set
-  it("handles missing NEXT_PUBLIC_SITE_URL", async () => {
+  // TC-1.5.20: NEXT_PUBLIC_SITE_URL not set → fall back to the default
+  // SITE_URL from seo-config so metadataBase is always defined. Previously
+  // this asserted metadataBase === undefined; the new behavior is required
+  // so that canonical URLs and og:url resolve correctly even when the
+  // deployment forgot to set the env var.
+  it("falls back to default SITE_URL when NEXT_PUBLIC_SITE_URL is missing", async () => {
     const originalUrl = process.env.NEXT_PUBLIC_SITE_URL;
     delete process.env.NEXT_PUBLIC_SITE_URL;
     const metadata = await generateMetadata({
       params: Promise.resolve({ locale: "en" }),
     });
-    expect(metadata.metadataBase).toBeUndefined();
+    expect(metadata.metadataBase).toBeInstanceOf(URL);
+    expect(metadata.metadataBase?.toString()).toMatch(/^https:\/\//);
     process.env.NEXT_PUBLIC_SITE_URL = originalUrl;
   });
 });
