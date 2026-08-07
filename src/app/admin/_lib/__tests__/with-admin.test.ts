@@ -48,13 +48,14 @@ describe("withAdmin", () => {
       new NextResponse(JSON.stringify({ ok: true }), { status: 200 }),
     );
 
-    const res = await withAdmin(handler)(makeReq(), { params: {} });
+    const ctx = { params: Promise.resolve({}) };
+    const res = await withAdmin(handler)(makeReq(), ctx);
 
     expect(res.status).toBe(200);
     expect(handler).toHaveBeenCalledOnce();
     expect(handler).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ params: {} }),
+      expect.objectContaining({ params: expect.any(Promise) }),
       session,
     );
   });
@@ -64,7 +65,7 @@ describe("withAdmin", () => {
     const withAdmin = await importWithAdmin();
 
     const handler = vi.fn();
-    const res = await withAdmin(handler)(makeReq(), { params: {} });
+    const res = await withAdmin(handler)(makeReq(), { params: Promise.resolve({}) });
 
     expect(handler).not.toHaveBeenCalled();
     expect(res.status).toBe(401);
@@ -84,7 +85,7 @@ describe("withAdmin", () => {
     const handler = vi.fn();
     const res = await withAdmin(handler, { role: "admin" })(
       makeReq(),
-      { params: {} },
+      { params: Promise.resolve({}) },
     );
 
     expect(handler).not.toHaveBeenCalled();
@@ -104,7 +105,7 @@ describe("withAdmin", () => {
     const handler = vi.fn().mockResolvedValue(new NextResponse(null, { status: 200 }));
     const res = await withAdmin(handler, { role: ["admin", "editor"] })(
       makeReq(),
-      { params: {} },
+      { params: Promise.resolve({}) },
     );
 
     expect(handler).toHaveBeenCalledOnce();
@@ -122,7 +123,7 @@ describe("withAdmin", () => {
     const handler = vi.fn();
     const res = await withAdmin(handler, { role: ["admin"] })(
       makeReq(),
-      { params: {} },
+      { params: Promise.resolve({}) },
     );
 
     expect(handler).not.toHaveBeenCalled();
@@ -138,7 +139,7 @@ describe("withAdmin", () => {
     const withAdmin = await importWithAdmin();
 
     const handler = vi.fn().mockResolvedValue(new NextResponse(null, { status: 200 }));
-    const ctx = { params: { id: "42" } };
+    const ctx = { params: Promise.resolve({ id: "42" }) };
 
     await withAdmin<{ id: string }>(handler)(makeReq(), ctx);
 

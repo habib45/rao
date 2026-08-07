@@ -61,7 +61,12 @@ async function gw<T>(
 
   const res = await fetch(url.toString(), {
     headers,
-    next: { revalidate: 60 },
+    // 60s ISR cache, tagged so admin PATCH/DELETE/POST routes can call
+    // `revalidateTag('products')` and bust the cache on the next read.
+    // Without this tag, a freshly uploaded/picked image would still be
+    // missing after a page reload because the server component would
+    // return the pre-save `product_images` array for up to 60 s.
+    next: { revalidate: 60, tags: ["products"] },
   });
   if (!res.ok) {
     throw new GatewayError(path, res.status, await res.text());
@@ -89,13 +94,56 @@ async function gwOptional<T>(
 
 // ── Shape adapters ────────────────────────────────────────────
 
+// Helper to parse JSON fields safely
+function parseJsonField(field: unknown): Record<string, string> {
+  if (typeof field === 'object' && field !== null) {
+    return field as Record<string, string>;
+  }
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as Record<string, string>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+// Helper to parse JSON array fields
+function parseJsonArrayField(field: unknown): string[] {
+  if (Array.isArray(field)) {
+    return field as string[];
+  }
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as string[];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 // Products list endpoint returns primary_image_url instead of product_images[]
 function adaptProductRow(row: Record<string, unknown>): Product {
   const primaryUrl = row.primary_image_url as string | null;
   const { primary_image_url: _drop, ...rest } = row;
   void _drop;
+  
+  // Parse JSON fields
+  const parsed = {
+    ...rest,
+    name: parseJsonField(rest.name),
+    slug: parseJsonField(rest.slug),
+    description: parseJsonField(rest.description),
+    meta_title: parseJsonField(rest.meta_title),
+    meta_description: parseJsonField(rest.meta_description),
+    features: parseJsonArrayField(rest.features),
+    attributes: parseJsonField(rest.attributes),
+  };
+  
   return {
-    ...(rest as unknown as Product),
+    ...(parsed as unknown as Product),
     product_images: primaryUrl
       ? ([
           {
@@ -130,25 +178,24 @@ function adaptProductDetail(row: Record<string, unknown>): Product {
   }
   const filteredImages = images.filter((img) => img?.url);
 
-  let features: string[] = [];
-  const featuresData = row.features;
-  if (typeof featuresData === 'string') {
-    try {
-      features = JSON.parse(featuresData) as string[];
-    } catch {
-      features = [];
-    }
-  } else if (Array.isArray(featuresData)) {
-    features = featuresData as string[];
-  }
-
-  const { images: _drop, features: _dropFeatures, ...rest } = row;
+  const { images: _drop, ...rest } = row;
   void _drop;
-  void _dropFeatures;
+  
+  // Parse JSON fields
+  const parsed = {
+    ...rest,
+    name: parseJsonField(rest.name),
+    slug: parseJsonField(rest.slug),
+    description: parseJsonField(rest.description),
+    meta_title: parseJsonField(rest.meta_title),
+    meta_description: parseJsonField(rest.meta_description),
+    features: parseJsonArrayField(rest.features),
+    attributes: parseJsonField(rest.attributes),
+  };
+  
   const result = {
-    ...(rest as unknown as Product),
+    ...(parsed as unknown as Product),
     product_images: filteredImages,
-    features,
     is_featured: Boolean(rest.is_featured),
     is_active: Boolean(rest.is_active),
     show_in_comparison: Boolean(rest.show_in_comparison),

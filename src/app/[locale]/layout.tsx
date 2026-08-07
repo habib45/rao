@@ -136,7 +136,7 @@ export default async function LocaleLayout({
   const itunesAppMeta = appleItunesAppMeta();
 
   return (
-    <html lang={locale} dir="ltr">
+    <html lang={locale} dir="ltr" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content="#f59e0b" />

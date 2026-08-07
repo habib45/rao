@@ -140,7 +140,7 @@ export const POST = withAdmin(async (request: NextRequest) => {
       const filePath = join(uploadDir, sanitizedFilename);
       await writeFile(filePath, buffer);
 
-      // Public URL
+      // Public URL - use relative path to avoid domain issues
       const publicUrl = `/uploads/blog/${sanitizedFilename}`;
 
       downloaded.push({

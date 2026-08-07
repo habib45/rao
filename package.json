@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_ENV=production NODE_OPTIONS=\"--max-old-space-size=4096\" next build",
+    "build": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=4096 next build",
     "postbuild": "node scripts/fix-routes-manifest.js",
     "start": "node server.js",
     "export": "next build",
-    "lint": "eslint",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -60,6 +60,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/coverage-v8": "^2.1.9",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.5.15",
     "jsdom": "^25.0.1",

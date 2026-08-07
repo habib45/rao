@@ -634,17 +634,32 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         const hasImages = generatedContent.includes('<img');
         
         if (!hasImages) {
-          // Add images to the content
+          // Add images to the content using relative paths to avoid localhost issues
           const paragraphs = generatedContent.split('</p>');
           const imageInsertions: string[] = [];
           
           extractedContent.images.forEach((img, _index) => {
-            const imageHtml = `<figure><img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" style="max-width: 100%; height: auto;" /></figure>`;
+            // Convert absolute URLs to relative paths to avoid localhost/domain issues
+            let imageUrl = img.src;
+            if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('http://127.0.0.1')) {
+              // If it's a localhost URL, we can't use it in production
+              // Skip this image or use a placeholder
+              console.warn('Skipping localhost image in production:', imageUrl);
+              return;
+            }
+            
+            // Keep original external URLs, but warn about external dependencies
+            if (!imageUrl.startsWith('http')) {
+              // It's already a relative path, keep it as is
+              imageUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+            }
+            
+            const imageHtml = `<figure><img src="${imageUrl}" alt="${img.alt}" title="${img.title || img.alt}" style="max-width: 100%; height: auto;" /></figure>`;
             imageInsertions.push(imageHtml);
           });
           
           // Insert images at strategic points
-          if (paragraphs.length > 3) {
+          if (paragraphs.length > 3 && imageInsertions.length > 0) {
             // Insert first image after first paragraph
             if (imageInsertions[0]) {
               paragraphs.splice(1, 0, imageInsertions[0]);
@@ -658,7 +673,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
               paragraphs.push(...imageInsertions.slice(2));
             }
             generatedContent = paragraphs.join('</p>');
-          } else {
+          } else if (imageInsertions.length > 0) {
             // Just append all images at the end
             generatedContent = generatedContent + '\n\n' + imageInsertions.join('\n\n');
           }

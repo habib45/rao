@@ -17,8 +17,52 @@ const translationMapOptional = z.object({
   sv: z.string().default(""),
 }).partial();
 
+// Image URLs accepted by the admin product editor.
+//
+// The editor supports three flavors of URL:
+//
+//   1. Full http(s) / data URLs (Amazon CDN, remote blog assets, etc.).
+//   2. Same-origin static uploads served from `/uploads/...`. The upload
+//      endpoint in `/admin/api/public-media/upload` returns relative paths
+//      like `/uploads/products/foo.png`, which Next.js serves from
+//      `public/uploads/`. We must accept these on the PATCH body because
+//      every freshly-uploaded image produces one, and rejecting them
+//      here broke save after upload.
+//   3. Absolute filesystem paths / `file://` URLs from a localhost admin
+//      picker. These never reach the gateway (the picker uploads first),
+//      but the schema tolerates them so the form state is round-trippable.
+//
+// Anything else (empty, longer than 2048 chars, or with whitespace) is
+// rejected.
+const imageUrlSchema = z
+  .string()
+  .min(1, "Image URL is required")
+  .max(2048)
+  .refine(
+    (s) => {
+      const trimmed = s.trim();
+      if (!trimmed) return false;
+      if (trimmed.startsWith("/uploads/")) return true;
+      if (trimmed.startsWith("file://")) return true;
+      // POSIX absolute path (`/foo/bar/baz.png`) or Windows absolute path
+      // (`C:\foo\bar.png`). We tolerate these so the form state can carry
+      // them before the picker proxies them onto the server.
+      if (/^\/[^\s]+$/.test(trimmed)) return true;
+      if (/^[a-zA-Z]:[\\/][^\s]+$/.test(trimmed)) return true;
+      // Otherwise require a parseable http(s) URL.
+      try {
+        const u = new URL(trimmed);
+        return u.protocol === "http:" || u.protocol === "https:" || u.protocol === "data:";
+      } catch {
+        return false;
+      }
+    },
+    { message: "Invalid image URL" },
+  );
+
 const productImageInputSchema = z.object({
-  url: z.string().url(),
+  id: z.string().uuid().optional(),
+  url: imageUrlSchema,
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
   is_primary: z.boolean().optional(),

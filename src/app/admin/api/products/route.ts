@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { productCreateSchema } from "@/app/admin/_lib/schemas/product";
 import { withAdmin } from "@/app/admin/_lib/with-admin";
 
@@ -58,5 +59,15 @@ export const POST = withAdmin(async (request: NextRequest) => {
       });
     }
   }
+
+  // Bust the gateway-response cache so the admin list and any cached
+  // product detail reads see the new product on the next navigate.
+  try {
+    revalidateTag("products");
+    revalidatePath("/admin/products", "page");
+  } catch {
+    // Cache invalidation is best-effort; the DB write succeeded.
+  }
+
   return NextResponse.json(product, { status: 201 });
 });

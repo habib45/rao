@@ -24,6 +24,12 @@ const nextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
       // Blog post cover images sourced from external review sites.
       { protocol: "https", hostname: "amindfullmom.com" },
+      // Legacy Supabase Storage bucket — comparison blocks and media-library
+      // entries authored before the Supabase→MySQL migration still reference
+      // these URLs. The deployment plan says to retire this host once all
+      // content has been re-uploaded to /public/uploads; for now the
+      // hostname is left in the allowlist so existing pages keep rendering.
+      { protocol: "https", hostname: "cjyjsagxcabwzvrlfizs.supabase.co" },
     ],
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],

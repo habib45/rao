@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import dynamic from "next/dynamic";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import Image from "next/image";
 import type { ClassicEditor } from "ckeditor5";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Input } from "@/app/admin/_components/ui/input";
@@ -20,6 +19,10 @@ import { WizardHelp } from "@/app/admin/blog/_components/WizardHelp";
 import { AttributesEditor } from "@/app/admin/products/_components/AttributesEditor";
 import { ComparisonWizardBuilder } from "@/app/admin/products/_components/ComparisonWizardBuilder";
 import { FAQEditor } from "@/app/admin/products/_components/FAQEditor";
+import {
+  ProductImageEditor,
+  type ImageEntry,
+} from "@/app/admin/products/_components/ProductImageEditor";
 import { decodeWizard, decodeComparison } from "@/lib/wizard";
 import type { WizardStep, ComparisonData } from "@/lib/wizard";
 import type { Product, ProductStatus } from "@/types/domain";
@@ -54,7 +57,26 @@ export function ProductEditForm({
     show_in_comparison: product.show_in_comparison,
   });
   const queryClient = useQueryClient();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: Record<string, string>;
+    slug: Record<string, string>;
+    description: Record<string, string>;
+    meta_title: Record<string, string>;
+    meta_description: Record<string, string>;
+    features: string[];
+    price_cents: number | null;
+    original_price_cents: number | null;
+    currency: string;
+    discount_pct: number;
+    category_id: string | null;
+    brand: string;
+    availability: "in_stock" | "out_of_stock" | "unknown";
+    is_featured: boolean;
+    is_active: boolean;
+    show_in_comparison: boolean;
+    attributes: Record<string, string>;
+    images: ImageEntry[];
+  }>({
     name: { en: product.name?.en ?? "", "bn-BD": product.name?.["bn-BD"] ?? "", sv: product.name?.sv ?? "" },
     slug: { en: product.slug?.en ?? "", "bn-BD": product.slug?.["bn-BD"] ?? "", sv: product.slug?.sv ?? "" },
     description: { en: product.description?.en ?? "", "bn-BD": product.description?.["bn-BD"] ?? "", sv: product.description?.sv ?? "" },
@@ -74,16 +96,19 @@ export function ProductEditForm({
     attributes: Object.fromEntries(
       Object.entries(product.attributes ?? {}).map(([k, v]) => [k, String(v ?? "")])
     ) as Record<string, string>,
-    images: (product.product_images ?? []).map((img) => ({
+    images: (product.product_images ?? []).map((img, index) => ({
+      key: img.id ?? `seed-${index}-${img.url}`,
+      id: img.id ?? undefined,
       url: img.url,
       width: img.width ?? undefined,
       height: img.height ?? undefined,
       is_primary: Boolean(img.is_primary),
       sort_order: img.sort_order,
+      source: "existing",
+      alt: (img as { alt?: Partial<Record<string, string>> }).alt ?? undefined,
     })),
   });
 
-  const [addImageUrl, setAddImageUrl] = useState("");
   const [activeLocaleTab, setActiveLocaleTab] = useState<string>("en");
   const editorRefs = useRef<Record<string, ClassicEditor | null>>({ en: null, "bn-BD": null, sv: null });
   const [showWizard, setShowWizard] = useState(false);
@@ -120,6 +145,36 @@ export function ProductEditForm({
       toast.success("Product saved");
     },
     onError: () => toast.error("Failed to save product"),
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const res = await fetch(`/admin/api/products/${product.id}/images/${imageId}`, {
+        method: "DELETE",
+      });
+      // 404 means the row was already gone (double-click on the X button,
+      // another admin beat us to it, or the admin route's "already gone"
+      // forward on a gateway 404). The admin route now wraps these in a
+      // 200 envelope with `alreadyGone: true`; this branch is kept for
+      // backwards compatibility in case the route is bypassed.
+      if (res.status === 404) return { ok: true, alreadyGone: true };
+      if (!res.ok) throw new Error("Failed to delete image");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data?.alreadyGone) {
+        toast.success("Image already removed");
+      } else {
+        toast.success("Image deleted");
+      }
+      // Invalidate any cached product lists so the next navigation sees
+      // the deletion. We deliberately do NOT reload the page: reloading
+      // would discard any other unsaved edits the admin has made to
+      // description, FAQs, pricing, etc. The optimistic removal in the
+      // editor already keeps the UI in sync.
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    },
+    onError: () => toast.error("Failed to delete image"),
   });
 
   function updateLocaleField(locale: string, field: string, value: string) {
@@ -395,9 +450,18 @@ export function ProductEditForm({
             ))}
           </div>
 
-          {LOCALES.map(({ code, label }) =>
-            activeLocaleTab === code ? (
-              <div key={code} className="space-y-2">
+          {LOCALES.map(({ code, label }) => {
+            const content = (form.description as Record<string, string>)[code] ?? "";
+            const wizardBlocks = extractWizardBlocks(content);
+            const comparisonBlocks = extractComparisonBlocks(content);
+            const isActive = activeLocaleTab === code;
+            return (
+              <div
+                key={code}
+                className="space-y-2"
+                hidden={!isActive}
+                style={isActive ? undefined : { display: "none" }}
+              >
                 <div className="flex items-center justify-between">
                   <label className="block text-sm font-medium">
                     Description ({label})
@@ -428,12 +492,12 @@ export function ProductEditForm({
                   </div>
                 </div>
                 <RichTextEditor
-                  value={(form.description as Record<string, string>)[code] ?? ""}
+                  value={content}
                   onChange={(html) => updateLocaleField(code, "description", html)}
                   onReady={(editor) => { editorRefs.current[code] = editor; }}
                   placeholder={`Description (${label})`}
                 />
-                {extractWizardBlocks((form.description as Record<string, string>)[code] ?? "").map(({ encoded, label: wLabel }, i) => (
+                {wizardBlocks.map(({ encoded, label: wLabel }, i) => (
                   <div
                     key={encoded}
                     className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs"
@@ -446,7 +510,6 @@ export function ProductEditForm({
                       onClick={() => {
                         try {
                           const data = decodeWizard(encoded);
-                          const content = (form.description as Record<string, string>)[code] ?? "";
                           const { borderColor, borderSize } = parseWizardBorderStyle(content, encoded);
                           setEditingWizard({ encoded, steps: data.steps, borderColor, borderSize, showFooter: data.showFooter ?? true, shadow: data.shadow ?? "shadow-sm", showBorder: data.showBorder ?? true, showPanelBorder: data.showPanelBorder ?? true, panelBorderColor: data.panelBorderColor ?? "#e2e8f0" });
                         } catch { /* ignore */ }
@@ -464,7 +527,7 @@ export function ProductEditForm({
                     </button>
                   </div>
                 ))}
-                {extractComparisonBlocks((form.description as Record<string, string>)[code] ?? "").map(({ encoded, label: cLabel }, i) => (
+                {comparisonBlocks.map(({ encoded, label: cLabel }, i) => (
                   <div
                     key={encoded}
                     className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/5 px-3 py-1.5 text-xs"
@@ -495,8 +558,8 @@ export function ProductEditForm({
                   </div>
                 ))}
               </div>
-            ) : null,
-          )}
+            );
+          })}
 
           {showWizard && (
             <WizardBuilder
@@ -669,83 +732,35 @@ export function ProductEditForm({
         </TabsContent>
 
         <TabsContent value="images" className="mt-4">
-          {form.images.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {form.images
-                .slice()
-                .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-                .map((img, index) => (
-                  <div
-                    key={`${img.url}-${index}`}
-                    className="relative rounded-lg border border-border p-2"
-                  >
-                    <Image
-                      src={img.url}
-                      alt="Product image"
-                      width={200}
-                      height={200}
-                      className="aspect-square w-full rounded-lg object-cover"
-                      unoptimized
-                    />
-                    {img.is_primary && (
-                      <Badge variant="info" className="absolute right-3 top-3">
-                        Primary
-                      </Badge>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((p) => ({
-                          ...p,
-                          images: p.images.filter((_, idx) => idx !== index),
-                        }))
-                      }
-                      className="absolute right-3 bottom-3 rounded bg-black/70 px-2 py-1 text-xs text-white hover:bg-black"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <p className="py-8 text-center text-sm text-muted">
-              No images yet. Add a URL below to attach images to this product.
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <Input
-              id="add-image-url"
-              value={addImageUrl}
-              onChange={(e) => setAddImageUrl(e.target.value)}
-              placeholder="https://m.media-amazon.com/images/..."
-              className="flex-1"
-            />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const url = addImageUrl.trim();
-                if (!url) return;
-                setForm((p) => ({
-                  ...p,
-                  images: [
-                    ...p.images,
-                    {
-                      url,
-                      width: undefined,
-                      height: undefined,
-                      is_primary: p.images.length === 0,
-                      sort_order: p.images.length,
-                    },
-                  ],
+          <ProductImageEditor
+            value={form.images}
+            onChange={(next) =>
+              setForm((p) => {
+                // Maintain the "exactly one primary image" invariant:
+                // the image at index 0 is primary, all others are not.
+                // We compute this in a single pass over the new array so
+                // the invariant is enforced regardless of how the editor
+                // mutated the list (reorder, delete, set-primary, etc.).
+                const normalized = next.map((img, index) => ({
+                  ...img,
+                  is_primary: index === 0,
+                  sort_order: index,
                 }));
-                setAddImageUrl("");
-              }}
-            >
-              Add URL
-            </Button>
-          </div>
+                return { ...p, images: normalized };
+              })
+            }
+            onRemoveById={(id) => {
+              // mutateAsync resolves to the data on success and throws
+              // on failure, so the editor's optimistic remove + revert
+              // pattern (see removeImage in ProductImageEditor) sees a
+              // clean boolean. The mutation's onSuccess / onError still
+              // fire and own the user-facing toast.
+              deleteImageMutation
+                .mutateAsync(id)
+                .then(() => true)
+                .catch(() => false);
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="faqs" className="mt-4">

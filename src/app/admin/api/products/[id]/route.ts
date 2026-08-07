@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { productUpdateSchema } from "@/app/admin/_lib/schemas/product";
 import { withAdmin } from "@/app/admin/_lib/with-admin";
-import {
-  isRemoveOrphanUploadsEnabled,
-  removeOrphanUploads,
-} from "@/lib/uploads/remove-orphan-uploads";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -149,9 +146,12 @@ export const PATCH = withAdmin(async (
   delete updateData.images;
 
   // Always capture the previous image list (including any duplicates that
-  // may already exist) before doing anything. We need it for both the
-  // orphan-file cleanup and the per-row diff.
-  const previousImages = await fetchProductImages(id);
+  // may already exist) before doing anything. We need it for the per-row
+  // diff. Sort by id ascending so the "lowest-id wins" survivor rule is
+  // deterministic regardless of gateway ordering.
+  const previousImages = (await fetchProductImages(id)).slice().sort((a, b) =>
+    a.id.localeCompare(b.id),
+  );
 
   const res = await fetch(`${MYSQL_API_URL}/api/products/${id}`, {
     method: "PATCH",
@@ -167,7 +167,12 @@ export const PATCH = withAdmin(async (
   }
 
   if (rawImages === undefined) {
-    return NextResponse.json(json);
+    return NextResponse.json({
+      ...json,
+      images_partial: false,
+      image_failures: [],
+      image_drift: { missing: [], unexpected: [] },
+    });
   }
 
   // ---------- image reconciliation ----------
@@ -195,6 +200,7 @@ export const PATCH = withAdmin(async (
 
   const failures: ImageFailure[] = [];
   const drift: ImageDrift = { missing: [], unexpected: [] };
+  let imagesPartial = false;
 
   // 1. Delete rows the admin no longer wants (and dedupe-extras in DB).
   const rowsToDelete = previousImages.filter(
@@ -250,7 +256,8 @@ export const PATCH = withAdmin(async (
   for (const u of incomingUrls) if (!finalUrls.has(u)) drift.missing.push(u);
   for (const u of [...finalUrls]) if (!incomingUrls.has(u)) drift.unexpected.push(u);
 
-  const imagesPartial = failures.length > 0 || drift.missing.length > 0;
+  const imagesPartialComputed = failures.length > 0 || drift.missing.length > 0;
+  imagesPartial = imagesPartialComputed;
 
   if (imagesPartial) {
     console.warn("[product-images] partial reconciliation", {
@@ -260,32 +267,34 @@ export const PATCH = withAdmin(async (
     });
   }
 
-  // ---------- orphan file cleanup ----------
-  if (isRemoveOrphanUploadsEnabled()) {
-    try {
-      const outcome = await removeOrphanUploads({
-        previous: previousImages.map((r) => ({ url: r.url })),
-        next: incoming,
-      });
-      if (
-        outcome.unlinked.length > 0 ||
-        outcome.failed.length > 0 ||
-        outcome.unsafeIgnored.length > 0 ||
-        outcome.preservedShared.length > 0 ||
-        outcome.externalIgnored.length > 0
-      ) {
-        console.info("[product-images] orphan cleanup", {
-          productId: id,
-          unlinked: outcome.unlinked,
-          failed: outcome.failed,
-          unsafeIgnored: outcome.unsafeIgnored,
-          preservedShared: outcome.preservedShared,
-          externalIgnored: outcome.externalIgnored,
-        });
-      }
-    } catch (err) {
-      console.warn("[product-images] orphan cleanup threw", err);
-    }
+  // ---------- file policy ----------
+  //
+  // Image lifecycle: removing an image from a product only deletes the
+  // DB row. The physical file under `public/uploads/...` is preserved
+  // so the same asset can be re-attached (or remain in the media
+  // library) later. Per-row filesystem cleanup is intentionally a no-op
+  // here; nothing on disk is touched by this PATCH.
+  const fileUnlink = {
+    unlinked: [] as string[],
+    failed: [] as Array<{ url: string; path: string; code: string }>,
+    preservedShared: [] as string[],
+    externalIgnored: [] as string[],
+    unsafeIgnored: [] as string[],
+    skipped: true as const,
+  };
+
+  // Bust the gateway-response cache so the next server-side render of
+  // the product detail page (and the admin list) reflects the new image
+  // set. Without this, the editor's optimistic updates would be undone
+  // by a page reload returning the stale cached `product_images` array
+  // (the `gw()` helper caches for 60 seconds by default).
+  try {
+    revalidateTag("products");
+    revalidatePath("/admin/products", "page");
+    revalidatePath(`/admin/products/${id}`, "page");
+  } catch {
+    // revalidate* throws in some non-request contexts; the DB write has
+    // already succeeded, so don't fail the response on cache busting.
   }
 
   return NextResponse.json({
@@ -293,6 +302,7 @@ export const PATCH = withAdmin(async (
     images_partial: imagesPartial,
     image_failures: failures,
     image_drift: drift,
+    file_unlink: fileUnlink,
   });
 });
 
@@ -304,5 +314,13 @@ export const DELETE = withAdmin(async (
 
   const res = await fetch(`${MYSQL_API_URL}/api/products/${id}`, { method: "DELETE" });
   if (!res.ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  try {
+    revalidateTag("products");
+    revalidatePath("/admin/products", "page");
+  } catch {
+    // Same caveat as PATCH: cache busting is best-effort.
+  }
+
   return NextResponse.json({ ok: true });
 });

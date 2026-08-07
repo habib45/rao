@@ -18,7 +18,11 @@ export interface WithAdminOptions {
   role?: AdminRole | AdminRole[];
 }
 
-type RouteContext<P> = { params: P };
+// Match Next.js 15's route context shape. `params` is a Promise; dynamic
+// route segments are strings (catch-all routes can also be string[]).
+export type RouteContext<P = Record<string, string | string[]>> = {
+  params: Promise<P>;
+};
 
 type Handler<P> = (
   request: NextRequest,
@@ -26,7 +30,7 @@ type Handler<P> = (
   session: AdminSession,
 ) => Promise<Response> | Response;
 
-export function withAdmin<P = unknown>(
+export function withAdmin<P = Record<string, string | string[]>>(
   handler: Handler<P>,
   options: WithAdminOptions = {},
 ) {

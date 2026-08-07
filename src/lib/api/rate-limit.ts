@@ -57,7 +57,9 @@ function identifierFor(request: NextRequest): string {
   return request.headers.get("x-real-ip") ?? "unknown";
 }
 
-type Handler = (request: NextRequest) => Promise<NextResponse> | NextResponse;
+type Handler = (
+  request: NextRequest,
+) => Promise<NextResponse | Response> | NextResponse | Response;
 
 export function withRateLimit(
   options: BucketOptions,

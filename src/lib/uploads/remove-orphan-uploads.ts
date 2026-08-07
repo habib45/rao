@@ -15,16 +15,14 @@
  *     defeat path-traversal attempts like `/uploads/../../etc/passwd`.
  *   - An `ENOENT` (file already gone) is treated as success: race conditions
  *     and double-deletes should not surface as errors.
- *   - A `FEATURE_REMOVE_ORPHAN_UPLOADS` env flag (default false) gates the
- *     entire behavior for one release cycle. Until the team verifies the
- *     helper on real data we keep it inert by default.
+ *   - Cleanup runs by default. Set `FEATURE_REMOVE_ORPHAN_UPLOADS=false`
+ *     as an emergency kill switch.
  *
- * The "is this URL also used by another product?" question cannot be answered
- * without a gateway endpoint that does not yet exist. While that endpoint is
- * missing we DO NOT delete the file and we log a warning: this trades false
- * negatives (keep files we could have deleted) for false positives (delete a
- * shared file), which is the right default for an irreversible filesystem
- * operation.
+ * Shared-file safety: pass `isUrlStillReferenced` to ask "is this URL still
+ * referenced by any row in `product_images`?" — when it returns true, the
+ * file is preserved. Without an oracle, ALL dropped local files are
+ * unlinked (callers that don't have a gateway endpoint available accept
+ * the trade-off).
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -64,11 +62,28 @@ export interface RemoveOrphanOutcome {
 const UPLOAD_ROOT_DEFAULT = path.join(process.cwd(), "public", "uploads");
 const UPLOAD_PREFIX = "/uploads/";
 
-/** True when `FEATURE_REMOVE_ORPHAN_UPLOADS` is set to a truthy value. */
+/**
+ * Whether orphan-upload cleanup is enabled.
+ *
+ * History: when this helper first shipped, the team wanted a one-release
+ * safety window before files started being unlinked from disk. The flag
+ * defaulted to OFF. That safety window is now over: the per-image DELETE
+ * path and the PATCH reconcile path both need to actually unlink files,
+ * and a flag that defaults to OFF means the bug the user just reported
+ * ("delete only removes the database row, never the file") recurs.
+ *
+ * Policy now:
+ *   - Default: enabled. When `isUrlStillReferenced` is supplied, shared
+ *     files are preserved; when it is not, ALL local /uploads/ files in
+ *     `removed` are unlinked (the historic "no oracle" behaviour).
+ *   - Kill switch: set `FEATURE_REMOVE_ORPHAN_UPLOADS=false` to disable
+ *     cleanup without redeploying. Accepts `0` and `no` (case-insensitive)
+ *     in addition to `false`.
+ */
 export function isRemoveOrphanUploadsEnabled(): boolean {
   const raw = process.env.FEATURE_REMOVE_ORPHAN_UPLOADS;
-  if (!raw) return false;
-  return raw === "1" || raw.toLowerCase() === "true";
+  if (raw === undefined || raw === null || raw === "") return true;
+  return !(raw === "0" || raw.toLowerCase() === "false" || raw.toLowerCase() === "no");
 }
 
 /**

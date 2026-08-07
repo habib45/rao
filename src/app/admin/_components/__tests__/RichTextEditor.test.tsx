@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, cleanup } from "@testing-library/react";
+import { render, cleanup, waitFor } from "@testing-library/react";
 
 // Mock CKEditor 5 — requires browser globals not available in jsdom.
 vi.mock("ckeditor5", () => ({
@@ -14,6 +14,8 @@ vi.mock("ckeditor5", () => ({
   Subscript: class {},
   Superscript: class {},
   Font: class {},
+  FontSize: class {},
+  FontFamily: class {},
   FontColor: class {},
   FontBackgroundColor: class {},
   Heading: class {},
@@ -32,6 +34,7 @@ vi.mock("ckeditor5", () => ({
   ImageResizeHandles: class {},
   ImageInsert: class {},
   ImageInsertViaUrl: class {},
+  MediaEmbed: class {},
   Table: class {},
   TableToolbar: class {},
   TableProperties: class {},
@@ -82,19 +85,19 @@ afterEach(() => {
 });
 
 describe("RichTextEditor", () => {
-  it("renders the CKEditor component", () => {
+  it("renders the CKEditor component", async () => {
     const { getByTestId } = render(
       <RichTextEditor value="<p>Hello</p>" onChange={() => {}} />
     );
-    const editor = getByTestId("ckeditor");
+    const editor = await waitFor(() => getByTestId("ckeditor"));
     expect(editor).toBeTruthy();
     expect(editor.getAttribute("data-value")).toBe("<p>Hello</p>");
   });
 
-  it("renders with empty value", () => {
+  it("renders with empty value", async () => {
     const { getByTestId } = render(
       <RichTextEditor value="" onChange={() => {}} />
     );
-    expect(getByTestId("ckeditor")).toBeTruthy();
+    expect(await waitFor(() => getByTestId("ckeditor"))).toBeTruthy();
   });
 });

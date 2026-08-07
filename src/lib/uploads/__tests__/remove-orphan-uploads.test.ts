@@ -59,21 +59,23 @@ describe("resolveSafeUploadPath", () => {
 });
 
 describe("isRemoveOrphanUploadsEnabled", () => {
-  it("defaults to false when env var is unset", () => {
+  it("defaults to true when env var is unset (cleanup is on by default)", () => {
     delete process.env.FEATURE_REMOVE_ORPHAN_UPLOADS;
-    expect(isRemoveOrphanUploadsEnabled()).toBe(false);
-  });
-
-  it("returns true when env var is 'true' / '1'", () => {
-    process.env.FEATURE_REMOVE_ORPHAN_UPLOADS = "true";
-    expect(isRemoveOrphanUploadsEnabled()).toBe(true);
-    process.env.FEATURE_REMOVE_ORPHAN_UPLOADS = "1";
     expect(isRemoveOrphanUploadsEnabled()).toBe(true);
   });
 
-  it("returns false for anything else", () => {
-    process.env.FEATURE_REMOVE_ORPHAN_UPLOADS = "yes-please";
-    expect(isRemoveOrphanUploadsEnabled()).toBe(false);
+  it("returns true for any truthy value", () => {
+    for (const v of ["true", "1", "yes", "TRUE", "Yes", "on"]) {
+      process.env.FEATURE_REMOVE_ORPHAN_UPLOADS = v;
+      expect(isRemoveOrphanUploadsEnabled()).toBe(true);
+    }
+  });
+
+  it("returns false for explicit kill-switch values", () => {
+    for (const v of ["false", "0", "no", "FALSE", "No"]) {
+      process.env.FEATURE_REMOVE_ORPHAN_UPLOADS = v;
+      expect(isRemoveOrphanUploadsEnabled()).toBe(false);
+    }
   });
 });
 

@@ -65,9 +65,6 @@ export async function generateMetadata({
 
   const canonicalSlug = (post.slug as Record<string, string | undefined>)[loc] ?? slug;
   const path = `/${loc}/blog/${canonicalSlug}`;
-  const supportedLocales = SUPPORTED_LOCALES as unknown as Array<
-    import("@/lib/seo-config").SupportedLocale
-  >;
 
   return buildArticleMetadata({
     title,
