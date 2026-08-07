@@ -61,7 +61,12 @@ async function gw<T>(
 
   const res = await fetch(url.toString(), {
     headers,
-    next: { revalidate: 60 },
+    // 60s ISR cache, tagged so admin PATCH/DELETE/POST routes can call
+    // `revalidateTag('products')` and bust the cache on the next read.
+    // Without this tag, a freshly uploaded/picked image would still be
+    // missing after a page reload because the server component would
+    // return the pre-save `product_images` array for up to 60 s.
+    next: { revalidate: 60, tags: ["products"] },
   });
   if (!res.ok) {
     throw new GatewayError(path, res.status, await res.text());
