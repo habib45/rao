@@ -54,3 +54,5 @@ next-env.d.ts
 .puku
 package-lock.json
 public/uploads/*
+.next.zip
+node_modules.zip
