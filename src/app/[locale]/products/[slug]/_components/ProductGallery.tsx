@@ -21,23 +21,6 @@ export function ProductGallery({ images, productName, locale }: Props) {
   });
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
-<<<<<<< HEAD
-=======
-  if (images.length === 0) {
-    return (
-      <div
-        className="aspect-square bg-surface rounded-lg flex items-center justify-center text-muted"
-        role="img"
-        aria-label="No product image available"
-      >
-        No Image
-      </div>
-    );
-  }
-
-  const active = images[activeIndex];
-
->>>>>>> 356ce054fb8dc9a48c0d95bf44942ed4e0c6cbf2
   // Open the lightbox when the user clicks the main image.
   const openLightbox = useCallback(() => setLightboxOpen(true), []);
   const closeLightbox = useCallback(() => setLightboxOpen(false), []);
@@ -71,7 +54,6 @@ export function ProductGallery({ images, productName, locale }: Props) {
     };
   }, [lightboxOpen]);
 
-<<<<<<< HEAD
   if (images.length === 0) {
     return (
       <div
@@ -85,8 +67,6 @@ export function ProductGallery({ images, productName, locale }: Props) {
   }
 
   const active = images[activeIndex];
-=======
->>>>>>> 356ce054fb8dc9a48c0d95bf44942ed4e0c6cbf2
   const activeAlt = (t(active.alt_text, locale) as string) || productName;
 
   return (
