@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
 import { revalidatePath } from "next/cache";
 import { sitemapExclusionPatchSchema } from "@/app/admin/_lib/schemas/sitemap";
 import {
@@ -7,14 +7,12 @@ import {
   setSitemapExclusions,
 } from "@/app/admin/_lib/queries/sitemap";
 
-export async function GET() {
-  await requireAdmin();
+export const GET = withAdmin(async () => {
   const slugs = await getSitemapExclusions();
   return NextResponse.json({ slugs });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  await requireAdmin();
+export const PATCH = withAdmin(async (req: NextRequest) => {
   const body: unknown = await req.json();
   const parsed = sitemapExclusionPatchSchema.safeParse(body);
   if (!parsed.success) {
@@ -39,7 +37,15 @@ export async function PATCH(req: NextRequest) {
     updated = current;
   }
 
-  const slugs = await setSitemapExclusions(updated);
+  let slugs: string[];
+  try {
+    slugs = await setSitemapExclusions(updated);
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to persist sitemap exclusions" },
+      { status: 500 },
+    );
+  }
   
   // Revalidate sitemap to reflect changes
   revalidatePath("/sitemap.xml", "page");
@@ -56,4 +62,4 @@ export async function PATCH(req: NextRequest) {
     added: addedCount,
     removed: parsed.data.remove ? 1 : 0
   });
-}
+});

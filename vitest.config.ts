@@ -1,11 +1,10 @@
-// Vitest configuration disabled for production deployment
-// To enable testing, restore testing dependencies in package.json:
-// npm install --save-dev vitest @vitest/coverage-v8 @testing-library/react @testing-library/jest-dom @testing-library/dom jsdom @vitejs/plugin-react
-
 import { defineConfig } from "vitest/config";
 import path from "path";
 
 export default defineConfig({
+  esbuild: {
+    jsx: "automatic",
+  },
   css: {
     postcss: {},
   },

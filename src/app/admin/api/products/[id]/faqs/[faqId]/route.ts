@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { faqUpdateSchema } from "@/app/admin/_lib/schemas/faq";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -27,7 +27,7 @@ export const PATCH = withAdmin(async (
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: (json as { error?: string }).error ?? "Gateway error" }, { status: res.status });
   return NextResponse.json(json);
-});
+}, EDITOR_OR_ADMIN);
 
 export const DELETE = withAdmin(async (
   _request: NextRequest,
@@ -40,4 +40,4 @@ export const DELETE = withAdmin(async (
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: (json as { error?: string }).error ?? "Gateway error" }, { status: res.status });
   return NextResponse.json(json);
-});
+}, EDITOR_OR_ADMIN);

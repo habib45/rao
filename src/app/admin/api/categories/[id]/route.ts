@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { categorySchema } from "@/app/admin/_lib/schemas/category";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -13,7 +13,7 @@ export const GET = withAdmin(async (
   const res = await fetch(`${MYSQL_API_URL}/api/categories/${id}`, { cache: "no-store" });
   if (!res.ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(await res.json());
-});
+}, EDITOR_OR_ADMIN);
 
 export const PATCH = withAdmin(async (
   request: NextRequest,

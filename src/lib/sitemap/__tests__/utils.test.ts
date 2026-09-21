@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { extractSlugFromUrl, getUrlType, isDevelopmentUrl } from "../utils";
+import {
+  SITEMAP_STATIC_PAGES,
+  extractSlugFromUrl,
+  getUrlType,
+  isDevelopmentUrl,
+  isSafeBaseUrl,
+} from "../utils";
 
 describe("sitemap utils", () => {
   describe("extractSlugFromUrl", () => {
@@ -104,6 +110,38 @@ describe("sitemap utils", () => {
     it("should identify production HTTPS URLs", () => {
       expect(isDevelopmentUrl("https://example.com")).toBe(false);
       expect(isDevelopmentUrl("https://www.example.com")).toBe(false);
+    });
+  });
+
+  describe("isSafeBaseUrl", () => {
+    it("accepts absolute http(s) URLs", () => {
+      expect(isSafeBaseUrl("https://example.com")).toBe(true);
+      expect(isSafeBaseUrl("http://localhost:3000")).toBe(true);
+    });
+
+    it("rejects unsafe schemes and non-absolute values", () => {
+      expect(isSafeBaseUrl("javascript:alert(1)")).toBe(false);
+      expect(isSafeBaseUrl("data:text/html,<script></script>")).toBe(false);
+      expect(isSafeBaseUrl("file:///etc/passwd")).toBe(false);
+      expect(isSafeBaseUrl("example.com")).toBe(false);
+      expect(isSafeBaseUrl("")).toBe(false);
+      expect(isSafeBaseUrl(undefined)).toBe(false);
+    });
+  });
+
+  describe("SITEMAP_STATIC_PAGES", () => {
+    it("covers every static page the storefront exposes", () => {
+      expect(SITEMAP_STATIC_PAGES.map((p) => p.path)).toEqual([
+        "",
+        "/categories",
+        "/search",
+        "/cart",
+        "/blog",
+        "/about",
+        "/privacy-policy",
+        "/terms-of-service",
+        "/affiliate-disclaimer",
+      ]);
     });
   });
 });

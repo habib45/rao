@@ -6,6 +6,11 @@ import {
   gwGetPublishedBlogPosts,
   gwGetActiveBlogCategories,
 } from "@/lib/api/gateway";
+import { SITEMAP_STATIC_PAGES, isSafeBaseUrl } from "@/lib/sitemap/utils";
+import {
+  SITEMAP_CONFIG_PATH,
+  SITEMAP_EXCLUSIONS_PATH,
+} from "@/lib/sitemap/storage";
 
 export const revalidate = 3600;
 
@@ -17,10 +22,9 @@ async function getBaseUrl(): Promise<string> {
   // Try to read from config file first
   try {
     const fs = await import("fs/promises");
-    const configPath = process.cwd() + "/public/sitemap-config.json";
-    const content = await fs.readFile(configPath, "utf-8");
+    const content = await fs.readFile(SITEMAP_CONFIG_PATH, "utf-8");
     const config = JSON.parse(content);
-    if (config.baseUrl) {
+    if (isSafeBaseUrl(config.baseUrl)) {
       return config.baseUrl;
     }
   } catch {
@@ -28,14 +32,13 @@ async function getBaseUrl(): Promise<string> {
   }
   
   // Fall back to environment variable or default
-  return ENV_BASE_URL ?? DEFAULT_BASE_URL;
+  return isSafeBaseUrl(ENV_BASE_URL) ? ENV_BASE_URL : DEFAULT_BASE_URL;
 }
 
 async function getExcludedSlugs(): Promise<Set<string>> {
   try {
     const fs = await import("fs/promises");
-    const exclusionsPath = process.cwd() + "/public/sitemap-exclusions.json";
-    const content = await fs.readFile(exclusionsPath, "utf-8");
+    const content = await fs.readFile(SITEMAP_EXCLUSIONS_PATH, "utf-8");
     const data = JSON.parse(content);
     return new Set(data.slugs || []);
   } catch {
@@ -67,18 +70,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [];
 
   // Static pages with priority and changeFrequency
-  const staticPages = [
-    { path: "", priority: 1.0, changeFrequency: "daily" as const },
-    { path: "/categories", priority: 0.8, changeFrequency: "weekly" as const },
-    { path: "/search", priority: 0.6, changeFrequency: "monthly" as const },
-    { path: "/cart", priority: 0.5, changeFrequency: "monthly" as const },
-    { path: "/blog", priority: 0.8, changeFrequency: "weekly" as const },
-    { path: "/about", priority: 0.6, changeFrequency: "monthly" as const },
-    { path: "/privacy-policy", priority: 0.5, changeFrequency: "monthly" as const },
-    { path: "/terms-of-service", priority: 0.5, changeFrequency: "monthly" as const },
-    { path: "/affiliate-disclaimer", priority: 0.5, changeFrequency: "monthly" as const },
-  ];
-  for (const page of staticPages) {
+  for (const page of SITEMAP_STATIC_PAGES) {
     entries.push({
       url: `${BASE_URL}/en${page.path}`,
       lastModified: new Date(),

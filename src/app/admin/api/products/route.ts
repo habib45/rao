@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { productCreateSchema } from "@/app/admin/_lib/schemas/product";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -25,7 +25,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
   const res = await fetch(`${MYSQL_API_URL}/api/products?${params}`, { cache: "no-store" });
   const json = await res.json() as { data: unknown[]; total: number };
   return NextResponse.json({ products: json.data ?? [], total: json.total ?? 0, page, pageSize });
-});
+}, EDITOR_OR_ADMIN);
 
 export const POST = withAdmin(async (request: NextRequest) => {
   const body = await request.json().catch(() => null);
@@ -70,4 +70,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
   }
 
   return NextResponse.json(product, { status: 201 });
-});
+}, EDITOR_OR_ADMIN);

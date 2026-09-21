@@ -3,6 +3,7 @@
  *
  * The PATCH `/admin/api/products/[id]` route now does a URL-diff reconcile:
  *   - DELETE rows whose URL is no longer in the incoming list
+ *   - PATCH surviving rows whose metadata (sort_order, is_primary, size) changed
  *   - POST only URLs that don't already exist as a row
  *   - Surface per-row failures + drift via `images_partial` / `image_failures` / `image_drift`
  *   - Run `removeOrphanUploads()` for dropped /uploads/* files (default on)
@@ -27,6 +28,7 @@ vi.mock("@/lib/uploads/remove-orphan-uploads", () => ({
 
 vi.mock("@/app/admin/_lib/with-admin", () => ({
   withAdmin: (handler: unknown) => handler,
+  EDITOR_OR_ADMIN: { role: ["admin", "editor"] },
 }));
 
 import { PATCH } from "../[id]/route";
@@ -43,10 +45,18 @@ function jsonRequest(body: unknown): Request {
 
 /** Configurable mock for the MySQL API gateway. */
 function setupGatewayMock(opts: {
-  previous?: Array<{ id: string; url: string; sort_order: number }>;
+  previous?: Array<{
+    id: string;
+    url: string;
+    sort_order: number;
+    is_primary?: boolean;
+    width?: number;
+    height?: number;
+  }>;
   patchResponse?: unknown;
   deleteOkFor?: Set<string>;
   postOkFor?: Set<string>;
+  patchImageOkFor?: Set<string>;
 }) {
   const previous = opts.previous ?? [];
   const patchResponse = opts.patchResponse ?? { id: PRODUCT_ID };
@@ -80,6 +90,16 @@ function setupGatewayMock(opts: {
       });
     }
 
+    // Per-image metadata PATCH.
+    const imagePatchMatch = url.match(
+      new RegExp(`/api/products/${PRODUCT_ID}/images/([^/?]+)$`),
+    );
+    if (method === "PATCH" && imagePatchMatch) {
+      const id = imagePatchMatch[1]!;
+      const ok = opts.patchImageOkFor ? opts.patchImageOkFor.has(id) : true;
+      return new Response(JSON.stringify({ ok }), { status: ok ? 200 : 500 });
+    }
+
     // POST new image.
     if (method === "POST" && url.endsWith(`/api/products/${PRODUCT_ID}/images`)) {
       const body = JSON.parse((init?.body as string) ?? "{}");
@@ -94,6 +114,20 @@ function setupGatewayMock(opts: {
 
     return new Response("{}", { status: 404 });
   });
+}
+
+/** Per-image metadata PATCH calls the route made, in order. */
+function imagePatchCalls(): Array<{ id: string; body: unknown }> {
+  return mockFetch.mock.calls
+    .filter(([u, init]) => {
+      if (typeof u !== "string") return false;
+      if (!(u as string).includes(`/api/products/${PRODUCT_ID}/images/`)) return false;
+      return (((init as RequestInit | undefined)?.method ?? "GET") as string).toUpperCase() === "PATCH";
+    })
+    .map(([u, init]) => ({
+      id: (u as string).split("/").pop()!,
+      body: JSON.parse(((init as RequestInit).body as string) ?? "{}"),
+    }));
 }
 
 beforeEach(() => {
@@ -252,5 +286,67 @@ describe("PATCH /admin/api/products/[id] — image reconciliation", () => {
 
     // Second row ("second") should be deleted; "first" preserved.
     expect(deleteIds).toEqual(["second"]);
+  });
+
+  it("patches surviving rows whose metadata changed", async () => {
+    setupGatewayMock({
+      previous: [
+        { id: "a", url: "https://x/a.jpg", sort_order: 0, is_primary: true },
+        { id: "b", url: "https://x/b.jpg", sort_order: 1, is_primary: false },
+      ],
+    });
+
+    await PATCH(
+      jsonRequest({
+        images: [
+          { url: "https://x/b.jpg", sort_order: 0, is_primary: true, width: 800 },
+          { url: "https://x/a.jpg", sort_order: 1, is_primary: false },
+        ],
+      }) as never,
+      { params: Promise.resolve({ id: PRODUCT_ID }) } as never,
+    );
+
+    expect(imagePatchCalls()).toEqual([
+      { id: "b", body: { sort_order: 0, is_primary: true, width: 800 } },
+      { id: "a", body: { sort_order: 1, is_primary: false } },
+    ]);
+  });
+
+  it("does not patch rows whose metadata is unchanged", async () => {
+    setupGatewayMock({
+      previous: [{ id: "a", url: "https://x/a.jpg", sort_order: 0, is_primary: true }],
+    });
+
+    await PATCH(
+      jsonRequest({
+        images: [{ url: "https://x/a.jpg", sort_order: 0, is_primary: true }],
+      }) as never,
+      { params: Promise.resolve({ id: PRODUCT_ID }) } as never,
+    );
+
+    expect(imagePatchCalls()).toEqual([]);
+  });
+
+  it("reports a failed metadata patch as a partial image save", async () => {
+    setupGatewayMock({
+      previous: [{ id: "a", url: "https://x/a.jpg", sort_order: 0 }],
+      patchImageOkFor: new Set<string>(),
+    });
+
+    const res = await PATCH(
+      jsonRequest({
+        images: [{ url: "https://x/a.jpg", sort_order: 3 }],
+      }) as never,
+      { params: Promise.resolve({ id: PRODUCT_ID }) } as never,
+    );
+
+    const body = (await (res as Response).json()) as {
+      images_partial: boolean;
+      image_failures: Array<{ op: string; status: number }>;
+    };
+    expect(body.images_partial).toBe(true);
+    expect(body.image_failures).toEqual([
+      expect.objectContaining({ op: "patch", imageId: "a", status: 500 }),
+    ]);
   });
 });

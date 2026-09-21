@@ -3,6 +3,34 @@
  * These are used by both the public sitemap.ts and admin API routes
  */
 
+/** Static (non-content) pages emitted by the public sitemap. */
+export const SITEMAP_STATIC_PAGES = [
+  { path: "", priority: 1.0, changeFrequency: "daily" as const },
+  { path: "/categories", priority: 0.8, changeFrequency: "weekly" as const },
+  { path: "/search", priority: 0.6, changeFrequency: "monthly" as const },
+  { path: "/cart", priority: 0.5, changeFrequency: "monthly" as const },
+  { path: "/blog", priority: 0.8, changeFrequency: "weekly" as const },
+  { path: "/about", priority: 0.6, changeFrequency: "monthly" as const },
+  { path: "/privacy-policy", priority: 0.5, changeFrequency: "monthly" as const },
+  { path: "/terms-of-service", priority: 0.5, changeFrequency: "monthly" as const },
+  { path: "/affiliate-disclaimer", priority: 0.5, changeFrequency: "monthly" as const },
+];
+
+/**
+ * A sitemap base URL must be an absolute http(s) origin. Any other scheme
+ * (`javascript:`, `data:`, `file:` …) would end up in admin links and in the
+ * generated sitemap entries.
+ */
+export function isSafeBaseUrl(raw: unknown): raw is string {
+  if (typeof raw !== "string" || raw.trim() === "") return false;
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function extractSlugFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
@@ -21,8 +49,10 @@ export function extractSlugFromUrl(url: string): string | null {
   }
 }
 
+/** A published sitemap should only contain https:// URLs on a public host. */
 export function isDevelopmentUrl(url: string): boolean {
-  return url.includes("localhost") || 
+  return url.startsWith("http://") ||
+         url.includes("localhost") || 
          url.includes("127.0.0.1") ||
          url.includes("192.168.") ||
          url.includes("10.") ||

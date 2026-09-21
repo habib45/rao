@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { z } from "zod";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -165,4 +165,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
     failed,
     message: `Downloaded ${downloaded.length} of ${images.length} images`,
   });
-});
+}, EDITOR_OR_ADMIN);

@@ -39,6 +39,7 @@ vi.mock("next/cache", () => ({
 
 vi.mock("@/app/admin/_lib/with-admin", () => ({
   withAdmin: (handler: unknown) => handler,
+  EDITOR_OR_ADMIN: { role: ["admin", "editor"] },
 }));
 
 import { PATCH } from "../[id]/route";

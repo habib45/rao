@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { badRequest, internalError } from "@/lib/api/errors";
 import fs from "fs";
 import path from "path";
@@ -171,4 +171,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
     mime: mimeHint,
     bytes: stat.size,
   });
-});
+}, EDITOR_OR_ADMIN);

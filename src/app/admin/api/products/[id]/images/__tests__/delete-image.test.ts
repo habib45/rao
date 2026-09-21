@@ -21,6 +21,7 @@ const mockFetch = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/admin/_lib/with-admin", () => ({
   withAdmin: (handler: unknown) => handler,
+  EDITOR_OR_ADMIN: { role: ["admin", "editor"] },
 }));
 
 const mockRevalidateTag = vi.fn();

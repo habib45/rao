@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { z } from "zod";
 import * as cheerio from "cheerio";
 import { assertSafeUrl, SsrfError } from "@/lib/api/ssrf";
@@ -224,4 +224,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
     success: true,
     ...result,
   });
-});
+}, EDITOR_OR_ADMIN);

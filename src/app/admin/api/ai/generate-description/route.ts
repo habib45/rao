@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { badRequest, internalError } from "@/lib/api/errors";
 import { withRateLimit } from "@/lib/api/rate-limit";
 
@@ -171,5 +171,6 @@ export const POST = withAdmin(
 
     return NextResponse.json({ description: cleanedText });
   }),
+  EDITOR_OR_ADMIN,
 );
 

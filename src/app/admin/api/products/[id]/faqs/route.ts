@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { faqSchema } from "@/app/admin/_lib/schemas/faq";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -12,7 +12,7 @@ export const GET = withAdmin(async (
   const res = await fetch(`${MYSQL_API_URL}/api/products/${productId}/faqs`, { cache: "no-store" });
   const data = await res.json() as unknown[];
   return NextResponse.json(data);
-});
+}, EDITOR_OR_ADMIN);
 
 export const POST = withAdmin(async (
   request: NextRequest,
@@ -37,4 +37,4 @@ export const POST = withAdmin(async (
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: (json as { error?: string }).error ?? "Gateway error" }, { status: res.status });
   return NextResponse.json(json, { status: 201 });
-});
+}, EDITOR_OR_ADMIN);

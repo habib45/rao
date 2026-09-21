@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { badRequest } from "@/lib/api/errors";
 import fs from "fs";
 import path from "path";
@@ -80,4 +80,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
   }
 
   return NextResponse.json({ ok: true, paths: results });
-});
+}, EDITOR_OR_ADMIN);

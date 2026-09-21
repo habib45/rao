@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { categorySchema } from "@/app/admin/_lib/schemas/category";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -8,7 +8,7 @@ export const GET = withAdmin(async () => {
   const res = await fetch(`${MYSQL_API_URL}/api/categories`, { cache: "no-store" });
   const data = await res.json() as unknown[];
   return NextResponse.json(data);
-});
+}, EDITOR_OR_ADMIN);
 
 export const POST = withAdmin(async (request: NextRequest) => {
   const body = await request.json();

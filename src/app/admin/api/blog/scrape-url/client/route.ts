@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { z } from "zod";
 import { assertSafeUrl, SsrfError } from "@/lib/api/ssrf";
 import { badRequest } from "@/lib/api/errors";
@@ -226,4 +226,4 @@ export const POST = withAdmin(async (request: NextRequest) => {
     success: true,
     ...result,
   });
-});
+}, EDITOR_OR_ADMIN);

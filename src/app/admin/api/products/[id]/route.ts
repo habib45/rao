@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { productUpdateSchema } from "@/app/admin/_lib/schemas/product";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
@@ -24,7 +24,7 @@ type IncomingImage = {
 };
 
 type ImageFailure = {
-  op: "delete" | "post";
+  op: "delete" | "post" | "patch";
   imageId?: string;
   url: string;
   status: number;
@@ -122,7 +122,7 @@ export const GET = withAdmin(async (
   }
 
   return NextResponse.json(json);
-});
+}, EDITOR_OR_ADMIN);
 
 export const PATCH = withAdmin(async (
   request: NextRequest,
@@ -182,6 +182,8 @@ export const PATCH = withAdmin(async (
   //     row id so we don't accidentally touch the wrong row.
   //   - Delete only the rows whose URL is no longer in the incoming list
   //     (per-row DELETE /images/:imageId, never a blanket collection DELETE).
+  //   - PATCH surviving rows whose editable metadata (order, primary flag,
+  //     dimensions) changed, so reordering an existing image persists.
   //   - POST only the incoming URLs that don't already exist as a row.
   //   - Dedupe the incoming list first so two rows pointing at the same URL
   //     are collapsed before any DB write — this both prevents duplicate-key
@@ -225,7 +227,40 @@ export const PATCH = withAdmin(async (
     }
   }
 
-  // 2. POST only URLs that don't already have a row.
+  // 2. PATCH surviving rows whose metadata changed (reorder, primary flag,
+  //    dimensions). Comparing URLs alone would silently drop these edits.
+  const survivingRowByUrl = new Map(
+    previousImages
+      .filter((row) => survivorByUrl.get(row.url) === row.id && incomingUrls.has(row.url))
+      .map((row) => [row.url, row] as const)
+  );
+  for (const img of incoming) {
+    const row = survivingRowByUrl.get(img.url);
+    if (!row) continue;
+    const changes: Record<string, unknown> = {};
+    if ((img.sort_order ?? 0) !== (row.sort_order ?? 0)) changes.sort_order = img.sort_order ?? 0;
+    if (Boolean(img.is_primary) !== Boolean(row.is_primary)) changes.is_primary = Boolean(img.is_primary);
+    if (img.width !== undefined && img.width !== (row.width ?? undefined)) changes.width = img.width;
+    if (img.height !== undefined && img.height !== (row.height ?? undefined)) changes.height = img.height;
+    if (Object.keys(changes).length === 0) continue;
+    try {
+      const patchRes = await fetch(
+        `${MYSQL_API_URL}/api/products/${id}/images/${row.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(changes),
+        }
+      );
+      if (!patchRes.ok) {
+        failures.push({ op: "patch", imageId: row.id, url: row.url, status: patchRes.status });
+      }
+    } catch {
+      failures.push({ op: "patch", imageId: row.id, url: row.url, status: 0 });
+    }
+  }
+
+  // 3. POST only URLs that don't already have a row.
   const existingUrls = new Set(previousImages.map((r) => r.url));
   for (const img of incoming) {
     if (existingUrls.has(img.url)) continue;
@@ -250,7 +285,7 @@ export const PATCH = withAdmin(async (
     }
   }
 
-  // 3. Drift detection: re-fetch and compare.
+  // 4. Drift detection: re-fetch and compare.
   const finalImages = await fetchProductImages(id);
   const finalUrls = new Set(finalImages.map((r) => r.url));
   for (const u of incomingUrls) if (!finalUrls.has(u)) drift.missing.push(u);
@@ -304,7 +339,7 @@ export const PATCH = withAdmin(async (
     image_drift: drift,
     file_unlink: fileUnlink,
   });
-});
+}, EDITOR_OR_ADMIN);
 
 export const DELETE = withAdmin(async (
   _request: NextRequest,

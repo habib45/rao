@@ -138,10 +138,27 @@ export function ProductEditForm({
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error("Failed to save");
-      return res.json();
+      return (await res.json()) as {
+        images_partial?: boolean;
+        image_failures?: Array<{ op: string; url: string; status: number }>;
+        image_drift?: { missing: string[]; unexpected: string[] };
+      };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      if (data?.images_partial) {
+        const failed = [
+          ...(data.image_failures ?? []).map((f) => f.url),
+          ...(data.image_drift?.missing ?? []),
+        ];
+        const unique = Array.from(new Set(failed));
+        toast.error(
+          `Product fields saved, but ${unique.length} image change(s) failed: ${unique
+            .slice(0, 3)
+            .join(", ")}${unique.length > 3 ? "…" : ""}. Retry the image edits.`,
+        );
+        return;
+      }
       toast.success("Product saved");
     },
     onError: () => toast.error("Failed to save product"),
@@ -749,17 +766,13 @@ export function ProductEditForm({
                 return { ...p, images: normalized };
               })
             }
-            onRemoveById={(id) => {
-              // mutateAsync resolves to the data on success and throws
-              // on failure, so the editor's optimistic remove + revert
-              // pattern (see removeImage in ProductImageEditor) sees a
-              // clean boolean. The mutation's onSuccess / onError still
-              // fire and own the user-facing toast.
-              deleteImageMutation
-                .mutateAsync(id)
-                .then(() => true)
-                .catch(() => false);
-            }}
+            onRemoveById={(id) =>
+              // Return the promise so the editor's optimistic remove +
+              // revert pattern (see removeImage in ProductImageEditor)
+              // can restore the row when the delete rejects. The
+              // mutation's onSuccess / onError own the user-facing toast.
+              deleteImageMutation.mutateAsync(id).then(() => undefined)
+            }
           />
         </TabsContent>
 

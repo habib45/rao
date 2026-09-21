@@ -65,7 +65,6 @@ export async function GET(
               marginRight: "60px",
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element -- opengraph-image runs in @vercel/og; next/image is unavailable here. */}
             <img
               src={primaryImage.url}
               alt={name}

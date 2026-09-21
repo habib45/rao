@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAdmin } from "@/app/admin/_lib/with-admin";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { badRequest, notFound } from "@/lib/api/errors";
 import fs from "fs";
 import path from "path";
@@ -77,7 +77,7 @@ export const GET = withAdmin(async (request: NextRequest) => {
     });
 
   return NextResponse.json({ items });
-});
+}, EDITOR_OR_ADMIN);
 
 export const POST = withAdmin(async (request: NextRequest) => {
   const url = new URL(request.url);
@@ -107,7 +107,7 @@ export const POST = withAdmin(async (request: NextRequest) => {
 
   const relativePath = folder ? `${folder}/${folderName}` : folderName;
   return NextResponse.json({ path: relativePath });
-});
+}, EDITOR_OR_ADMIN);
 
 export const DELETE = withAdmin(async (request: NextRequest) => {
   const url = new URL(request.url);

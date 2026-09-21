@@ -74,6 +74,21 @@ describe("withAdmin", () => {
     expect(body.error).toBeDefined();
   });
 
+  it("defaults to admin-only when no role option is given", async () => {
+    mockGetAdminUser.mockResolvedValue({
+      sub: "u1",
+      email: "a@b.c",
+      role: "editor",
+    });
+    const withAdmin = await importWithAdmin();
+
+    const handler = vi.fn();
+    const res = await withAdmin(handler)(makeReq(), { params: Promise.resolve({}) });
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(res.status).toBe(403);
+  });
+
   it("returns 403 envelope when role is wrong (single string)", async () => {
     mockGetAdminUser.mockResolvedValue({
       sub: "u1",

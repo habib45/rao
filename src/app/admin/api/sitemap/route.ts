@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin } from "@/app/admin/_lib/with-admin";
 import { revalidatePath } from "next/cache";
 import {
   gwGetAllProducts,
@@ -7,11 +7,18 @@ import {
   gwGetPublishedBlogPosts,
   gwGetActiveBlogCategories,
 } from "@/lib/api/gateway";
+import { SITEMAP_STATIC_PAGES, isSafeBaseUrl } from "@/lib/sitemap/utils";
+import {
+  SITEMAP_CONFIG_PATH,
+  SITEMAP_EXCLUSIONS_PATH,
+  writeSitemapFile,
+} from "@/lib/sitemap/storage";
 
 const DEFAULT_BASE_URL = "https://raofinds.com";
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_BASE_URL;
-const CONFIG_FILE_PATH = process.cwd() + "/public/sitemap-config.json";
-const EXCLUSIONS_FILE_PATH = process.cwd() + "/public/sitemap-exclusions.json";
+const BASE_URL = isSafeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL)
+  ? process.env.NEXT_PUBLIC_SITE_URL
+  : DEFAULT_BASE_URL;
+
 
 type PreviewEntry = {
   url: string;
@@ -20,9 +27,7 @@ type PreviewEntry = {
   priority: number;
 };
 
-export async function GET(req: NextRequest) {
-  await requireAdmin();
-  
+export const GET = withAdmin(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
   const page = parseInt(searchParams.get("page") ?? "1", 10);
@@ -37,11 +42,9 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-}
+});
 
-export async function POST(req: NextRequest) {
-  await requireAdmin();
-  
+export const POST = withAdmin(async (req: NextRequest) => {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action");
 
@@ -58,15 +61,15 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-}
+});
 
 async function getBaseUrl(): Promise<string> {
   // Try to read from config file first
   try {
     const fs = await import("fs/promises");
-    const content = await fs.readFile(CONFIG_FILE_PATH, "utf-8");
+    const content = await fs.readFile(SITEMAP_CONFIG_PATH, "utf-8");
     const config = JSON.parse(content);
-    if (config.baseUrl) {
+    if (isSafeBaseUrl(config.baseUrl)) {
       return config.baseUrl;
     }
   } catch {
@@ -80,7 +83,7 @@ async function getBaseUrl(): Promise<string> {
 async function getExcludedSlugs(): Promise<Set<string>> {
   try {
     const fs = await import("fs/promises");
-    const content = await fs.readFile(EXCLUSIONS_FILE_PATH, "utf-8");
+    const content = await fs.readFile(SITEMAP_EXCLUSIONS_PATH, "utf-8");
     const data = JSON.parse(content);
     return new Set(data.slugs || []);
   } catch {
@@ -102,14 +105,14 @@ async function handlePreview(page: number, limit: number) {
 
   const entries: PreviewEntry[] = [];
 
-  // Static pages
-  const staticPages = ["", "/categories", "/search", "/cart", "/blog"];
-  for (const pagePath of staticPages) {
+  // Static pages — same list the public sitemap emits, so admin totals and
+  // exclusion controls cover every generated entry.
+  for (const staticPage of SITEMAP_STATIC_PAGES) {
     entries.push({
-      url: `${currentBaseUrl}/en${pagePath}`,
+      url: `${currentBaseUrl}/en${staticPage.path}`,
       type: "static",
       lastModified: new Date().toISOString(),
-      priority: 1.0,
+      priority: staticPage.priority,
     });
   }
 
@@ -178,7 +181,7 @@ async function handlePreview(page: number, limit: number) {
 async function handleGetConfig() {
   try {
     const fs = await import("fs/promises");
-    const content = await fs.readFile(CONFIG_FILE_PATH, "utf-8");
+    const content = await fs.readFile(SITEMAP_CONFIG_PATH, "utf-8");
     const config = JSON.parse(content);
     return NextResponse.json(config);
   } catch {
@@ -200,11 +203,11 @@ async function handleSetUrl(req: NextRequest) {
       return NextResponse.json({ error: "Invalid baseUrl" }, { status: 400 });
     }
 
-    // Validate URL format
-    try {
-      new URL(baseUrl);
-    } catch {
-      return NextResponse.json({ error: "Invalid URL format" }, { status: 400 });
+    if (!isSafeBaseUrl(baseUrl)) {
+      return NextResponse.json(
+        { error: "Base URL must be an absolute http(s) URL" },
+        { status: 400 }
+      );
     }
 
     const config = {
@@ -213,8 +216,7 @@ async function handleSetUrl(req: NextRequest) {
       isAutoDetected: false,
     };
 
-    const fs = await import("fs/promises");
-    await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2), "utf-8");
+    await writeSitemapFile(SITEMAP_CONFIG_PATH, config);
 
     // Revalidate sitemap
     revalidatePath("/sitemap.xml", "page");
@@ -229,7 +231,7 @@ async function handleSetUrl(req: NextRequest) {
 async function handleAutoGenerate() {
   try {
     // Auto-detect base URL from request headers or use environment variable
-    const detectedUrl = process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_BASE_URL;
+    const detectedUrl = BASE_URL;
 
     const config = {
       baseUrl: detectedUrl,
@@ -237,8 +239,7 @@ async function handleAutoGenerate() {
       isAutoDetected: true,
     };
 
-    const fs = await import("fs/promises");
-    await fs.writeFile(CONFIG_FILE_PATH, JSON.stringify(config, null, 2), "utf-8");
+    await writeSitemapFile(SITEMAP_CONFIG_PATH, config);
 
     // Revalidate sitemap
     revalidatePath("/sitemap.xml", "page");
@@ -256,14 +257,14 @@ async function handleClean() {
     
     // Remove config file
     try {
-      await fs.unlink(CONFIG_FILE_PATH);
+      await fs.unlink(SITEMAP_CONFIG_PATH);
     } catch {
       // File might not exist, that's ok
     }
 
     // Remove exclusions file
     try {
-      await fs.unlink(EXCLUSIONS_FILE_PATH);
+      await fs.unlink(SITEMAP_EXCLUSIONS_PATH);
     } catch {
       // File might not exist, that's ok
     }
