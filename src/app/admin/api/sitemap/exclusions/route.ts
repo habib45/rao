@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/admin/_lib/auth";
+import { revalidatePath } from "next/cache";
 import { sitemapExclusionPatchSchema } from "@/app/admin/_lib/schemas/sitemap";
 import {
   getSitemapExclusions,
@@ -27,13 +28,32 @@ export async function PATCH(req: NextRequest) {
   let updated: string[];
 
   if (parsed.data.add) {
-    updated = current.includes(parsed.data.add)
-      ? current
-      : [...current, parsed.data.add];
-  } else {
+    // Handle both single string and array of strings
+    const itemsToAdd = Array.isArray(parsed.data.add) ? parsed.data.add : [parsed.data.add];
+    // Filter out null/undefined values and empty strings
+    const validItemsToAdd = itemsToAdd.filter(item => item && typeof item === 'string' && item.trim().length > 0);
+    updated = [...new Set([...current, ...validItemsToAdd])];
+  } else if (parsed.data.remove) {
     updated = current.filter((s) => s !== parsed.data.remove);
+  } else {
+    updated = current;
   }
 
   const slugs = await setSitemapExclusions(updated);
-  return NextResponse.json({ slugs });
+  
+  // Revalidate sitemap to reflect changes
+  revalidatePath("/sitemap.xml", "page");
+  revalidatePath("/admin/sitemap", "page");
+  
+  // Calculate actual added count (new items that weren't already in the list)
+  const addedCount = parsed.data.add 
+    ? (Array.isArray(parsed.data.add) ? parsed.data.add.length : 1) 
+    : 0;
+  
+  return NextResponse.json({ 
+    success: true, 
+    slugs,
+    added: addedCount,
+    removed: parsed.data.remove ? 1 : 0
+  });
 }

@@ -11,12 +11,42 @@ interface Props {
   locale: LocaleCode;
 }
 
+// Convert localhost URLs to relative paths to avoid domain issues
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  
+  // Convert localhost URLs to relative paths
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    try {
+      const urlObj = new URL(url);
+      // Extract the path and return as relative path
+      return urlObj.pathname;
+    } catch {
+      return url;
+    }
+  }
+  
+  // Keep relative paths as-is
+  if (url.startsWith('/')) {
+    return url;
+  }
+  
+  // Keep external URLs as-is
+  return url;
+}
+
 export function ProductGallery({ images, productName, locale }: Props) {
+  // Normalize image URLs to remove localhost references
+  const normalizedImages = images.map(img => ({
+    ...img,
+    url: normalizeImageUrl(img.url)
+  }));
+
   // Stable initial index: prefer the image flagged is_primary, otherwise
   // the first by sort_order. We compute once via lazy init so the initial
   // render uses the right image even before the first user click.
   const [activeIndex, setActiveIndex] = useState(() => {
-    const primary = images.findIndex((img) => img.is_primary);
+    const primary = normalizedImages.findIndex((img) => img.is_primary);
     return primary >= 0 ? primary : 0;
   });
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -34,14 +64,14 @@ export function ProductGallery({ images, productName, locale }: Props) {
       if (e.key === "Escape") {
         setLightboxOpen(false);
       } else if (e.key === "ArrowRight") {
-        setActiveIndex((i) => (i + 1) % images.length);
+        setActiveIndex((i) => (i + 1) % normalizedImages.length);
       } else if (e.key === "ArrowLeft") {
-        setActiveIndex((i) => (i - 1 + images.length) % images.length);
+        setActiveIndex((i) => (i - 1 + normalizedImages.length) % normalizedImages.length);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxOpen, images.length]);
+  }, [lightboxOpen, normalizedImages.length]);
 
   // Lock body scroll while the lightbox is open so the background page
   // doesn't drift under the overlay.
@@ -54,7 +84,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
     };
   }, [lightboxOpen]);
 
-  if (images.length === 0) {
+  if (normalizedImages.length === 0) {
     return (
       <div
         className="aspect-square bg-surface rounded-lg flex items-center justify-center text-muted"
@@ -66,7 +96,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
     );
   }
 
-  const active = images[activeIndex];
+  const active = normalizedImages[activeIndex];
   const activeAlt = (t(active.alt_text, locale) as string) || productName;
 
   return (
@@ -85,16 +115,17 @@ export function ProductGallery({ images, productName, locale }: Props) {
             sizes="(max-width: 1024px) 100vw, 50vw"
             className="object-contain p-8"
             priority
+            unoptimized
           />
         </button>
 
-        {images.length > 1 && (
+        {normalizedImages.length > 1 && (
           <div
             className="mt-4 grid grid-cols-4 gap-2"
             role="tablist"
             aria-label="Product image thumbnails"
           >
-            {images.map((img, i) => {
+            {normalizedImages.map((img, i) => {
               const isActive = i === activeIndex;
               const alt = (t(img.alt_text, locale) as string) || productName;
               return (
@@ -103,7 +134,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
                   type="button"
                   role="tab"
                   aria-selected={isActive}
-                  aria-label={`Show image ${i + 1} of ${images.length}: ${alt}`}
+                  aria-label={`Show image ${i + 1} of ${normalizedImages.length}: ${alt}`}
                   onClick={() => setActiveIndex(i)}
                   className={`relative aspect-square bg-surface rounded border overflow-hidden focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 ${
                     isActive
@@ -118,6 +149,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
                     sizes="100px"
                     className="object-contain p-2"
                     loading="lazy"
+                    unoptimized
                   />
                 </button>
               );
@@ -169,15 +201,16 @@ export function ProductGallery({ images, productName, locale }: Props) {
                     }}
                     className="rounded-lg"
                     priority
+                    unoptimized
                   />
                   <CloseButton onClick={closeLightbox} />
-                  {images.length > 1 && (
+                  {normalizedImages.length > 1 && (
                     <>
                       <button
                         type="button"
                         onClick={() =>
                           setActiveIndex(
-                            (i) => (i - 1 + images.length) % images.length,
+                            (i) => (i - 1 + normalizedImages.length) % normalizedImages.length,
                           )
                         }
                         aria-label="Previous image"
@@ -188,7 +221,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
                       <button
                         type="button"
                         onClick={() =>
-                          setActiveIndex((i) => (i + 1) % images.length)
+                          setActiveIndex((i) => (i + 1) % normalizedImages.length)
                         }
                         aria-label="Next image"
                         className="absolute right-2 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-black shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-white"
@@ -207,15 +240,16 @@ export function ProductGallery({ images, productName, locale }: Props) {
                     sizes="(max-width: 768px) 90vw, (max-width: 1280px) 60vw, 1152px"
                     className="object-contain"
                     priority
+                    unoptimized
                   />
                   <CloseButton onClick={closeLightbox} />
-                  {images.length > 1 && (
+                  {normalizedImages.length > 1 && (
                     <>
                       <button
                         type="button"
                         onClick={() =>
                           setActiveIndex(
-                            (i) => (i - 1 + images.length) % images.length,
+                            (i) => (i - 1 + normalizedImages.length) % normalizedImages.length,
                           )
                         }
                         aria-label="Previous image"
@@ -226,7 +260,7 @@ export function ProductGallery({ images, productName, locale }: Props) {
                       <button
                         type="button"
                         onClick={() =>
-                          setActiveIndex((i) => (i + 1) % images.length)
+                          setActiveIndex((i) => (i + 1) % normalizedImages.length)
                         }
                         aria-label="Next image"
                         className="absolute right-2 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-black shadow hover:bg-white focus:outline-none focus:ring-2 focus:ring-white"
@@ -239,9 +273,9 @@ export function ProductGallery({ images, productName, locale }: Props) {
               )}
             </div>
 
-            {images.length > 1 && (
+            {normalizedImages.length > 1 && (
               <p className="mt-3 text-center text-sm text-white/80">
-                Image {activeIndex + 1} of {images.length}
+                Image {activeIndex + 1} of {normalizedImages.length}
               </p>
             )}
           </div>

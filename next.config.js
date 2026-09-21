@@ -24,6 +24,8 @@ const nextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
       // Blog post cover images sourced from external review sites.
       { protocol: "https", hostname: "amindfullmom.com" },
+      // Main site domain for uploaded blog images and media.
+      { protocol: "https", hostname: "raofinds.com" },
       // Legacy Supabase Storage bucket — comparison blocks and media-library
       // entries authored before the Supabase→MySQL migration still reference
       // these URLs. The deployment plan says to retire this host once all

@@ -1,4 +1,4 @@
-# ORH / BestFinds - Multi-locale Amazon Affiliate E-Commerce Platform
+# ORH - Multi-locale Amazon Affiliate E-Commerce Platform
 
 A modern, performant Amazon affiliate e-commerce platform built with Next.js 15, React 19, and TypeScript. Features multi-locale support, product curation, blog system, and comprehensive admin panel.
 

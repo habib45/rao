@@ -51,11 +51,56 @@ export function GrammarlyEditor({
   const [isMounted, setIsMounted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [grammarlyEnabled, setGrammarlyEnabled] = useState(false);
+  const [grammarlyLoadAttempted, setGrammarlyLoadAttempted] = useState(false);
 
   // Prevent SSR issues
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Load Grammarly SDK (optional - fail silently)
+  useEffect(() => {
+    if (grammarlyLoadAttempted) return; // Only try once
+    
+    const loadGrammarly = () => {
+      if (typeof window === 'undefined') return;
+      
+      setGrammarlyLoadAttempted(true);
+      
+      try {
+        // Check if already loaded
+        if (window.Grammarly) {
+          setGrammarlyEnabled(true);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.grammarly.com/grammarly-sdk.js';
+        script.async = true;
+        script.onload = () => {
+          if (window.Grammarly) {
+            window.Grammarly.init({
+              clientId: 'client_B8D7F2X4P1H9J0K7L3M5N2Q6', // This would need to be replaced with actual client ID
+              dialect: 'american',
+              documentDomain: 'blog',
+              input: ['[data-grammarly="true"]']
+            });
+            setGrammarlyEnabled(true);
+          }
+        };
+        script.onerror = () => {
+          // Fail silently - editor works without Grammarly
+          setGrammarlyEnabled(false);
+        };
+        document.head.appendChild(script);
+      } catch (_error) {
+        // Fail silently - editor works without Grammarly
+        setGrammarlyEnabled(false);
+      }
+    };
+
+    loadGrammarly();
+  }, [grammarlyLoadAttempted]);
 
   // HTML-aware text replacement function
   const fixTextInHTML = (html: string, fixes: Array<{pattern: RegExp, replacement: string}>): { fixedHTML: string, fixesApplied: number } => {
@@ -325,45 +370,6 @@ export function GrammarlyEditor({
     
     return html;
   };
-
-  // Load Grammarly SDK
-  useEffect(() => {
-    const loadGrammarly = async () => {
-      try {
-        // Check if Grammarly is already loaded
-        if (window.Grammarly) {
-          setGrammarlyEnabled(true);
-          return;
-        }
-
-        // Load Grammarly SDK
-        const script = document.createElement('script');
-        script.src = 'https://cdn.grammarly.com/grammarly-sdk.js';
-        script.async = true;
-        script.onload = () => {
-          if (window.Grammarly) {
-            window.Grammarly.init({
-              clientId: 'client_B8D7F2X4P1H9J0K7L3M5N2Q6', // This would need to be replaced with actual client ID
-              dialect: 'american',
-              documentDomain: 'blog',
-              input: ['[data-grammarly="true"]']
-            });
-            setGrammarlyEnabled(true);
-          }
-        };
-        script.onerror = () => {
-          console.warn('Grammarly SDK failed to load');
-          setGrammarlyEnabled(false);
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.warn('Failed to load Grammarly:', error);
-        setGrammarlyEnabled(false);
-      }
-    };
-
-    loadGrammarly();
-  }, []);
 
   // Check grammar and spelling
   const checkGrammar = async () => {

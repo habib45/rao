@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -60,11 +60,6 @@ export async function generateMetadata({
     authors: [{ name: SITE_SHORT_TITLE, url: SITE_URL }],
     publisher: SITE_SHORT_TITLE,
     metadataBase: new URL(SITE_URL),
-    viewport: {
-      width: "device-width",
-      initialScale: 1,
-      maximumScale: 5,
-    },
     icons: {
       icon: [
         { url: "/favicon.ico", type: "image/x-icon" },
@@ -99,6 +94,14 @@ export async function generateMetadata({
       canonical: `/${loc}`,
       languages: buildAlternatesFromConfig("/"),
     },
+  };
+}
+
+export function generateViewport(): Viewport {
+  return {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
   };
 }
 

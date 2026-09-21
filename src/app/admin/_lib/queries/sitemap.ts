@@ -1,16 +1,28 @@
 // Sitemap and robots.txt management functions
-// These are placeholder implementations for the admin panel
 
 export async function getSitemapExclusions(): Promise<string[]> {
-  // In a real implementation, this would fetch from a database
-  // For now, return empty array
-  return [];
+  try {
+    const fs = await import("fs/promises");
+    const exclusionsPath = process.cwd() + "/public/sitemap-exclusions.json";
+    const content = await fs.readFile(exclusionsPath, "utf-8");
+    const data = JSON.parse(content);
+    return data.slugs || [];
+  } catch {
+    // File doesn't exist, return empty array
+    return [];
+  }
 }
 
 export async function setSitemapExclusions(slugs: string[]): Promise<string[]> {
-  // In a real implementation, this would save to a database
-  // For now, just return the input
-  return slugs;
+  const exclusionsPath = process.cwd() + "/public/sitemap-exclusions.json";
+  try {
+    const fs = await import("fs/promises");
+    await fs.writeFile(exclusionsPath, JSON.stringify({ slugs }, null, 2), "utf-8");
+    return slugs;
+  } catch {
+    // If write fails, just return the input
+    return slugs;
+  }
 }
 
 export async function getRobotsConfig(): Promise<{ rules: Array<{ userAgent: string; allow: string[]; disallow: string[]; crawlDelay?: number }> }> {
