@@ -1,28 +1,25 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import "server-only";
+import { verifyAdminSession, type AdminSession } from "@/app/admin/_lib/jwt";
 
-export async function getAdminUser() {
+/**
+ * Reads the signed JWT from the admin_token cookie and returns the embedded
+ * session, or null if absent / invalid. Used by both page (RSC) and route
+ * handlers via withAdmin().
+ */
+export async function getAdminUser(): Promise<AdminSession | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token");
-  
-  if (!token || token.value !== "authenticated") {
-    return null;
-  }
-
-  // Return a mock user object since we're using simple cookie-based auth
-  return {
-    id: "1",
-    email: "admin@admin.com",
-    role: "admin",
-    name: "Admin User",
-  };
+  const token = cookieStore.get("admin_token")?.value;
+  return await verifyAdminSession(token);
 }
 
-export async function requireAdmin() {
-  const user = await getAdminUser();
-  if (!user) {
-    redirect("/admin/login");
-  }
-  return user;
+/**
+ * RSC helper: redirects to /admin/login when the session is missing or
+ * invalid. Pages should call this at the top of the render so protected
+ * views never flash before redirect.
+ */
+export async function requireAdmin(): Promise<AdminSession> {
+  const session = await getAdminUser();
+  if (!session) redirect("/admin/login");
+  return session;
 }

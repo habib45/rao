@@ -20,6 +20,7 @@ import { ViewTracker } from "./_components/ViewTracker";
 import { SocialShare } from "./_components/SocialShare";
 import { CommentForm } from "./_components/CommentForm";
 import { Calendar, Clock, Eye, Tag } from "lucide-react";
+import { buildArticleMetadata, truncateToLength } from "@/lib/seo";
 
 export const revalidate = 3600;
 
@@ -51,41 +52,31 @@ export async function generateMetadata({
   if (!post) return { title: "Post not found — RaoFinds" };
 
   const loc = locale as LocaleCode;
-  const title = (t(post.meta_title, loc) as string) || (t(post.title, loc) as string);
-  const description =
+  const rawTitle = (t(post.meta_title, loc) as string) || (t(post.title, loc) as string);
+  const rawDescription =
     (t(post.meta_description, loc) as string) || (t(post.excerpt, loc) as string);
 
-  const languages: Record<string, string> = {};
-  for (const l of SUPPORTED_LOCALES) {
-    const localizedSlug = (post.slug as Record<string, string | undefined>)[l];
-    if (localizedSlug) languages[l] = `/${l}/blog/${localizedSlug}`;
-  }
-  const canonicalSlug = (post.slug as Record<string, string | undefined>)[loc] ?? slug;
+  // Cap titles at 50 chars and descriptions at 155 chars to stay inside
+  // Google's SERP pixel limits even when CMS data overshoots. The locale
+  // layout adds ` | RaoFinds` (~12 chars) to every title, so we cap raw
+  // titles tighter than the apparent 60-char limit.
+  const title = truncateToLength(rawTitle, 50);
+  const description = truncateToLength(rawDescription, 155);
 
-  return {
+  const canonicalSlug = (post.slug as Record<string, string | undefined>)[loc] ?? slug;
+  const path = `/${loc}/blog/${canonicalSlug}`;
+
+  return buildArticleMetadata({
     title,
     description,
-    alternates: {
-      canonical: `/${loc}/blog/${canonicalSlug}`,
-      languages,
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: `${BASE_URL}/${loc}/blog/${canonicalSlug}`,
-      images: post.cover_image_url ? [{ url: post.cover_image_url }] : [],
-      publishedTime: post.published_at ?? undefined,
-      modifiedTime: post.updated_at,
-      authors: [post.author_name],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: post.cover_image_url ? [post.cover_image_url] : [],
-    },
-  };
+    path,
+    image: post.cover_image_url ? { url: post.cover_image_url } : undefined,
+    publishedTime: post.published_at ?? post.updated_at,
+    modifiedTime: post.updated_at,
+    authors: [post.author_name],
+    tags: undefined,
+    locale: loc as unknown as import("@/lib/seo-config").SupportedLocale,
+  });
 }
 
 

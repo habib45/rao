@@ -49,6 +49,23 @@ const baseProduct: Product = {
   updated_at: "",
 };
 
+// The discount badge is an overlay on the primary image, so it only renders
+// for a product that has one.
+const productWithImage: Product = {
+  ...baseProduct,
+  product_images: [
+    {
+      id: "img1",
+      url: "https://example.com/p1.jpg",
+      alt_text: { en: "Test Product" },
+      width: 800,
+      height: 800,
+      sort_order: 0,
+      is_primary: true,
+    },
+  ],
+};
+
 describe("ProductCard — showPrice", () => {
   it("renders price when showPrice is not passed (default true)", () => {
     render(<ProductCard product={baseProduct} locale="en" />);
@@ -67,12 +84,12 @@ describe("ProductCard — showPrice", () => {
   });
 
   it("hides discount badge when showPrice={false}", () => {
-    render(<ProductCard product={baseProduct} locale="en" showPrice={false} />);
+    render(<ProductCard product={productWithImage} locale="en" showPrice={false} />);
     expect(screen.queryByText(/-25%/i)).not.toBeInTheDocument();
   });
 
   it("shows discount badge when showPrice={true}", () => {
-    render(<ProductCard product={baseProduct} locale="en" showPrice={true} />);
+    render(<ProductCard product={productWithImage} locale="en" showPrice={true} />);
     expect(screen.getByText(/-25%/i)).toBeInTheDocument();
   });
 });

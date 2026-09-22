@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { z } from "zod";
 import * as cheerio from "cheerio";
+import { assertSafeUrl, SsrfError } from "@/lib/api/ssrf";
+import { badRequest } from "@/lib/api/errors";
 
 const scrapeUrlSchema = z.object({
   url: z.string().url("Must be a valid URL"),
@@ -191,44 +193,35 @@ async function scrapeWithFetch(url: string): Promise<{
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withAdmin(async (request: NextRequest) => {
+  let body: unknown;
   try {
-    await requireAdmin();
-
-    const body = await request.json();
-    const { url } = scrapeUrlSchema.parse(body);
-
-    console.log(`Attempting to scrape URL: ${url}`);
-
-    const result = await scrapeWithFetch(url);
-
-    console.log(`Successfully scraped: ${result.title}`);
-
-    return NextResponse.json({
-      success: true,
-      ...result
-    });
-
-  } catch (error) {
-    console.error('URL scraping error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid URL format", details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: "Failed to scrape URL" },
-      { status: 500 }
-    );
+    body = await request.json();
+  } catch {
+    return badRequest({ reason: "Invalid JSON body" });
   }
-}
+
+  const parsed = scrapeUrlSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest({ issues: parsed.error.flatten() });
+  }
+
+  let safeUrl: URL;
+  try {
+    safeUrl = await assertSafeUrl(parsed.data.url);
+  } catch (e) {
+    if (e instanceof SsrfError) return badRequest({ reason: e.message });
+    throw e;
+  }
+
+  console.log(`Attempting to scrape URL: ${safeUrl.toString()}`);
+
+  const result = await scrapeWithFetch(safeUrl.toString());
+
+  console.log(`Successfully scraped: ${result.title}`);
+
+  return NextResponse.json({
+    success: true,
+    ...result,
+  });
+}, EDITOR_OR_ADMIN);

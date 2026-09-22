@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, Star, Flame, ChevronDown, Copy } from "lucide-react";
@@ -21,6 +21,30 @@ import { Dialog } from "@/app/admin/_components/ui/dialog";
 import { SEOAnalysis } from "./SEOAnalysis";
 import { SEOScoreDisplay } from "./SEOScoreDisplay";
 import type { BlogPost, BlogPostStatus } from "@/types/domain";
+
+// Convert localhost URLs to relative paths to avoid domain issues
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  
+  // Convert localhost URLs to relative paths
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    try {
+      const urlObj = new URL(url);
+      // Extract the path and return as relative path
+      return urlObj.pathname;
+    } catch {
+      return url;
+    }
+  }
+  
+  // Keep relative paths as-is
+  if (url.startsWith('/')) {
+    return url;
+  }
+  
+  // Keep external URLs as-is
+  return url;
+}
 
 interface BlogPostsResponse {
   posts: BlogPost[];
@@ -184,15 +208,19 @@ export function BlogPostsTable() {
                   <div className="relative h-12 w-20 overflow-hidden rounded bg-surface">
                     {post.cover_image_url ? (
                       <Image
-                        src={post.cover_image_url}
+                        src={normalizeImageUrl(post.cover_image_url)}
                         alt={titleEn}
                         fill
-                        className="object-cover"
                         sizes="80px"
+                        className="object-cover"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
-                          target.parentElement!.innerHTML = '<div class="flex h-full w-full items-center justify-center text-xl text-muted">📝</div>';
+                          // Safely hide the image and show placeholder
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="flex h-full w-full items-center justify-center text-xl text-muted">📝</div>';
+                          }
                         }}
                       />
                     ) : (

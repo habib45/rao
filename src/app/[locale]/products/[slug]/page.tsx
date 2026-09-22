@@ -1,6 +1,5 @@
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { LocaleCode } from "@/types/domain";
 import { t } from "@/lib/i18n/translate";
@@ -17,6 +16,7 @@ import { parseContentSegments } from "@/lib/wizard";
 import { WizardBlock } from "@/app/[locale]/blog/[slug]/_components/WizardBlock";
 // import { ComparisonWizard } from "./_components/ComparisonWizard";
 import { ComparisonBlock } from "./_components/ComparisonBlock";
+import { ProductGallery } from "./_components/ProductGallery";
 
 export const revalidate = 3600; // ISR: revalidate every hour
 
@@ -123,7 +123,7 @@ export default async function ProductPage({
   ]);
   if (!product) notFound();
 
-  const [related, comparisonCandidates, comparisonKeys, faqs] = await Promise.all([
+  const [related, _comparisonCandidates, _comparisonKeys, faqs] = await Promise.all([
     getRelatedProducts(product.id, product.category_id, 4),
     getComparisonCandidates(product.id, product.category_id, 10),
     getComparisonKeys(),
@@ -134,9 +134,10 @@ export default async function ProductPage({
 
   const name = t(product.name, loc) as string;
   const description = t(product.description, loc) as string;
-  const primaryImage = product.product_images?.find((img) => img.is_primary);
-  const otherImages =
-    product.product_images?.filter((img) => !img.is_primary) ?? [];
+  const productImages = product.product_images ?? [];
+  const sortedImages = [...productImages].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+  );
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -164,47 +165,12 @@ export default async function ProductPage({
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Image Gallery */}
-          <div>
-            {primaryImage ? (
-              <div className="relative aspect-square bg-surface rounded-lg overflow-hidden" role="img" aria-label={`${name} - Main product image`}>
-                <Image
-                  src={primaryImage.url}
-                  alt={(t(primaryImage.alt_text, loc) as string) || name}
-                  fill
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-contain p-8"
-                  priority
-                />
-              </div>
-            ) : (
-              <div className="aspect-square bg-surface rounded-lg flex items-center justify-center text-muted" role="img" aria-label="No product image available">
-                No Image
-              </div>
-            )}
-
-            {otherImages.length > 0 && (
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                {otherImages.map((img) => (
-                  <div
-                    key={img.id}
-                    className="relative aspect-square bg-surface rounded border border-border overflow-hidden"
-                    role="img"
-                    aria-label={`${name} - Thumbnail image`}
-                  >
-                    <Image
-                      src={img.url}
-                      alt={(t(img.alt_text, loc) as string) || name}
-                      fill
-                      sizes="100px"
-                      className="object-contain p-2"
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Image Gallery (client component: thumbnail swap + lightbox) */}
+          <ProductGallery
+            images={sortedImages}
+            productName={name}
+            locale={loc}
+          />
 
           {/* Product Details */}
           <div>

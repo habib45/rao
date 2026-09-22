@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
+const DEFAULT_SITE_URL = "https://raofinds.com";
+const SITE_URL = process.env.PUBLIC_SITEMAP_URL ?? DEFAULT_SITE_URL;
 
 export const CHANGEFREQ_VALUES = [
   "always",
@@ -31,7 +32,7 @@ export const sitemapCustomEntryUpdateSchema =
 
 export const sitemapExclusionPatchSchema = z
   .object({
-    add: z.string().min(1).optional(),
+    add: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
     remove: z.string().min(1).optional(),
   })
   .refine((d) => d.add !== undefined || d.remove !== undefined, {

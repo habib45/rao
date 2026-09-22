@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/app/admin/_components/ui/button";
 import { CheckCircle, AlertCircle, Loader2, Type, Heading, Eye, EyeOff, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
@@ -28,8 +28,8 @@ interface GrammarlyEditorProps {
 declare global {
   interface Window {
     Grammarly?: {
-      init: (config: any) => void;
-      addPlugin: (plugin: any) => void;
+      init: (config: Record<string, unknown>) => void;
+      addPlugin: (plugin: Record<string, unknown>) => void;
     };
     grammarly?: {
       checkText: (text: string) => Promise<GrammarlySuggestion[]>;
@@ -45,19 +45,62 @@ export function GrammarlyEditor({
   className = "",
   isRichText = true
 }: GrammarlyEditorProps) {
-  const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<GrammarlySuggestion[]>([]);
-  const [isGrammarlyEnabled, setIsGrammarlyEnabled] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [activeTab, setActiveTab] = useState<"content" | "headings">("content");
   const [isMounted, setIsMounted] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [grammarlyEnabled, setGrammarlyEnabled] = useState(false);
+  const [grammarlyLoadAttempted, setGrammarlyLoadAttempted] = useState(false);
 
   // Prevent SSR issues
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Load Grammarly SDK (optional - fail silently)
+  useEffect(() => {
+    if (grammarlyLoadAttempted) return; // Only try once
+    
+    const loadGrammarly = () => {
+      if (typeof window === 'undefined') return;
+      
+      setGrammarlyLoadAttempted(true);
+      
+      try {
+        // Check if already loaded
+        if (window.Grammarly) {
+          setGrammarlyEnabled(true);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdn.grammarly.com/grammarly-sdk.js';
+        script.async = true;
+        script.onload = () => {
+          if (window.Grammarly) {
+            window.Grammarly.init({
+              clientId: 'client_B8D7F2X4P1H9J0K7L3M5N2Q6', // This would need to be replaced with actual client ID
+              dialect: 'american',
+              documentDomain: 'blog',
+              input: ['[data-grammarly="true"]']
+            });
+            setGrammarlyEnabled(true);
+          }
+        };
+        script.onerror = () => {
+          // Fail silently - editor works without Grammarly
+          setGrammarlyEnabled(false);
+        };
+        document.head.appendChild(script);
+      } catch (_error) {
+        // Fail silently - editor works without Grammarly
+        setGrammarlyEnabled(false);
+      }
+    };
+
+    loadGrammarly();
+  }, [grammarlyLoadAttempted]);
 
   // HTML-aware text replacement function
   const fixTextInHTML = (html: string, fixes: Array<{pattern: RegExp, replacement: string}>): { fixedHTML: string, fixesApplied: number } => {
@@ -90,7 +133,7 @@ export function GrammarlyEditor({
     const processNode = (node: Node) => {
       if (node.nodeType === Node.TEXT_NODE) {
         let text = node.textContent || '';
-        let originalText = text;
+        const originalText = text;
         
         // Apply fixes to text content
         fixes.forEach(fix => {
@@ -272,7 +315,7 @@ export function GrammarlyEditor({
     const headings: Array<{text: string, level: number, offset: number}> = [];
     const headingElements = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, h6');
     
-    headingElements.forEach((heading, index) => {
+    headingElements.forEach((heading, _index) => {
       const text = heading.textContent?.trim() || '';
       const level = parseInt(heading.tagName.charAt(1));
       const offset = html.indexOf(heading.outerHTML);
@@ -327,45 +370,6 @@ export function GrammarlyEditor({
     
     return html;
   };
-
-  // Load Grammarly SDK
-  useEffect(() => {
-    const loadGrammarly = async () => {
-      try {
-        // Check if Grammarly is already loaded
-        if (window.Grammarly) {
-          setIsGrammarlyEnabled(true);
-          return;
-        }
-
-        // Load Grammarly SDK
-        const script = document.createElement('script');
-        script.src = 'https://cdn.grammarly.com/grammarly-sdk.js';
-        script.async = true;
-        script.onload = () => {
-          if (window.Grammarly) {
-            window.Grammarly.init({
-              clientId: 'client_B8D7F2X4P1H9J0K7L3M5N2Q6', // This would need to be replaced with actual client ID
-              dialect: 'american',
-              documentDomain: 'blog',
-              input: ['[data-grammarly="true"]']
-            });
-            setIsGrammarlyEnabled(true);
-          }
-        };
-        script.onerror = () => {
-          console.warn('Grammarly SDK failed to load');
-          setIsGrammarlyEnabled(false);
-        };
-        document.head.appendChild(script);
-      } catch (error) {
-        console.warn('Failed to load Grammarly:', error);
-        setIsGrammarlyEnabled(false);
-      }
-    };
-
-    loadGrammarly();
-  }, []);
 
   // Check grammar and spelling
   const checkGrammar = async () => {
@@ -641,7 +645,7 @@ export function GrammarlyEditor({
                     </p>
                     {suggestion.context && (
                       <p className="text-xs opacity-60 italic mt-1">
-                        Context: "...{suggestion.context}..."
+                        Context: &ldquo;{suggestion.context}&rdquo;
                       </p>
                     )}
                     {suggestion.replacements && suggestion.replacements.length > 0 && (

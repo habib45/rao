@@ -66,14 +66,6 @@ export function AIContentOptimizer({ content, contentType, onOptimized }: AICont
     }
   }
 
-  function getSeverityColor(severity: "low" | "medium" | "high") {
-    switch (severity) {
-      case "low": return "text-yellow-600";
-      case "medium": return "text-orange-600";
-      case "high": return "text-red-600";
-    }
-  }
-
   function getSeverityIcon(severity: "low" | "medium" | "high") {
     switch (severity) {
       case "low": return <AlertCircle className="h-4 w-4 text-yellow-600" />;

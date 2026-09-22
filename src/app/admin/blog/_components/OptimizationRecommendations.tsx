@@ -17,7 +17,7 @@ interface RecommendationItem {
 }
 
 interface OptimizationRecommendationsProps {
-  recommendations: Record<string, any>;
+  recommendations: Record<string, unknown>;
   type: "seo_optimization" | "affiliate_content";
   onResolveRecommendation: (type: string, suggestion: string) => Promise<void>;
 }
@@ -145,7 +145,7 @@ export function OptimizationRecommendations({
         if (value && typeof value === 'object') {
           items.push({
             id: `seo-${key}`,
-            type: key as any,
+            type: key as RecommendationItem["type"],
             title: getSEOTitle(key),
             description: getSEODescription(key),
             suggestion: typeof value === 'string' ? value : JSON.stringify(value),
@@ -160,7 +160,7 @@ export function OptimizationRecommendations({
         if (value && typeof value === 'object') {
           items.push({
             id: `affiliate-${key}`,
-            type: key as any,
+            type: key as RecommendationItem["type"],
             title: getAffiliateTitle(key),
             description: getAffiliateDescription(key),
             suggestion: typeof value === 'string' ? value : JSON.stringify(value),

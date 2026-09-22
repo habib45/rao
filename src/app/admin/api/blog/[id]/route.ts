@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/app/admin/_lib/auth";
 import { blogPostInputSchema } from "@/app/admin/_lib/schemas/blog";
 
-const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
+const MYSQL_API_URL = process.env.MYSQL_API_URL;
+if (!MYSQL_API_URL) {
+  throw new Error("MYSQL_API_URL is not configured");
+}
 
 export async function GET(
   _request: NextRequest,

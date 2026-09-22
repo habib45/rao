@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { Link } from "@/i18n/routing";
 import type { Product, LocaleCode } from "@/types/domain";
@@ -5,10 +7,34 @@ import { t } from "@/lib/i18n/translate";
 import { formatPrice } from "@/lib/i18n/format";
 import AddToCartButton from "@/components/AddToCartButton";
 
+// Convert localhost URLs to relative paths to avoid domain issues
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  
+  // Convert localhost URLs to relative paths
+  if (url.includes('localhost') || url.includes('127.0.0.1')) {
+    try {
+      const urlObj = new URL(url);
+      // Extract the path and return as relative path
+      return urlObj.pathname;
+    } catch {
+      return url;
+    }
+  }
+  
+  // Keep relative paths as-is
+  if (url.startsWith('/')) {
+    return url;
+  }
+  
+  // Keep external URLs as-is
+  return url;
+}
+
 export default function ProductCard({
   product,
   locale,
-  categoryName,
+  categoryName: _categoryName,
   showPrice = true,
 }: {
   product: Product;
@@ -30,6 +56,9 @@ export default function ProductCard({
     slug = (slugData as Record<string, string>)[locale] || (slugData as Record<string, string>)['en'] || '';
   }
   const primaryImage = product.product_images?.find((img) => img.is_primary);
+  
+  // Normalize the image URL to remove localhost references
+  const normalizedImageUrl = primaryImage ? normalizeImageUrl(primaryImage.url) : null;
 
   return (
     <div className="group flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -39,14 +68,20 @@ export default function ProductCard({
         aria-label={`View ${name}`}
       >
         <div className="relative aspect-square bg-surface">
-          {primaryImage ? (
+          {primaryImage && normalizedImageUrl ? (
             <Image
-              src={primaryImage.url}
-              alt={(t(primaryImage.alt_text, locale) as string) || name}
+              src={normalizedImageUrl}
+              alt={primaryImage ? (t(primaryImage.alt_text, locale) as string) || name : name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               className="object-contain p-4 transition-transform group-hover:scale-105"
               loading="lazy"
+              onError={(e) => {
+                // Hide image on error
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+              unoptimized
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-muted">
@@ -54,7 +89,7 @@ export default function ProductCard({
             </div>
           )}
 
-          {showPrice && product.discount_pct > 0 && (
+          {showPrice && product.discount_pct > 0 && primaryImage && (
             <span className="absolute right-2 top-2 rounded-md bg-red-500 px-2 py-1 text-xs font-bold text-white shadow-sm">
               -{product.discount_pct}%
             </span>

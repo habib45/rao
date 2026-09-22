@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { faqUpdateSchema } from "@/app/admin/_lib/schemas/faq";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
 
-export async function PATCH(
+export const PATCH = withAdmin(async (
   request: NextRequest,
-  { params }: { params: { id: string; faqId: string } }
-) {
-  const { id: productId, faqId } = params;
+  { params }: { params: Promise<{ id: string; faqId: string }> }
+) => {
+  const { id: productId, faqId } = await params;
   const body = await request.json();
   const result = faqUpdateSchema.safeParse({ ...body, id: faqId });
 
@@ -26,17 +27,17 @@ export async function PATCH(
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: (json as { error?: string }).error ?? "Gateway error" }, { status: res.status });
   return NextResponse.json(json);
-}
+}, EDITOR_OR_ADMIN);
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string; faqId: string } }
-) {
-  const { id: productId, faqId } = params;
+export const DELETE = withAdmin(async (
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; faqId: string }> }
+) => {
+  const { id: productId, faqId } = await params;
   const res = await fetch(`${MYSQL_API_URL}/api/products/${productId}/faqs/${faqId}`, {
     method: "DELETE",
   });
   const json = await res.json();
   if (!res.ok) return NextResponse.json({ error: (json as { error?: string }).error ?? "Gateway error" }, { status: res.status });
   return NextResponse.json(json);
-}
+}, EDITOR_OR_ADMIN);

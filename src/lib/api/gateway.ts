@@ -22,6 +22,22 @@ import type { SiteSettings } from "@/lib/queries/settings";
 
 type Params = Record<string, string | number | boolean | undefined | null>;
 
+/**
+ * Gateway HTTP error class — preserves the upstream status code and body
+ * so callers can distinguish 404 (resource missing) from 401/5xx (real
+ * failures that should bubble up to the UI).
+ */
+export class GatewayError extends Error {
+  readonly status: number;
+  readonly body: string;
+  constructor(path: string, status: number, body: string) {
+    super(`Gateway ${path} failed: ${status} ${body}`);
+    this.name = "GatewayError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
 async function gw<T>(
   path: string,
   params?: Params,
@@ -34,36 +50,100 @@ async function gw<T>(
     }
   }
   const headers: Record<string, string> = {};
-  
+
   // Use JWT token for authentication (identity for authorized domains)
   if (MYSQL_API_JWT_TOKEN) {
     headers["Authorization"] = `Bearer ${MYSQL_API_JWT_TOKEN}`;
   }
-  
+
   // Use API key for admin routes
   if (adminAuth) headers["x-api-key"] = MYSQL_API_SECRET;
 
   const res = await fetch(url.toString(), {
     headers,
-    next: { revalidate: 60 },
+    // 60s ISR cache, tagged so admin PATCH/DELETE/POST routes can call
+    // `revalidateTag('products')` and bust the cache on the next read.
+    // Without this tag, a freshly uploaded/picked image would still be
+    // missing after a page reload because the server component would
+    // return the pre-save `product_images` array for up to 60 s.
+    next: { revalidate: 60, tags: ["products"] },
   });
   if (!res.ok) {
-    throw new Error(
-      `Gateway ${path} failed: ${res.status} ${await res.text()}`,
-    );
+    throw new GatewayError(path, res.status, await res.text());
   }
   return res.json() as Promise<T>;
 }
 
+/**
+ * Like `gw()` but returns `null` on 404 instead of throwing — use this for
+ * endpoints where a missing resource is a normal outcome (e.g. fetching a
+ * product by id that may have been deleted).
+ */
+async function gwOptional<T>(
+  path: string,
+  params?: Params,
+  adminAuth = false,
+): Promise<T | null> {
+  try {
+    return await gw<T>(path, params, adminAuth);
+  } catch (e) {
+    if (e instanceof GatewayError && e.status === 404) return null;
+    throw e;
+  }
+}
+
 // ── Shape adapters ────────────────────────────────────────────
+
+// Helper to parse JSON fields safely
+function parseJsonField(field: unknown): Record<string, string> {
+  if (typeof field === 'object' && field !== null) {
+    return field as Record<string, string>;
+  }
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as Record<string, string>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+// Helper to parse JSON array fields
+function parseJsonArrayField(field: unknown): string[] {
+  if (Array.isArray(field)) {
+    return field as string[];
+  }
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field) as string[];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 // Products list endpoint returns primary_image_url instead of product_images[]
 function adaptProductRow(row: Record<string, unknown>): Product {
   const primaryUrl = row.primary_image_url as string | null;
   const { primary_image_url: _drop, ...rest } = row;
   void _drop;
+  
+  // Parse JSON fields
+  const parsed = {
+    ...rest,
+    name: parseJsonField(rest.name),
+    slug: parseJsonField(rest.slug),
+    description: parseJsonField(rest.description),
+    meta_title: parseJsonField(rest.meta_title),
+    meta_description: parseJsonField(rest.meta_description),
+    features: parseJsonArrayField(rest.features),
+    attributes: parseJsonField(rest.attributes),
+  };
+  
   return {
-    ...(rest as unknown as Product),
+    ...(parsed as unknown as Product),
     product_images: primaryUrl
       ? ([
           {
@@ -98,25 +178,24 @@ function adaptProductDetail(row: Record<string, unknown>): Product {
   }
   const filteredImages = images.filter((img) => img?.url);
 
-  let features: string[] = [];
-  const featuresData = row.features;
-  if (typeof featuresData === 'string') {
-    try {
-      features = JSON.parse(featuresData) as string[];
-    } catch {
-      features = [];
-    }
-  } else if (Array.isArray(featuresData)) {
-    features = featuresData as string[];
-  }
-
-  const { images: _drop, features: _dropFeatures, ...rest } = row;
+  const { images: _drop, ...rest } = row;
   void _drop;
-  void _dropFeatures;
+  
+  // Parse JSON fields
+  const parsed = {
+    ...rest,
+    name: parseJsonField(rest.name),
+    slug: parseJsonField(rest.slug),
+    description: parseJsonField(rest.description),
+    meta_title: parseJsonField(rest.meta_title),
+    meta_description: parseJsonField(rest.meta_description),
+    features: parseJsonArrayField(rest.features),
+    attributes: parseJsonField(rest.attributes),
+  };
+  
   const result = {
-    ...(rest as unknown as Product),
+    ...(parsed as unknown as Product),
     product_images: filteredImages,
-    features,
     is_featured: Boolean(rest.is_featured),
     is_active: Boolean(rest.is_active),
     show_in_comparison: Boolean(rest.show_in_comparison),
@@ -245,13 +324,17 @@ export async function gwGetProductById(
   id: string,
 ): Promise<Product | null> {
   try {
-    const detail = await gw<Record<string, unknown>>(
+    const detail = await gwOptional<Record<string, unknown>>(
       `/api/products/${id}`,
     );
+    if (!detail) return null;
     return adaptProductDetail(detail);
   } catch (e) {
+    // Re-throw hard failures (401/5xx) so callers can surface a real error
+    // instead of a misleading 404. Only swallow on real missing resources.
+    if (e instanceof GatewayError && e.status === 404) return null;
     console.error("gwGetProductById:", e);
-    return null;
+    throw e;
   }
 }
 

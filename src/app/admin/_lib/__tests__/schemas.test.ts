@@ -148,6 +148,7 @@ const validProduct = {
   availability: "in_stock",
   is_featured: false,
   is_active: true,
+  show_in_comparison: false,
 };
 
 describe("productUpdateSchema", () => {
@@ -235,6 +236,88 @@ describe("productUpdateSchema", () => {
     if (result.success) {
       expect(result.data.currency).toBe("USD");
     }
+  });
+
+  describe("images[].url", () => {
+    // Regression for: save failed after upload because the upload endpoint
+    // returns relative `/uploads/...` paths that fail `z.string().url()`.
+    it("accepts a same-origin /uploads/... relative path", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [{ url: "/uploads/products/foo.png", is_primary: true, sort_order: 0 }],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts an http(s) URL", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [
+          { url: "https://m.media-amazon.com/images/I/foo.jpg", is_primary: true, sort_order: 0 },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts a POSIX absolute path (local admin picker)", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [
+          { url: "/home/admin/Pictures/foo.png", is_primary: true, sort_order: 0 },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts a Windows absolute path", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [
+          { url: "C:\\Users\\admin\\Pictures\\foo.png", is_primary: true, sort_order: 0 },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts a file:// URL", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [
+          { url: "file:///home/admin/Pictures/foo.png", is_primary: true, sort_order: 0 },
+        ],
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects an empty URL", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [{ url: "", is_primary: true, sort_order: 0 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects whitespace-only URL", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [{ url: "   ", is_primary: true, sort_order: 0 }],
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("accepts a mix of uploaded and remote images", () => {
+      const result = productUpdateSchema.safeParse({
+        ...validProduct,
+        images: [
+          { url: "/uploads/products/foo.png", is_primary: true, sort_order: 0 },
+          { url: "https://cdn.example.com/bar.jpg", is_primary: false, sort_order: 1 },
+        ],
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.images).toHaveLength(2);
+      }
+    });
   });
 });
 
@@ -344,7 +427,7 @@ describe("translationUpdateSchema", () => {
 
 // ─── sitemapCustomEntrySchema ────────────────────────────────────────────────
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bestfinds.com";
+const SITE_URL = process.env.PUBLIC_SITEMAP_URL ?? "https://raofinds.com";
 
 const validCustomEntry = {
   url: `${SITE_URL}/en/deals`,

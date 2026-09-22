@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/app/admin/_components/ui/button";
 import { Input } from "@/app/admin/_components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/admin/_components/ui/card";
@@ -411,9 +412,11 @@ export function URLContentExtractor({ onContentExtracted, onFormFill }: URLConte
                                 />
                               </div>
                               <div className="flex-shrink-0">
-                                <img
+                                <Image
                                   src={image.src}
                                   alt={metadata.alt}
+                                  width={96}
+                                  height={96}
                                   className="w-24 h-24 object-cover rounded border"
                                   onError={(e) => {
                                     e.currentTarget.src = '/placeholder-image.png';

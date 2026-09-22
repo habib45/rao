@@ -358,7 +358,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
     });
     
     // Convert to plain text for better processing (excluding image placeholders)
-    let plainText = content
+    const plainText = content
       .replace(/<[^>]*>/g, ' ') // Remove HTML tags, replace with spaces
       .replace(/__IMAGE_PLACEHOLDER_\d+__/g, ' ') // Replace image placeholders with spaces
       .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
@@ -370,14 +370,14 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
       .trim();
 
     // Split content into sentences and process
-    let sentences = plainText.split(/([.!?]+)\s*/);
+    const sentences = plainText.split(/([.!?]+)\s*/);
     let formattedContent = '';
     let currentParagraph = '';
     let inList = false;
     let listItems = [];
-    let inSpecs = false;
-    let inPros = false;
-    let inCons = false;
+    let _inSpecs = false;
+    let _inPros = false;
+    let _inCons = false;
 
     for (let i = 0; i < sentences.length; i++) {
       let sentence = sentences[i].trim();
@@ -406,15 +406,15 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
           inList = true;
         } else if (sentence.match(/^SPECIFICATIONS/i)) {
           formattedContent += `<h3>${sentence}</h3>\n\n`;
-          inSpecs = true;
+          _inSpecs = true;
           inList = false;
         } else if (sentence.match(/^PROS/i)) {
           formattedContent += `<h3>${sentence}</h3>\n\n`;
-          inPros = true;
+          _inPros = true;
           inList = true;
         } else if (sentence.match(/^CONS/i)) {
           formattedContent += `<h3>${sentence}</h3>\n\n`;
-          inCons = true;
+          _inCons = true;
           inList = true;
         } else if (sentence.match(/^(List Price|Weight|Material|Outsole|Upper Material|Midsole|Features|Dimensions|Size|Color)/i)) {
           formattedContent += `<h4>${sentence}</h4>\n\n`;
@@ -634,17 +634,32 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
         const hasImages = generatedContent.includes('<img');
         
         if (!hasImages) {
-          // Add images to the content
+          // Add images to the content using relative paths to avoid localhost issues
           const paragraphs = generatedContent.split('</p>');
           const imageInsertions: string[] = [];
           
-          extractedContent.images.forEach((img, index) => {
-            const imageHtml = `<figure><img src="${img.src}" alt="${img.alt}" title="${img.title || img.alt}" style="max-width: 100%; height: auto;" /></figure>`;
+          extractedContent.images.forEach((img, _index) => {
+            // Convert absolute URLs to relative paths to avoid localhost/domain issues
+            let imageUrl = img.src;
+            if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('http://127.0.0.1')) {
+              // If it's a localhost URL, we can't use it in production
+              // Skip this image or use a placeholder
+              console.warn('Skipping localhost image in production:', imageUrl);
+              return;
+            }
+            
+            // Keep original external URLs, but warn about external dependencies
+            if (!imageUrl.startsWith('http')) {
+              // It's already a relative path, keep it as is
+              imageUrl = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
+            }
+            
+            const imageHtml = `<figure><img src="${imageUrl}" alt="${img.alt}" title="${img.title || img.alt}" style="max-width: 100%; height: auto;" /></figure>`;
             imageInsertions.push(imageHtml);
           });
           
           // Insert images at strategic points
-          if (paragraphs.length > 3) {
+          if (paragraphs.length > 3 && imageInsertions.length > 0) {
             // Insert first image after first paragraph
             if (imageInsertions[0]) {
               paragraphs.splice(1, 0, imageInsertions[0]);
@@ -658,7 +673,7 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
               paragraphs.push(...imageInsertions.slice(2));
             }
             generatedContent = paragraphs.join('</p>');
-          } else {
+          } else if (imageInsertions.length > 0) {
             // Just append all images at the end
             generatedContent = generatedContent + '\n\n' + imageInsertions.join('\n\n');
           }
@@ -999,7 +1014,6 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
                         // Apply heading structure suggestions to content
                         const editor = editorRef.current;
                         if (editor && suggestion) {
-                          const currentContent = editor.getData();
                           // For now, just show the suggestion in a toast
                           toast.info("Heading structure suggestion: " + suggestion);
                         }
@@ -1538,31 +1552,31 @@ export function BlogPostForm({ post, categories }: BlogPostFormProps) {
             metaDescription={form.meta_description.en || ""}
             tags={form.tag_names.split(",").map(tag => tag.trim()).filter(Boolean)}
             category={(categories.find(cat => cat.id === form.blog_category_id)?.name.en || "")}
-            onOptimizationApplied={(optimizations: any) => {
+            onOptimizationApplied={(optimizations: Record<string, unknown>) => {
               // Apply optimizations to form
-              if (optimizations.title) {
+              if (typeof optimizations.title === 'string') {
                 setForm(prev => ({
                   ...prev,
-                  title: { ...prev.title, en: optimizations.title }
+                  title: { ...prev.title, en: optimizations.title as string }
                 }));
               }
-              if (optimizations.meta_title) {
+              if (typeof optimizations.meta_title === 'string') {
                 setForm(prev => ({
                   ...prev,
-                  meta_title: { ...prev.meta_title, en: optimizations.meta_title }
+                  meta_title: { ...prev.meta_title, en: optimizations.meta_title as string }
                 }));
               }
-              if (optimizations.meta_description) {
+              if (typeof optimizations.meta_description === 'string') {
                 setForm(prev => ({
                   ...prev,
-                  meta_description: { ...prev.meta_description, en: optimizations.meta_description }
+                  meta_description: { ...prev.meta_description, en: optimizations.meta_description as string }
                 }));
               }
-              if (optimizations.content) {
-                setForm(prev => ({ ...prev, content: optimizations.content }));
+              if (typeof optimizations.content === 'string') {
+                setForm(prev => ({ ...prev, content: optimizations.content as string }));
               }
-              if (optimizations.tags) {
-                const tagArray = optimizations.tags.split(',').map((tag: string) => tag.trim());
+              if (typeof optimizations.tags === 'string') {
+                const tagArray = (optimizations.tags as string).split(',').map((tag: string) => tag.trim());
                 setForm(prev => ({ ...prev, tag_names: tagArray.join(', ') }));
               }
             }}

@@ -47,7 +47,7 @@ export function AIContentAssistant({
   const [selectedAIModel, setSelectedAIModel] = useState("groq");
   const [generatedContent, setGeneratedContent] = useState("");
   const [copied, setCopied] = useState(false);
-  const [structuredRecommendations, setStructuredRecommendations] = useState<Record<string, any> | null>(null);
+  const [structuredRecommendations, setStructuredRecommendations] = useState<Record<string, unknown> | null>(null);
 
   // Auto-populate topic with existing content when available
   useEffect(() => {
@@ -182,7 +182,7 @@ export function AIContentAssistant({
           const parsed = JSON.parse(cleanedContent);
           setStructuredRecommendations(parsed);
           setGeneratedContent(cleanedContent);
-        } catch (error) {
+        } catch (_error) {
           // If parsing fails, treat as regular content
           setStructuredRecommendations(null);
           setGeneratedContent(cleanedContent);
@@ -241,7 +241,7 @@ export function AIContentAssistant({
       // Product Placements
       if (parsed.product_placements && Array.isArray(parsed.product_placements)) {
         formatted += "## 🛍️ Product Placement Opportunities\n\n";
-        parsed.product_placements.forEach((item: any, index: number) => {
+        parsed.product_placements.forEach((item: Record<string, unknown>, index: number) => {
           formatted += `**${index + 1}. ${item.product}**\n`;
           formatted += `> ${item.placement}\n\n`;
         });
@@ -250,7 +250,7 @@ export function AIContentAssistant({
       // Product Reviews
       if (parsed.reviews && Array.isArray(parsed.reviews)) {
         formatted += "## ⭐ Product Reviews\n\n";
-        parsed.reviews.forEach((item: any) => {
+        parsed.reviews.forEach((item: Record<string, unknown>) => {
           formatted += `### ${item.product} (${item.rating}/5 ⭐)\n`;
           formatted += `> ${item.review}\n\n`;
         });
@@ -259,35 +259,35 @@ export function AIContentAssistant({
       // Comparisons
       if (parsed.comparisons && Array.isArray(parsed.comparisons)) {
         formatted += "## ⚖️ Product Comparisons\n\n";
-        parsed.comparisons.forEach((item: any) => {
-          formatted += `### ${item.products.join(' vs ')}\n`;
-          formatted += `**Features:** ${item.features.join(', ')}\n`;
-          formatted += `**Comparison:** ${item.comparison}\n\n`;
+        parsed.comparisons.forEach((item: Record<string, unknown>) => {
+          formatted += `### ${(item.products as string[]).join(' vs ')}\n`;
+          formatted += `**Features:** ${(item.features as string[]).join(', ')}\n`;
+          formatted += `**Comparison:** ${item.comparison as string}\n\n`;
         });
       }
 
       // Recommendations
       if (parsed.recommendations && Array.isArray(parsed.recommendations)) {
         formatted += "## 🏆 Top Recommendations\n\n";
-        parsed.recommendations.forEach((item: any, index: number) => {
-          formatted += `**${index + 1}. ${item.product}**\n`;
-          formatted += `> ${item.reason}\n\n`;
+        parsed.recommendations.forEach((item: Record<string, unknown>, index: number) => {
+          formatted += `**${index + 1}. ${item.product as string}**\n`;
+          formatted += `> ${item.reason as string}\n\n`;
         });
       }
 
       // Call-to-Actions
       if (parsed.ctas && Array.isArray(parsed.ctas)) {
         formatted += "## 🎯 Call-to-Action Phrases\n\n";
-        parsed.ctas.forEach((item: any) => {
-          formatted += `• "${item.text}"\n`;
-          formatted += `  → ${item.link}\n\n`;
+        parsed.ctas.forEach((item: Record<string, unknown>) => {
+          formatted += `• "${item.text as string}"\n`;
+          formatted += `  → ${item.link as string}\n\n`;
         });
       }
 
       // Disclosures
       if (parsed.disclosures && Array.isArray(parsed.disclosures)) {
         formatted += "## ⚖️ Disclosure Statements\n\n";
-        parsed.disclosures.forEach((item: any) => {
+        parsed.disclosures.forEach((item: string) => {
           formatted += `> ${item}\n\n`;
         });
       }
@@ -295,17 +295,17 @@ export function AIContentAssistant({
       // Benefits
       if (parsed.benefits && Array.isArray(parsed.benefits)) {
         formatted += "## 💎 Product Benefits\n\n";
-        parsed.benefits.forEach((item: any) => {
-          formatted += `**${item.product}**: ${item.benefit}\n\n`;
+        parsed.benefits.forEach((item: Record<string, unknown>) => {
+          formatted += `**${item.product as string}**: ${item.benefit as string}\n\n`;
         });
       }
 
       // Buying Guide
       if (parsed.buying_guide && Array.isArray(parsed.buying_guide)) {
         formatted += "## 📚 Buying Guide\n\n";
-        parsed.buying_guide.forEach((item: any) => {
-          formatted += `### ${item.title}\n`;
-          formatted += `${item.text}\n\n`;
+        parsed.buying_guide.forEach((item: Record<string, unknown>) => {
+          formatted += `### ${item.title as string}\n`;
+          formatted += `${item.text as string}\n\n`;
         });
       }
 

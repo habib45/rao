@@ -13,7 +13,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 **Completed Phases:** 12 (Phases 1-10, 19, 20)  
 **In Progress:** 5 (Phases 11, 14, 15, 18, 21)  
 **Planned:** 4 (Phases 12, 13, 16, 17)  
-**Test Baseline:** 332 tests passing | 0 TypeScript errors | 0 ESLint warnings
+**Test Baseline:** 552 tests passing | 11 pre-existing failures (schemas, messages, RichTextEditor — unrelated to F11.5) | 0 TypeScript errors on touched files | 0 ESLint warnings on touched files
 
 **Recent Additions:**
 - Data source integration (MySQL API Gateway)
@@ -21,6 +21,7 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 - Product Comparison Wizard
 - Public Folder Media Manager
 - AI integration (Gemini, OpenAI, Groq)
+- **F11.5 Orphan Upload Cleanup** — feature-flag gated helper that unlinks `public/uploads/...` files when an image is removed from a product. Conservative defaults (external URLs ignored, path-traversal rejected, shared files preserved, ENOENT no-op). 16 unit tests pass.
 
 **Documentation:**
 - `AGENT.md` — AI agent development guide
@@ -335,6 +336,25 @@ A multi-locale Amazon Affiliate E-Commerce Platform that displays curated Amazon
 
 **Dependencies:** Phase 9 (existing import + scheduling APIs reused)
 
+#### Section 11.4 — Product Editor Revamp (Documented, Awaiting Scope Approval)
+**Status:** 📋 Plan documents in place; implementation NOT started. Pending: gateway access / contract for new `PUT /api/products/:id/images`, scope approval.
+**Motivation:** Admin-reported pain points — "removed image reappears on save" (root cause: non-transactional DELETE+POST loop in `src/app/admin/api/products/[id]/route.ts:47–56`), no preview for drafts, no grammar/SEO guidance in the editor.
+**Sub-features:**
+- **11.4.1** Image round-trip fix + perceptual dedup (dHash + color histogram). Requires gateway `PUT /images` + migration `00010_product_image_dedup.sql`.
+- **11.4.2** Public preview via signed-token HMAC (15-min, userId-bound, locale-aware, noindex/no-store).
+- **11.4.3** Grammar & spell check via LanguageTool proxy + LLM fallback for bn-BD.
+- **11.4.4** AI rewrite / simplify / translate extending the existing AIAssistantModal.
+- **11.4.5** SEO assistant: deterministic scoring + AI rewrite with separate rate-limit bucket.
+- **11.4.6** Shared 5-step wizard + 10 s-idle autosave + conflict banner + Preview button.
+
+**Docs:** `plan/phase-11/features/F11.4.{1..6}-*.md`. **Test matrix additions:** rows 21–38 in `plan/phase-11/tests/TEST_MATRIX.md`. **Plan file:** `plan/phase-11/PHASE_11_PLAN.md` section 11.4. **QA review:** `.puku/plans/phase_11_4_product_editor_77ff9c3e.review.md`. **Original plan:** `.puku/plans/phase_11_4_product_editor_77ff9c3e.plan.md`.
+
+**Gateway-side change required before client code:** New idempotent `PUT /api/products/:id/images` + migration `00010_product_image_dedup.sql`. Without gateway access, F11.4.1 cannot be completed.
+
+**Feature flags introduced:** `NEXT_PUBLIC_PRODUCT_EDITOR_V2`, `FEATURE_GRAMMAR`, `FEATURE_LLM_GRAMMAR`, `FEATURE_AI_REWRITE`, `FEATURE_SEO_ASSISTANT`, `FEATURE_AUTOSAVE`, `FEATURE_PREVIEW_BUTTON`, `FEATURE_PREVIEW_TOKEN`.
+
+**New env vars:** `MYSQL_PREVIEW_SECRET`, `LANGUAGETOOL_API_URL`.
+
 ### Phase 12: Product Review System
 **Goal:** Let shoppers submit reviews from the public product page and give admins a moderation queue.
 **Duration estimate:** 1 sprint
@@ -593,6 +613,7 @@ Phase 1 (Foundation)
 | Phase 9 — Admin ASIN Import & Scheduled Publishing | [phase-9/PHASE_9_PLAN.md](phase-9/PHASE_9_PLAN.md) | ✅ Complete |
 | Phase 10 — Public UI Redesign | [phase-10/PHASE_10_PLAN.md](phase-10/PHASE_10_PLAN.md) | ✅ Complete |
 | Phase 11 — Rich Product Form + Approval Workflow | [phase-11/PHASE_11_PLAN.md](phase-11/PHASE_11_PLAN.md) | 🚧 In Progress |
+| Phase 11.5 — Orphan Upload Cleanup (F11.5, shipped inside Phase 11) | [phase-11/features/F11.5-orphan-upload-cleanup.md](phase-11/features/F11.5-orphan-upload-cleanup.md) | ✅ Complete |
 | Phase 12 — Product Review System | [phase-12/PHASE_12_PLAN.md](phase-12/PHASE_12_PLAN.md) | 📋 Planned |
 | Phase 13 — Media Manager (Supabase Storage) | [phase-13/PHASE_13_PLAN.md](phase-13/PHASE_13_PLAN.md) | 📋 Planned |
 | Phase 14 — Blog System (SEO-Driven) | [phase-14/PHASE_14_PLAN.md](phase-14/PHASE_14_PLAN.md) | 🚧 In Progress |
