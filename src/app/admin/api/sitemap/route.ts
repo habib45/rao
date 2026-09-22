@@ -15,8 +15,8 @@ import {
 } from "@/lib/sitemap/storage";
 
 const DEFAULT_BASE_URL = "https://raofinds.com";
-const BASE_URL = isSafeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL)
-  ? process.env.NEXT_PUBLIC_SITE_URL
+const BASE_URL = isSafeBaseUrl(process.env.PUBLIC_SITEMAP_URL)
+  ? process.env.PUBLIC_SITEMAP_URL
   : DEFAULT_BASE_URL;
 
 
@@ -189,7 +189,7 @@ async function handleGetConfig() {
     return NextResponse.json({
       baseUrl: BASE_URL,
       lastGenerated: null,
-      isAutoDetected: !process.env.NEXT_PUBLIC_SITE_URL,
+      isAutoDetected: !process.env.PUBLIC_SITEMAP_URL,
     });
   }
 }

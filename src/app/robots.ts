@@ -5,8 +5,8 @@ import { isSafeBaseUrl } from "@/lib/sitemap/utils";
 
 export const revalidate = 3600;
 
-const BASE_URL = isSafeBaseUrl(process.env.NEXT_PUBLIC_SITE_URL)
-  ? process.env.NEXT_PUBLIC_SITE_URL
+const BASE_URL = isSafeBaseUrl(process.env.PUBLIC_SITEMAP_URL)
+  ? process.env.PUBLIC_SITEMAP_URL
   : "https://raofinds.com";
 
 const DEFAULT_RULES: RobotsRule[] = [

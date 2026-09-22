@@ -15,7 +15,7 @@ import {
 export const revalidate = 3600;
 
 const DEFAULT_BASE_URL = "https://raofinds.com";
-const ENV_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL;
+const ENV_BASE_URL = process.env.PUBLIC_SITEMAP_URL;
 const locales: LocaleCode[] = ["en", "bn-BD", "sv"];
 
 async function getBaseUrl(): Promise<string> {

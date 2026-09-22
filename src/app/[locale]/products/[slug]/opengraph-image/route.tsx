@@ -65,6 +65,7 @@ export async function GET(
               marginRight: "60px",
             }}
           >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={primaryImage.url}
               alt={name}

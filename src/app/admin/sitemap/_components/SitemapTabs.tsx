@@ -50,7 +50,7 @@ export function SitemapTabs() {
             </TabsList>
             <div className="flex items-center gap-2">
               <SitemapUrlManager config={config} onConfigChange={loadConfig} loading={loading} />
-              <RegenerateButton />ss
+              <RegenerateButton />
             </div>
           </div>
 

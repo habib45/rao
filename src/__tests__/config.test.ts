@@ -28,6 +28,7 @@ describe("Project Configuration", () => {
       "utf-8"
     );
     expect(envExample).toContain("NEXT_PUBLIC_SITE_URL");
+    expect(envExample).toContain("PUBLIC_SITEMAP_URL");
     expect(envExample).toContain("MYSQL_API_URL");
     expect(envExample).toContain("MYSQL_API_SECRET");
     expect(envExample).toContain("MYSQL_API_JWT_TOKEN");

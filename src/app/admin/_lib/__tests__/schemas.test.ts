@@ -427,7 +427,7 @@ describe("translationUpdateSchema", () => {
 
 // ─── sitemapCustomEntrySchema ────────────────────────────────────────────────
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
+const SITE_URL = process.env.PUBLIC_SITEMAP_URL ?? "https://raofinds.com";
 
 const validCustomEntry = {
   url: `${SITE_URL}/en/deals`,
