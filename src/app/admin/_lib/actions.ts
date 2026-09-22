@@ -10,9 +10,14 @@ export async function signOut() {
   const token = cookieStore.get("admin_token")?.value;
 
   if (token) {
+    // Forward the *signed* JWT (no longer the literal "authenticated" string)
+    // so the gateway can match it against its own session store.
     await fetch(`${MYSQL_API_URL}/api/auth/logout`, {
       method: "POST",
       headers: { Cookie: `admin_token=${token}` },
+    }).catch(() => {
+      // Best-effort: even if the gateway call fails, we still clear the
+      // local session and redirect.
     });
   }
 

@@ -1,9 +1,13 @@
 import type { MetadataRoute } from "next";
 import type { RobotsRule } from "@/app/admin/_lib/schemas/sitemap";
+import { ROBOTS_CONFIG_PATH } from "@/lib/sitemap/storage";
+import { isSafeBaseUrl } from "@/lib/sitemap/utils";
 
 export const revalidate = 3600;
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://raofinds.com";
+const BASE_URL = isSafeBaseUrl(process.env.PUBLIC_SITEMAP_URL)
+  ? process.env.PUBLIC_SITEMAP_URL
+  : "https://raofinds.com";
 
 const DEFAULT_RULES: RobotsRule[] = [
   { 
@@ -26,10 +30,9 @@ const DEFAULT_RULES: RobotsRule[] = [
 ];
 
 async function fetchRobotsRules(): Promise<RobotsRule[]> {
-  const robotsConfigPath = process.cwd() + "/public/robots-config.json";
   try {
     const fs = await import("fs/promises");
-    const content = await fs.readFile(robotsConfigPath, "utf-8");
+    const content = await fs.readFile(ROBOTS_CONFIG_PATH, "utf-8");
     const data = JSON.parse(content) as { rules: RobotsRule[] };
     return data.rules;
   } catch {

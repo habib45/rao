@@ -24,8 +24,102 @@ This replaces the implicit `is_active` toggle that Phase 8/9 used. `product_stat
 | 11.1 | Product Status Workflow | [features/F11.1-product-status-workflow.md](features/F11.1-product-status-workflow.md) |
 | 11.2 | Rich Text Editor (TipTap) | [features/F11.2-rich-text-editor.md](features/F11.2-rich-text-editor.md) |
 | 11.3 | Product Creation Form | [features/F11.3-product-creation-form.md](features/F11.3-product-creation-form.md) |
-
+| 11.4 | Product Editor Revamp | [features/F11.4.1-image-round-trip-and-dedup.md](features/F11.4.1-image-round-trip-and-dedup.md) · [2](features/F11.4.2-preview-with-signed-token.md) · [3](features/F11.4.3-grammar-and-spell-check.md) · [4](features/F11.4.4-ai-rewrite-and-translate.md) · [5](features/F11.4.5-seo-assistant.md) · [6](features/F11.4.6-wizard-and-autosave.md) ||| 11.5 | Orphan Upload Cleanup | [features/F11.5-orphan-upload-cleanup.md](features/F11.5-orphan-upload-cleanup.md) |
 Test matrix: [tests/TEST_MATRIX.md](tests/TEST_MATRIX.md)
+
+---
+
+## Section 11.4 — Product Editor Revamp (Drafted, Not Implemented)
+
+**Status:** 📋 Documented, awaiting scope approval + gateway access before implementation. See `.puku/plans/phase_11_4_product_editor_77ff9c3e.plan.md` and `.review.md`.
+
+**Motivation.** Admin users reported three pain points in the existing edit form:
+
+1. "Removed image reappears on save" — root cause is the DELETE+POST N+1 loop in `src/app/admin/api/products/[id]/route.ts` (lines 47–56).
+2. No way to preview the public page for drafts, rejected, or scheduled products.
+3. No grammar / SEO guidance inside the editor.
+
+**Sub-features (docs above):**
+
+| ID | Sub-feature | Doc |
+|---|---|---|
+| 11.4.1 | Image round-trip fix + perceptual dedup (dHash + color histogram) | F11.4.1 |
+| 11.4.2 | Public preview via signed-token HMAC (15-min, userId-bound, locale-aware) | F11.4.2 |
+| 11.4.3 | Grammar & spell check via LanguageTool proxy + LLM fallback for bn-BD | F11.4.3 |
+| 11.4.4 | AI rewrite / simplify / translate extending the existing AIAssistantModal | F11.4.4 |
+| 11.4.5 | SEO assistant: deterministic scoring + AI rewrite, separate rate-limit bucket | F11.4.5 |
+| 11.4.6 | Shared 5-step wizard + 10 s-idle autosave + conflict banner + Preview button | F11.4.6 |
+
+**Acceptance for 11.4:**
+
+- [ ] Removed image never reappears on save (regression test for the DELETE+POST loop).
+- [ ] Same image pasted twice is detected as duplicate before the second row is added.
+- [ ] `(product_id, phash)` UNIQUE constraint rejects duplicate rows at the database layer.
+- [ ] Preview works for any `product_status` and any of the 3 locales, with a visible "Preview mode" banner.
+- [ ] Preview URLs expire in 15 min and are rejected by the public route after expiry or tampering.
+- [ ] Preview responses carry `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`; OG cards are not generated.
+- [ ] "Check grammar" surfaces suggestions as editor decorations that the admin can apply per range.
+- [ ] AI rewrite / simplify / translate preserve HTML structure (headings, lists, tables, wizard/comparison blocks).
+- [ ] SEO panel shows a deterministic 0–100 score per locale and a "Suggest rewrite" AI action behind its own rate-limit bucket.
+- [ ] Wizard steps persist in the URL (`?step=N`) and form values persist via `sessionStorage`.
+- [ ] Autosave fires only after 10 s idle with a hard cap of 1 save / 10 s.
+- [ ] Conflict detected when server `updated_at` moves underneath the client; banner offers Reload or Keep mine.
+- [ ] All new copy is shipped in `messages/en.json`, `messages/bn-BD.json`, `messages/sv.json` (parity enforced by `node scripts/check-locale-parity.mjs`).
+- [ ] Feature flag `NEXT_PUBLIC_PRODUCT_EDITOR_V2` (default `false` for one release) gates the wizard; legacy tabs remain usable.
+
+**Gateways / external dependencies introduced:**
+
+| Env var | Purpose | Where used |
+|---|---|---|
+| `MYSQL_PREVIEW_SECRET` | HMAC key for signed preview tokens | F11.4.2 |
+| `LANGUAGETOOL_API_URL` | Grammar proxy (default `https://api.languagetool.org/v2`) | F11.4.3 |
+| `NEXT_PUBLIC_PRODUCT_EDITOR_V2` | Wizard toggle | F11.4.6 |
+| `FEATURE_GRAMMAR` | Toolbar button toggle | F11.4.3 |
+| `FEATURE_LLM_GRAMMAR` | LLM fallback for grammar | F11.4.3 |
+| `FEATURE_AI_REWRITE` | Modal rewrite/simplify/translate | F11.4.4 |
+| `FEATURE_SEO_ASSISTANT` | SEO panel toggle | F11.4.5 |
+| `FEATURE_AUTOSAVE` | Autosave hook toggle | F11.4.6 |
+| `FEATURE_PREVIEW_BUTTON` | Preview button toggle | F11.4.2 |
+| `FEATURE_PREVIEW_TOKEN` | Middleware bypass toggle | F11.4.2 ||| `FEATURE_REMOVE_ORPHAN_UPLOADS` | Unlink orphan files on product save | F11.5 |
+**Gateway-side change required before client code lands:** A new idempotent `PUT /api/products/:id/images` on the MySQL API Gateway, plus migration `00010_product_image_dedup.sql`. Until the gateway change ships, the DELETE+POST loop persists and F11.4.1 cannot be marked complete.
+
+**Test matrix (new rows):** rows 1–15 in `tests/TEST_MATRIX.md`.
+
+**Rollback strategy:** All features are env-gated. Disabling every `FEATURE_*` flag returns behavior to pre-11.4. The feature flag `NEXT_PUBLIC_PRODUCT_EDITOR_V2=false` keeps the legacy tab UI live for one release cycle.
+
+---
+
+## Section 11.5 — Orphan Upload Cleanup (Implemented)
+
+**Status:** ✅ Shipped June 2026. See [features/F11.5-orphan-upload-cleanup.md](features/F11.5-orphan-upload-cleanup.md).
+
+**Motivation.** Removing an image from a product in the editor used to delete only the `product_images` row; the physical file under `public/uploads/products/...` was left as an orphan. After many edits, this builds up silently and is invisible to admins.
+
+**Approach.** Pure helper `removeOrphanUploads({ previous, next })` diffs URL lists and unlinks dropped local files. Called from the PATCH route after the gateway write succeeds. External URLs (Amazon CDN), path-traversal attempts, and ENOENT are all no-ops. Files that may be shared across products are preserved unless an `isUrlStillReferenced` oracle proves otherwise. Errors are logged but never bubble — the save has already succeeded.
+
+**Acceptance for 11.5:**
+
+- [x] `src/lib/uploads/remove-orphan-uploads.ts` exports `removeOrphanUploads`, `isRemoveOrphanUploadsEnabled`, `resolveSafeUploadPath`.
+- [x] PATCH route captures previous image URLs from `GET /api/products/:id` BEFORE the gateway write.
+- [x] After the existing DELETE+POST loop, if `FEATURE_REMOVE_ORPHAN_UPLOADS=true`, the helper is called and the outcome is logged via `console.info("[product-images] orphan cleanup", ...)`.
+- [x] Helper rejects URLs that resolve outside `public/uploads/`, contain null bytes, or contain `%2e%2e` segments.
+- [x] External URLs (`https://...`) are placed in `externalIgnored[]` and never touched.
+- [x] ENOENT is treated as success; file already gone is not an error.
+- [x] When `isUrlStillReferenced` is not provided, shared-looking URLs are placed in `preservedShared[]` (conservative default).
+- [x] `vitest run src/lib/uploads/__tests__/remove-orphan-uploads.test.ts` → 16/16 passing.
+- [x] `npx tsc --noEmit` → 0 errors in changed files (3 unrelated pre-existing errors in `.next/types/**`).
+- [x] `npx eslint src/lib/uploads src/app/admin/api/products/[id]/route.ts --max-warnings 0` → 0 warnings, 0 errors.
+- [x] Full Vitest suite shows no regression: 552 pass, 11 fail — same 11 fail on the pristine tree (verified via `git stash` round-trip), confirming these are pre-existing issues in `schemas.test.ts`, `messages.test.ts`, `RichTextEditor.test.tsx`.
+
+**Gateway / external dependency:** None. The helper is filesystem-only. A future enhancement may add a gateway endpoint to support the `isUrlStillReferenced` oracle for cross-product safety.
+
+**Test matrix (new rows):** rows 39–54 in `tests/TEST_MATRIX.md`.
+
+**Rollback strategy:** Set `FEATURE_REMOVE_ORPHAN_UPLOADS=false` (or unset). The PATCH handler returns to its previous behavior — files are never unlinked, rows are still replaced. The helper itself remains compiled but is dormant.
+
+**Observability:** Structured log line `[product-images] orphan cleanup` carries the full `RemoveOrphanOutcome` for every save that triggered any work. Watch for `unlinked.length > 10` per save (mass deletion) and any non-empty `failed[]` array.
+
+**Observability:** Structured logs `{ event: "product.autosave", productId, durationMs, byteSize, userId }`, `{ event: "product.preview_token.issued", productId, userId, locale }`, `{ event: "product.grammar.checked", userId, suggestionCount }`. Soft-throttle anomalies: > 20 autosaves / min / user, > 100 grammar calls / min.
 
 ---
 

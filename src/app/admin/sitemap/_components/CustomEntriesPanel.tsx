@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { Button } from "@/app/admin/_components/ui/button";
 import { Skeleton } from "@/app/admin/_components/ui/skeleton";
 import { CHANGEFREQ_VALUES } from "@/app/admin/_lib/schemas/sitemap";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://bestfinds.com";
+const SITE_URL = "https://raofinds.com";
 
 type Entry = {
   id: string;
@@ -45,6 +45,37 @@ export function CustomEntriesPanel() {
   const [editing, setEditing] = useState<Entry | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [urlError, setUrlError] = useState("");
+  const [currentBaseUrl, setCurrentBaseUrl] = useState(SITE_URL);
+
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const res = await fetch("/admin/api/sitemap?action=config");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.baseUrl) {
+            setCurrentBaseUrl(data.baseUrl);
+            setForm(prev => ({ ...prev, url: data.baseUrl + "/" }));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load sitemap config:", error);
+      }
+    }
+    loadConfig();
+  }, []);
+
+  const validateUrl = (url: string): string => {
+    if (!url.startsWith(currentBaseUrl)) {
+      return `URL must start with ${currentBaseUrl}`;
+    }
+    try {
+      new URL(url);
+    } catch {
+      return "Invalid URL format";
+    }
+    return "";
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ["sitemap-custom"],
@@ -174,8 +205,10 @@ export function CustomEntriesPanel() {
             <input
               type="url"
               required
+              placeholder={`${currentBaseUrl}/page`}
               value={form.url}
               onChange={(e) => { setForm((f) => ({ ...f, url: e.target.value })); setUrlError(""); }}
+              onBlur={() => setUrlError(validateUrl(form.url))}
               className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
             {urlError && <p className="mt-1 text-xs text-red-500">{urlError}</p>}

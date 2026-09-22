@@ -1,4 +1,4 @@
-# ORH / BestFinds - Multi-locale Amazon Affiliate E-Commerce Platform
+# ORH - Multi-locale Amazon Affiliate E-Commerce Platform
 
 A modern, performant Amazon affiliate e-commerce platform built with Next.js 15, React 19, and TypeScript. Features multi-locale support, product curation, blog system, and comprehensive admin panel.
 
@@ -81,10 +81,10 @@ Create `.env.local` with required variables:
 # Public (client-safe)
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 NEXT_PUBLIC_MYSQL_API_URL=http://localhost:4000
-NEXT_PUBLIC_MYSQL_API_JWT_TOKEN=your-jwt-token
 
-# Server-only (secret)
+# Server-only (secret — never NEXT_PUBLIC_)
 MYSQL_API_SECRET=your-api-secret
+MYSQL_API_JWT_TOKEN=your-jwt-token
 MYSQL_JWT_SECRET=your-jwt-secret
 AMAZON_ACCESS_KEY=your-amazon-access-key
 AMAZON_SECRET_KEY=your-amazon-secret-key

@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/app/admin/_lib/auth";
+import { withAdmin, EDITOR_OR_ADMIN } from "@/app/admin/_lib/with-admin";
 import { z } from "zod";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { generateSeoFilename, sanitizeFilename } from "@/lib/utils/slug";
+import { assertSafeUrl, SsrfError } from "@/lib/api/ssrf";
+import { badRequest } from "@/lib/api/errors";
 
 const downloadImagesSchema = z.object({
   images: z.array(z.object({
     src: z.string().url("Invalid image URL"),
-    alt: z.string().optional(),
-    title: z.string().optional(),
+    alt: z.string().max(500).optional(),
+    title: z.string().max(500).optional(),
   })).max(10, "Maximum 10 images per request"),
-  blogTitle: z.string().min(1, "Blog title is required"),
+  blogTitle: z.string().min(1, "Blog title is required").max(300),
 });
 
 // Allowed image MIME types
@@ -79,95 +81,88 @@ async function downloadImage(url: string, timeout: number = DOWNLOAD_TIMEOUT): P
   }
 }
 
-export async function POST(request: NextRequest) {
-  await requireAdmin();
-
+export const POST = withAdmin(async (request: NextRequest) => {
+  let body: unknown;
   try {
-    const body = await request.json();
-    const parsed = downloadImagesSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Validation failed", issues: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    const { images, blogTitle } = parsed.data;
-
-    // Create upload directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'blog');
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (err) {
-      console.error('Failed to create upload directory:', err);
-    }
-
-    const downloaded: Array<{
-      originalUrl: string;
-      path: string;
-      publicUrl: string;
-      alt: string;
-      title: string;
-    }> = [];
-
-    const failed: Array<{
-      url: string;
-      error: string;
-    }> = [];
-
-    // Download images sequentially to avoid overwhelming the server
-    for (const image of images) {
-      try {
-        // Validate URL protocol
-        const imageUrl = new URL(image.src);
-        if (!['http:', 'https:'].includes(imageUrl.protocol)) {
-          throw new Error('Invalid URL protocol');
-        }
-
-        // Download image
-        const { buffer, extension } = await downloadImage(image.src);
-
-        // Generate SEO-friendly filename
-        const filename = generateSeoFilename(blogTitle, extension);
-        const sanitizedFilename = sanitizeFilename(filename);
-
-        // Save to disk
-        const filePath = join(uploadDir, sanitizedFilename);
-        await writeFile(filePath, buffer);
-
-        // Public URL
-        const publicUrl = `/uploads/blog/${sanitizedFilename}`;
-
-        downloaded.push({
-          originalUrl: image.src,
-          path: filePath,
-          publicUrl,
-          alt: image.alt || '',
-          title: image.title || '',
-        });
-
-      } catch (error) {
-        console.error(`Failed to download ${image.src}:`, error);
-        failed.push({
-          url: image.src,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      downloaded,
-      failed,
-      message: `Downloaded ${downloaded.length} of ${images.length} images`,
-    });
-
-  } catch (error) {
-    console.error("Image download error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    body = await request.json();
+  } catch {
+    return badRequest({ reason: "Invalid JSON body" });
   }
-}
+
+  const parsed = downloadImagesSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest({ issues: parsed.error.flatten() });
+  }
+
+  const { images, blogTitle } = parsed.data;
+
+  // Create upload directory if it doesn't exist
+  const uploadDir = join(process.cwd(), "public", "uploads", "blog");
+  try {
+    await mkdir(uploadDir, { recursive: true });
+  } catch (err) {
+    console.error("Failed to create upload directory:", err);
+  }
+
+  const downloaded: Array<{
+    originalUrl: string;
+    path: string;
+    publicUrl: string;
+    alt: string;
+    title: string;
+  }> = [];
+
+  const failed: Array<{
+    url: string;
+    error: string;
+  }> = [];
+
+  // Download images sequentially to avoid overwhelming the server.
+  for (const image of images) {
+    try {
+      // SSRF guard — refuse internal / private network addresses.
+      let safe: URL;
+      try {
+        safe = await assertSafeUrl(image.src);
+      } catch (e) {
+        if (e instanceof SsrfError) throw e;
+        throw e;
+      }
+
+      // Download image
+      const { buffer, extension } = await downloadImage(safe.toString());
+
+      // Generate SEO-friendly filename
+      const filename = generateSeoFilename(blogTitle, extension);
+      const sanitizedFilename = sanitizeFilename(filename);
+
+      // Save to disk
+      const filePath = join(uploadDir, sanitizedFilename);
+      await writeFile(filePath, buffer);
+
+      // Public URL - use relative path to avoid domain issues
+      const publicUrl = `/uploads/blog/${sanitizedFilename}`;
+
+      downloaded.push({
+        originalUrl: image.src,
+        path: filePath,
+        publicUrl,
+        alt: image.alt || "",
+        title: image.title || "",
+      });
+    } catch (error) {
+      console.error(`Failed to download ${image.src}:`, error);
+      failed.push({
+        url: image.src,
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    downloaded,
+    failed,
+    message: `Downloaded ${downloaded.length} of ${images.length} images`,
+  });
+}, EDITOR_OR_ADMIN);

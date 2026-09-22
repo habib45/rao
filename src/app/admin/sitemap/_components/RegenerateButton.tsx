@@ -4,8 +4,10 @@ import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/app/admin/_components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function RegenerateButton() {
+  const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
 
   async function handleRegenerate() {
@@ -14,6 +16,9 @@ export function RegenerateButton() {
       const res = await fetch("/admin/api/sitemap/revalidate", { method: "POST" });
       if (!res.ok) throw new Error("Failed to revalidate");
       toast.success("Sitemap cache cleared. Changes appear on the next visit.");
+      // Invalidate queries to refresh the data
+      qc.invalidateQueries({ queryKey: ["sitemap-preview"] });
+      qc.invalidateQueries({ queryKey: ["sitemap-exclusions"] });
     } catch {
       toast.error("Failed to regenerate sitemap.");
     } finally {

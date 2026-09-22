@@ -20,9 +20,19 @@ export function Dialog({ open, onClose, children, className, title }: DialogProp
     if (!dialog) return;
 
     if (open && !dialog.open) {
-      dialog.showModal();
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        // jsdom / non-browser environments lack HTMLDialogElement#showModal.
+        // Mark the dialog as open so consumers can still inspect it.
+        (dialog as HTMLDialogElement & { open: boolean }).open = true;
+      }
     } else if (!open && dialog.open) {
-      dialog.close();
+      if (typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        (dialog as HTMLDialogElement & { open: boolean }).open = false;
+      }
     }
   }, [open]);
 

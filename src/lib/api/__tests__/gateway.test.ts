@@ -30,7 +30,8 @@ import {
 
 // Mock the environment variable
 process.env.NEXT_PUBLIC_MYSQL_API_URL = "http://localhost:4000";
-process.env.MYSQL_API_SECRET = "change-me-in-production";
+process.env.MYSQL_API_SECRET = "test-secret";
+process.env.MYSQL_API_JWT_TOKEN = "test-jwt";
 
 vi.mock("server-only", () => ({}));
 
@@ -51,7 +52,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
           next: expect.objectContaining({ revalidate: 60 }),
         }),
       );
@@ -106,7 +109,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -127,7 +132,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -148,7 +155,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -198,7 +207,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -244,7 +255,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -265,7 +278,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -286,7 +301,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/products"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -329,7 +346,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -360,7 +379,7 @@ describe("gateway.ts", () => {
       const result = await gwGetPublishedBlogPosts(20, 0);
       expect(result).toHaveLength(1);
       expect(result[0]?.blog_post_tags).toHaveLength(2);
-      const tagName = result[0]?.blog_post_tags[0]?.blog_tags?.name;
+      const tagName = result[0]?.blog_post_tags?.[0]?.blog_tags?.name;
       expect(tagName).toBe("Technology");
     });
 
@@ -374,7 +393,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -389,7 +410,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -404,7 +427,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -526,7 +551,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog/posts"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -547,7 +574,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog/posts/post-123/comments"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -603,7 +632,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/blog/categories"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -626,7 +657,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/categories"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });
@@ -647,7 +680,9 @@ describe("gateway.ts", () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/categories"),
         expect.objectContaining({
-          headers: {},
+          headers: expect.objectContaining({
+            Authorization: expect.stringContaining("Bearer "),
+          }),
         }),
       );
     });

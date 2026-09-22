@@ -77,7 +77,8 @@
     "price_disclaimer_body": "পণ্যের দাম এবং প্রাপ্যতা নির্দেশিত তারিখ/সময় অনুযায়ী সঠিক এবং পরিবর্তনের সাপেক্ষে। কেনাকাটার সময় Amazon-এ প্রদর্শিত যেকোনো মূল্য এবং প্রাপ্যতার তথ্য প্রযোজ্য হবে।",
     "contact_title": "প্রশ্ন আছে?",
     "contact_body": "আমাদের অ্যাফিলিয়েট সম্পর্ক বা আমরা কীভাবে অর্থ উপার্জন করি সে সম্পর্কে আপনার কোনো প্রশ্ন থাকলে, অনুগ্রহ করে আমাদের সাথে যোগাযোগ করুন।",
-    "last_updated": "সর্বশেষ আপডেট: এপ্রিল ২০২৬"
+    "last_updated": "সর্বশেষ আপডেট: এপ্রিল ২০২৬",
+    "contact_email": "hello@raofinds.com"
   },
   "termsOfService": {
     "meta_title": "সেবা শর্তাবলী — RaoFinds",
@@ -108,7 +109,8 @@
     "changes_body": "আমরা যেকোনো সময় এই সেবা শর্তাবলী পরিবর্তন করার অধিকার সংরক্ষণ করি। পরিবর্তনগুলি পোস্ট করার সাথে সাথে কার্যকর হবে। পরিবর্তনের পরে আমাদের পরিষেবাগুলি অব্যাহত ব্যবহার নতুন শর্তাবলী গ্রহণ হিসাবে গণ্য হবে।",
     "contact_title": "আমাদের সাথে যোগাযোগ করুন",
     "contact_body": "এই সেবা শর্তাবলী সম্পর্কে আপনার কোনো প্রশ্ন থাকলে, দয়া করে আমাদের সাথে যোগাযোগ করুন:",
-    "contact_email": "hello@raofinds.com"
+    "contact_email": "hello@raofinds.com",
+    "governing_law_body": "These Terms of Service shall be governed by and construed in accordance with the laws of the jurisdiction in which RaoFinds operates, without regard to its conflict of law provisions."
   },
   "privacyPolicy": {
     "meta_title": "গোপনীয়তা নীতি — RaoFinds",
@@ -150,5 +152,29 @@
     "tags": "ট্যাগ",
     "share": "শেয়ার",
     "featured": "বৈশিষ্ট্যযুক্ত"
+  },
+  "contact": {
+    "meta_title": "Contact Us — RaoFinds",
+    "meta_description": "Get in touch with the RaoFinds team for questions, feedback, or support. We're here to help you shop smarter.",
+    "title": "Contact Us",
+    "subtitle": "Have a question or feedback? We'd love to hear from you.",
+    "contact_info": "Contact Information",
+    "email": "Email",
+    "response_time": "Response Time",
+    "response_time_value": "Usually within 24-48 hours",
+    "location": "Location",
+    "location_value": "United States",
+    "send_message": "Send us a message",
+    "name": "Your Name",
+    "subject": "Subject",
+    "message": "Message",
+    "send": "Send Message",
+    "faq_title": "Frequently Asked Questions",
+    "faq_1_q": "How do I report a broken link?",
+    "faq_1_a": "Please use the contact form above to report any broken links or technical issues.",
+    "faq_2_q": "Can you help me find a specific product?",
+    "faq_2_a": "While we can't provide personalized shopping assistance, our curated categories and search features can help you find what you're looking for.",
+    "faq_3_q": "How do you select products?",
+    "faq_3_a": "We evaluate products based on customer ratings, verified reviews, value for money, and long-term durability. See our About page for more details."
   }
 }

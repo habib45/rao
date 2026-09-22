@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, type ReactNode } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -21,6 +21,7 @@ import {
   Map,
   Mail,
   MessageSquare,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/app/admin/_lib/cn";
 
@@ -46,8 +47,17 @@ interface AdminShellProps {
 
 export function AdminShell({ children, userEmail }: AdminShellProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Show loading indicator when pathname changes
+  useEffect(() => {
+    setIsNavigating(true);
+    const timer = setTimeout(() => setIsNavigating(false), 300);
+    return () => clearTimeout(timer);
+  }, [pathname, searchParams]);
 
   // Initialize dark mode from localStorage or system preference
   useEffect(() => {
@@ -139,7 +149,11 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
 
-          <div className="flex-1" />
+          <div className="flex items-center gap-2 flex-1">
+            {isNavigating && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted" />
+            )}
+          </div>
 
           <span className="hidden text-sm text-muted sm:block">{userEmail}</span>
 

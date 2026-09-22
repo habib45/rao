@@ -1,24 +1,36 @@
-import { dirname } from "path";
 import { fileURLToPath } from "url";
+import path from "path";
 import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // Global ignores must come first so they short-circuit matching for
+  // build output, coverage reports, and the IDE/tooling assets that
+  // Next writes into `.next/` and `.puku/`.
   {
     ignores: [
       "node_modules/**",
       ".next/**",
       "out/**",
       "build/**",
+      "coverage/**",
+      ".puku/**",
       "next-env.d.ts",
+      "server.js",
+      "next.config.js",
+      "scripts/**",
+      "release/**",
+      "*.config.js",
     ],
+  },
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
     rules: {
       "@typescript-eslint/no-unused-vars": [
         "error",
