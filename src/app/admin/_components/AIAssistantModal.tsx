@@ -18,14 +18,14 @@ interface AIAssistantModalProps {
 }
 
 const MODELS = [
-  { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Groq - Free)" },
   { value: "llama-3.1-8b-instant", label: "Llama 3.1 8B (Groq - Free)" },
-  { value: "mixtral-8x7b-32768", label: "Mixtral 8x7B (Groq - Free)" },
-  { value: "gemma2-9b-it", label: "Gemma 2 9B (Groq - Free)" },
+  { value: "llama-3.3-70b-versatile", label: "Llama 3.3 70B (Groq - Free)" },
+  { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (Google - Free)" },
+  { value: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite (Google - Free)" },
+  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Google)" },
   { value: "gpt-4o-mini", label: "GPT-4o Mini (OpenAI)" },
   { value: "gpt-4o", label: "GPT-4o (OpenAI)" },
   { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
-  { value: "gemini-1.5-flash-latest", label: "Gemini 1.5 Flash (Google)" },
 ];
 
 const TONES = [

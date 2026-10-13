@@ -94,7 +94,8 @@ Additional focus for content:
 async function callAIForOptimization(prompt: string, model: string = "gemini") {
   try {
     if (model === "gemini" && GEMINI_API_KEY) {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      // Use free Gemini 3.1 Flash Lite model for optimization
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -141,7 +142,7 @@ async function callAIForOptimization(prompt: string, model: string = "gemini") {
           "Authorization": `Bearer ${GROQ_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "llama3-70b-8192",
+          model: "llama-3.1-8b-instant",
           messages: [{ role: "user", content: prompt }],
           temperature: 0.3,
           max_tokens: 1024,

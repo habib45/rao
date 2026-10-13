@@ -10,7 +10,7 @@ const aiContentSchema = z.object({
   length: z.enum(["short", "medium", "long"]).default("medium"),
   locale: z.enum(["en", "bn-BD", "sv"]).default("en"),
   existingContent: z.string().optional(),
-  aiModel: z.enum(["gpt-4", "gpt-3.5-turbo", "claude-3", "gemini-pro", "groq"]).default("groq"),
+  aiModel: z.enum(["gpt-4", "gpt-3.5-turbo", "claude-3", "gemini-pro", "gemini-3-flash", "gemini-3.1-flash-lite", "groq"]).default("groq"),
 });
 
 const MYSQL_API_URL = process.env.MYSQL_API_URL ?? "http://localhost:4000";
@@ -454,7 +454,7 @@ async function callAI(prompt: string, aiModel: string = "gpt-4") {
     let provider = "groq"; // Default to Groq since it's the only working API
     if (aiModel === "gpt-4" || aiModel === "gpt-3.5-turbo") {
       provider = "openai";
-    } else if (aiModel === "gemini-pro") {
+    } else if (aiModel === "gemini-pro" || aiModel === "gemini-3-flash" || aiModel === "gemini-3.1-flash-lite") {
       provider = "gemini";
     } else if (aiModel === "groq") {
       provider = "groq";
@@ -466,7 +466,14 @@ async function callAI(prompt: string, aiModel: string = "gpt-4") {
     if (provider === "gemini" && GEMINI_API_KEY) {
       try {
         console.log("Trying Gemini API...");
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        // Map model name to Gemini API endpoint
+        const geminiModel = aiModel === "gemini-3-flash" 
+          ? "gemini-3-flash-preview"
+          : aiModel === "gemini-3.1-flash-lite"
+          ? "gemini-3.1-flash-lite"
+          : "gemini-1.5-flash"; // fallback for gemini-pro
+        
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${GEMINI_API_KEY}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -596,7 +603,7 @@ export async function POST(request: NextRequest) {
     
     if (!result.success) {
       // Fallback to other providers if selected model fails
-      const fallbackModels = ["groq", "gemini-pro", "gpt-3.5-turbo", "gpt-4"].filter(m => m !== aiModel);
+      const fallbackModels = ["groq", "gemini-3-flash", "gemini-3.1-flash-lite", "gemini-pro", "gpt-3.5-turbo", "gpt-4"].filter(m => m !== aiModel);
       
       for (const fallbackModel of fallbackModels) {
         const fallbackResult = await callAI(prompt, fallbackModel);

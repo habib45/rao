@@ -124,7 +124,8 @@ async function callGemini(prompt: string): Promise<string> {
     throw new Error("Gemini API key not configured");
   }
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+  // Use free Gemini 3 Flash model
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -214,7 +215,7 @@ async function callGroq(prompt: string): Promise<string> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "mixtral-8x7b-32768",
+      model: "llama-3.1-8b-instant",
       messages: [{
         role: "user",
         content: prompt

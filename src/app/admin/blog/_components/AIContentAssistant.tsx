@@ -25,10 +25,12 @@ interface AIContentAssistantProps {
 
 const AI_MODELS = [
   { id: "groq", name: "Groq (Llama 3.1)", description: "Fast and free - recommended", provider: "Groq" },
+  { id: "gemini-3-flash", name: "Gemini 3 Flash", description: "Google's free model with free tier", provider: "Google" },
+  { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite", description: "Lightweight and free model", provider: "Google" },
+  { id: "gemini-pro", name: "Gemini Pro", description: "Google's model for SEO content", provider: "Google" },
   { id: "gpt-4", name: "GPT-4", description: "Most capable model for complex content", provider: "OpenAI" },
   { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", description: "Fast and cost-effective", provider: "OpenAI" },
-  { id: "claude-3", name: "Claude 3", description: "Great for structured content", provider: "Anthropic" },
-  { id: "gemini-pro", name: "Gemini Pro", description: "Google's model for SEO content", provider: "Google" }
+  { id: "claude-3", name: "Claude 3", description: "Great for structured content", provider: "Anthropic" }
 ];
 
 export function AIContentAssistant({ 
